@@ -29,7 +29,14 @@ export function ReportsMockProvider({ children, me }: { children: ReactNode; me:
       if (r.moderation === 'hidden' || r.expiresAt <= now) continue;
       const published = now - r.createdAt >= MODERATION_DELAY_MS;
       if (!published && !state.submitters[r.id]?.includes(me)) continue;
-      reports.push({ ...r, moderation: published ? 'published' : 'pending' });
+      const dc = r.disputeCount ?? 0;
+      reports.push({
+        ...r,
+        disputeCount: dc,
+        updatedAt: r.updatedAt ?? r.createdAt,
+        confidence: dc > r.reportCount - 1 && dc > 0 ? 'disputed' : r.confidence,
+        moderation: published ? 'published' : 'pending',
+      });
     }
     reports.sort((a, b) => b.createdAt - a.createdAt);
     return {
@@ -71,10 +78,38 @@ export function ReportsMockProvider({ children, me }: { children: ReactNode; me:
               confidence: 'unverified',
               moderation: 'pending',
               reportCount: 1,
+              disputeCount: 0,
+              updatedAt: t,
               expiresAt: t + ttl,
               createdAt: t,
             });
             s.submitters[id] = [me];
+          });
+        },
+        async vote(reportId, kind) {
+          mutate((s) => {
+            const r = s.reports.find((x) => x.id === reportId);
+            if (!r || r.moderation === 'hidden' || r.expiresAt <= Date.now()) throw new Error('Report not found');
+            if (Date.now() - r.createdAt < MODERATION_DELAY_MS) throw new Error('Report is not published yet');
+            const votes = (s.votes ??= {});
+            const mine = (votes[reportId] ??= {});
+            if (mine[me]) throw new Error('You already voted on this report');
+            mine[me] = kind;
+            if (kind === 'dispute') r.disputeCount = (r.disputeCount ?? 0) + 1;
+            else {
+              r.reportCount += 1;
+              if (r.confidence === 'unverified') r.confidence = 'corroborated';
+            }
+            r.updatedAt = Date.now();
+          });
+        },
+        async createVenue(name, approxLat, approxLng) {
+          const clean = name.trim();
+          if (!clean) throw new Error('Venue name is required');
+          return mutate((s, nextId) => {
+            const id = 'ven' + nextId();
+            s.venues.push({ id, name: clean, approxLat, approxLng, source: 'community', verifiedAt: null });
+            return id;
           });
         },
       },

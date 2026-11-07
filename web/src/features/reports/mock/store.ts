@@ -9,6 +9,8 @@ export type StoredReport = {
   confidence: ReportConfidence;
   moderation: ReportModeration;
   reportCount: number;
+  disputeCount?: number;
+  updatedAt?: number;
   expiresAt: number;
   createdAt: number;
 };
@@ -20,6 +22,8 @@ export type MockState = {
   reports: StoredReport[];
   /** Private submitter tracking, keyed by report id. Never exposed in client objects. */
   submitters: Record<string, string[]>;
+  /** Private votes: report id -> user -> kind. */
+  votes?: Record<string, Record<string, 'corroborate' | 'dispute'>>;
 };
 
 export const STORAGE_KEY = 'safenight.mock.reports.v1';

@@ -22,3 +22,7 @@
 .reports-screen .rs-corroborated, .reports-screen .rs-verified { border-color: var(--ok); color: var(--ok); }
 .reports-screen .rs-disputed { border-color: var(--danger); color: var(--danger); }
 .reports-screen .rs-pending { border-color: var(--warn); color: var(--warn); }
+.reports-screen input[type="text"] { min-height: var(--tap); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 0.7rem; font: inherit; }
+.reports-screen .rs-verified-res { border-color: var(--ok); color: var(--ok); }
+.reports-screen .rs-community { border-style: dashed; }
+.reports-screen li .rs-row { justify-content: flex-start; }

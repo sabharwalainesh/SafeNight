@@ -35,6 +35,8 @@ export type VenueReport = {
   confidence: ReportConfidence;
   moderation: ReportModeration;
   reportCount: number;
+  disputeCount: number;
+  updatedAt: EpochMs;
   expiresAt: EpochMs;
   createdAt: EpochMs;
 };
@@ -61,6 +63,9 @@ export type ReportsApi = {
   resources: SafetyResource[];
   actions: {
     submitReport(venueId: string, category: ReportCategory, text: string): Promise<void>;
+    vote(reportId: string, kind: 'corroborate' | 'dispute'): Promise<void>;
+    /** Creates a venue (coordinates already rounded by the caller) and resolves its id. */
+    createVenue(name: string, approxLat: number, approxLng: number): Promise<string>;
   };
 };
 
