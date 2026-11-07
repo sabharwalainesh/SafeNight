@@ -4,6 +4,7 @@ import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import { PERSONAS, personaHref, type Persona } from './personas';
 import { relativeTime, shortIdentity } from './lib/format';
+import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentMockProvider } from './features/agent/mock';
 import { DemoPanel } from './features/demo-panel';
@@ -59,6 +60,7 @@ export default function App({ persona, host, dbName }: Props) {
 
       {/* Night Out can run live (VITE_NIGHTOUT_SOURCE=live); the other providers are mocks until their bindings land. */}
       <NightOutProvider persona={persona}>
+      <CurrentSessionProvider>
       <SafetyMockProvider>
       <AgentMockProvider>
       <ReportsMockProvider me={persona.id}>
@@ -95,6 +97,7 @@ export default function App({ persona, host, dbName }: Props) {
       </ReportsMockProvider>
       </AgentMockProvider>
       </SafetyMockProvider>
+      </CurrentSessionProvider>
       </NightOutProvider>
 
       <nav className="tabbar" aria-label="Primary">
