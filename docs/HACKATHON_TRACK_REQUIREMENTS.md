@@ -115,17 +115,17 @@ FastAPI and Supabase are no longer the planned core backend. LangGraph is option
 
 ## Submission checklist
 
-- [ ] Nemotron inference is connected and its exact model/endpoint is documented.
-- [ ] An event initiates a workflow without a chat prompt.
-- [ ] The agent executes multiple tool steps and adapts to an actual response or nonresponse.
-- [ ] A changed pickup point and unavailable helper trigger validated replanning rather than a fixed backup-contact script.
-- [ ] Constraint handling and user effort are evaluated against a simple rules-based baseline on unseen scenario combinations.
-- [ ] Real external integrations are demonstrated; simulations are explicitly labeled.
-- [ ] SpacetimeDB contains the core state and business logic listed above.
-- [ ] Tests cover consent revocation, unauthorized access, duplicate events, fallback escalation, and human-only resolution semantics.
-- [ ] README explains setup, environment variables, architecture, demo steps, and both track mappings.
-- [ ] The submitted GitHub repository is public and accessible without authentication.
-- [ ] Repository and demo contain no API secrets or real participant-sensitive data.
+- [ ] Nemotron inference is connected and its exact model/endpoint is documented. _Status 2026-11-07: endpoint `https://integrate.api.nvidia.com/v1/chat/completions`, default model `nvidia/nemotron-3-super-120b-a12b`, request shape and tool schemas implemented in `spacetimedb/src/lib/agent/nemotron.ts`; **not yet connected** because `NEMOTRON_API_KEY` has not been supplied. Until then the labeled simulated planner runs._
+- [x] An event initiates a workflow without a chat prompt. _Evidence: `report_concern` / `check_in` / `on_checkin_due` open the incident and insert an `agent_wake` in the same transaction; `npm run demo` shows the plan starting with no user prompt._
+- [x] The agent executes multiple tool steps and adapts to an actual response or nonresponse. _Evidence: plan v1 → follow-up timer → nonresponse → plan v2 to the backup → acknowledgment → plan v3 transport → booking → plan v4/v5 (`scripts/demo_driver_incident.mts`, `spacetimedb/src/agent.test.ts`). Currently produced by the simulated planner; the same executor runs Nemotron tool calls._
+- [ ] A changed pickup point and unavailable helper trigger validated replanning rather than a fixed backup-contact script. _Status: unavailable helper (decline/nonresponse) replans and is tested; changed pickup point replanning is not implemented._
+- [ ] Constraint handling and user effort are evaluated against a simple rules-based baseline on unseen scenario combinations. _Status: the simulated planner is that baseline; the comparison needs live Nemotron runs._
+- [ ] Real external integrations are demonstrated; simulations are explicitly labeled. _Status: Nominatim geocoding is live; OSRM is called live but blocked by TLS on the build host and recorded as a failed receipt; Twilio and Nemotron are simulated and labeled (`simulated: true` on every plan, action, and notification; UI badges). Not yet demonstrated with real keys._
+- [x] SpacetimeDB contains the core state and business logic listed above. _Evidence: 40+ tables, 50+ reducers, 20 views, 7 schedule tables, 2 scheduled procedures, 1 event table with RLS, 2 HTTP handlers in `spacetimedb/`; the client holds no business rules in live mode (`docs/ARCHITECTURE.md` §5–§9)._
+- [x] Tests cover consent revocation, unauthorized access, duplicate events, fallback escalation, and human-only resolution semantics. _Evidence: 66 module tests (`nightout`, `safety`, `agent`, `hardening` suites) plus 93 web tests; `npm test`._
+- [ ] README explains setup, environment variables, architecture, demo steps, and both track mappings. _Status: setup/env/architecture sections current; the Demo and Hackathon tracks sections (Person B) still describe the mock-only state and need refreshing._
+- [ ] The submitted GitHub repository is public and accessible without authentication. _Status: private as of 2026-11-07 (GitHub API returns 404 unauthenticated)._
+- [x] Repository and demo contain no API secrets or real participant-sensitive data. _Evidence: secrets scan on 2026-11-07 found no key-like strings; `spacetime.local.json` and `.env*` are git-ignored; demo data is fictional and labeled._
 - [ ] Full organizer rules are checked before claiming eligibility or submitting.
 
 This documentation change does not publish the repository, implement the backend, or claim either track is already satisfied.

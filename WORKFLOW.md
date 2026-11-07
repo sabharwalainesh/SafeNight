@@ -163,8 +163,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-07 — **C3-A Nemotron agent workflow complete, gate green.** `agent_job`, `agent_plan` (versioned), `agent_action` receipts (idempotency keys, `simulated` flag), `agent_wake` schedule → **scheduled procedure `agent_step`** (minimal authorized context → Nemotron chat completions with the tool allowlist when `NEMOTRON_API_KEY` is set, deterministic simulated planner otherwise or on HTTP failure → every tool call validated against participants, consent, plan version, templates, limits → receipts), `followup_timer` → `on_followup_due` (primary nonresponse → backup → hand-off to organizer), `notification` + `notification_dispatch` → scheduled procedure `deliver_notification` (Twilio when configured, simulated otherwise), `ride_plan`, transport lookup via Nominatim + OSRM outside transactions (failure → `failed` receipt with provider links, nothing invented). Human reducers: `acknowledge_assistance`, `decline_assistance`, `accept_ride_option`, `confirm_ride_booked`, `confirm_pickup`, `confirm_home` (subject only), `demo_fire_followup`, `demo_wake_agent`, `set_phone`. Views `my_agent_jobs`, `my_agent_plans`, `my_agent_actions`, `my_notifications`, `my_ride_plans`. 49/49 tests. `scripts/demo_driver_incident.mts` drives four live identities through the whole flow and passes (OSRM blocked by TLS from this host; recorded as a failed receipt). ARCHITECTURE.md §8 IMPLEMENTED with "Client notes for the agent UI".
 
+- 2026-11-07 — **C4-A complete, gate green.** Venues and venue reports (redaction, moderation, merge/corroboration, votes, 4 h expiry sweep, reporter identity private), demo-labeled safety resources, retention sweep, HTTP handlers `GET /health` and `POST /webhooks/twilio` (real HMAC-SHA1), RLS on `session_member` (the `night_session`/`driver_assignment` join filters break subscriptions and were dropped), hardening tests (prompt injection, unauthorized views, duplicate wakes, scheduler cannot resolve), admin `set_app_role`/`moderate_venue_report`/`reset_demo`, and B's asks: `delete_my_data`, `user_privacy_settings` + `set_privacy_settings` + `my_privacy_settings`, `my_rosters.leftAt`, `my_agent_jobs.followupDueAt/followupExpectedFrom`, `agent_action.resultText`, ride deep-link allowlist with `source`/`fetchedAt`. `module_meta` table fixes the cached `runtime_status` view. 66/66 module tests, 93/93 web tests, demo script PASS, RLS script PASS, CI runs the web suite.
+
 **In progress**
-- C4-A community reports, safety resources, retention, HTTP handlers, hardening tests, admin reducers.
+- C5: judge demo helpers (`demo_register_persona`, `demo_setup_group`, `demo_reset_group`), README backend section, submission checklist evidence, final live browser walk.
 
 **For B: wiring `NightOutApi` to the live bindings (C1-A is live on the local server)**
 - `useTable(tables.mySessions)` → `NightSession[]` (already excludes sessions you left). Map `id`/`sessionId` bigint → `String(id)`, `Identity` → `identity.toHexString()`, `Timestamp` → `ts.toDate().getTime()`, enum tags PascalCase → snake_case (`'LocationPrecise'` → `'location_precise'`; a tiny `tagToSnake()` helper covers all enums).
@@ -180,8 +182,12 @@ _Owner: Person A (Claude Max). Edit only this section._
 **Blockers / needs from B**
 - None.
 
+**For B (status 2026-11-07)**
+- Every binding you asked for is live: `delete_my_data`, privacy settings, `leftAt`, `followupDueAt`/`followupExpectedFrom`, `resultText`, link allowlist, `demo_fire_followup`/`demo_wake_agent`/`reset_demo`, and (C5, landing now) `demo_register_persona` + `demo_setup_group` + `demo_reset_group` + `demo_personas` view for the judge panel. CI runs `npm test -w web`.
+- Please refresh README "Demo" and "Hackathon tracks" (they still say mock-only / module in progress) and flip the default providers to live once your adapters for `AgentApi`, `ReportsApi`, `ProfileApi` exist.
+
 **Needs from the user**
-- See "Open questions" at the bottom.
+- `NEMOTRON_API_KEY` (and model confirmation) to switch the planner from simulated to live; Maincloud login if the judged demo should not run on a laptop; make the repo public before submission.
 
 **Gotchas recorded for later chunks**
 - The module entry (and anything it `export *`s) may only export Spacetime objects; keep constants/helpers in `src/lib/` and do not re-export them.
@@ -191,6 +197,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 - Query-builder semijoin: the right side must be a bare table ref; put filters on the left/source side and use `rightSemijoin` to return the other table.
 - Prefix lookups on multi-column indexes fail in the test harness; add a single-column index for the column you filter alone.
 - A `throw` rolls back the transaction, so denied actions cannot persist `audit_event` rows; `deny()` logs and throws instead.
+- Anonymous views whose read set has no table rows are cached across publishes (`runtime_status` kept reporting an old version); read at least one table row (`module_meta`).
+- Reading `test.db.*` inside a `withReducerTx` callback deadlocks the harness; read ids before the callback. `ctx.env` inside a procedure transaction throws in the harness; guard with `envOf`.
+- RLS join filters on `night_session`/`driver_assignment` publish but make every subscription to those tables fail with "Subscriptions require indexes on join columns"; only the `session_member` self-join works.
+- Enum names must not collide with a table's PascalCase type (`AppRole` → `AppRoleKind`); `UniqueIndex` has no `update`, update through the primary key; no `Array.prototype.at` under the ES2021 lib.
 
 ---
 

@@ -3,15 +3,23 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "workspaces": ["spacetimedb", "web"],
+  "workspaces": [
+    "spacetimedb",
+    "web"
+  ],
   "scripts": {
     "dev": "spacetime dev",
-    "test": "npm test -w spacetimedb",
+    "test": "npm test -w spacetimedb && npm test -w web",
     "typecheck": "npm run typecheck -w spacetimedb && npm run typecheck -w web",
     "build": "npm run build -w web",
     "generate": "spacetime generate",
     "publish:local": "spacetime publish --server local --yes",
-    "e2e": "tsx scripts/e2e.ts"
+    "e2e": "tsx scripts/e2e.ts && tsx scripts/demo_driver_incident.mts",
+    "test:module": "npm test -w spacetimedb",
+    "test:web": "npm test -w web",
+    "demo": "tsx scripts/demo_driver_incident.mts",
+    "check:rls": "tsx scripts/check_rls.mts",
+    "postpublish:local": "spacetime call safenight ensure_schedules && spacetime call safenight seed_resources"
   },
   "devDependencies": {
     "tsx": "^4.20.0",

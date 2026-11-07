@@ -17,20 +17,42 @@ The SpacetimeDB-primary architecture supersedes the original blueprint's FastAPI
 
 ## Backend and local development
 
-The backend is a SpacetimeDB 2.14 TypeScript module in `spacetimedb/`; the client is a React app in `web/`. There is no separate API server. See [WORKFLOW.md](WORKFLOW.md) for the chunk plan and who owns what, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the table, reducer, view, and tool contract.
+The backend is a SpacetimeDB 2.14 TypeScript module in `spacetimedb/`; the client is a React app in `web/`. There is no separate API server. See [WORKFLOW.md](WORKFLOW.md) for the chunk plan and who owns what, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the table, reducer, view, procedure, and tool contract (sections 5 to 9 describe what is implemented).
 
 Prerequisites: Node 22 or newer, and the [SpacetimeDB CLI](https://spacetimedb.com/install) 2.14 (`curl -sSf https://install.spacetimedb.com | sh`).
 
 ```bash
 npm install                 # once, from the repo root (npm workspaces)
 spacetime start             # local server on 127.0.0.1:3000, keep it running in its own terminal
-npm run publish:local       # build and publish the module to the local server as `safenight`
-npm run generate            # regenerate web/src/module_bindings from the module
-npm run dev -w web          # Vite dev server for the client
-npm test                    # module unit tests (in-memory SpacetimeDB datastore, no server needed)
+npm run publish:local       # build + publish the module as `safenight`, then arm schedules and seed demo resources
+npm run generate            # regenerate web/src/module_bindings from the module (committed; Person A runs it)
+npm run dev -w web          # Vite dev server for the client (defaults to mock data; see below)
+npm run test:module         # 66 module unit tests on the in-memory SpacetimeDB datastore, no server needed
+npm run test:web            # web unit tests (jsdom, Testing Library, axe-core)
+npm run demo                # drives four live identities through the full driver-concern incident
+npm run check:rls           # proves row-level security on the live server with member and outsider identities
 ```
 
-Nemotron and messaging run in **simulated mode** until their env vars are supplied; every simulated plan, message, and receipt is labeled as such in the data and the UI. See [.env.example](.env.example) for the variables and the `spacetime publish --env-only` command that sets them.
+Run the client against the live module instead of its mocks by creating `web/.env.local` (git-ignored):
+
+```bash
+VITE_NIGHTOUT_SOURCE=live
+VITE_SAFETY_SOURCE=live
+```
+
+What runs where:
+
+| Capability | Owner | Mode today |
+|---|---|---|
+| Sessions, invites, roles, explicit driver acceptance, consent grants and revocation, sharing scope | SpacetimeDB reducers and views | live |
+| Consent-scoped locations, check-ins, concern reports, incidents, immediate no-driving warning (event table with row-level security), human-only resolution | SpacetimeDB reducers, views, schedule tables | live |
+| Agent jobs, versioned plans, validated tool execution, receipts, follow-up timers, buddy nonresponse escalation, ride plans | SpacetimeDB scheduled procedures and reducers | live; planner **simulated** until `NEMOTRON_API_KEY` is set |
+| Nemotron inference | scheduled procedure `agent_step` → NVIDIA NIM chat completions with tool calling | waiting on the API key; falls back to the simulated planner |
+| Messaging | scheduled procedure `deliver_notification` → Twilio | **simulated** until `TWILIO_*` are set |
+| Transport lookup | procedure → Nominatim and OSRM, no key | live; OSRM is blocked by TLS on some hosts and is then recorded as a failed receipt |
+| Venue reports, moderation, votes, expiry, safety resources, retention, data deletion, privacy settings | SpacetimeDB reducers, views, schedule tables, HTTP handlers | live |
+
+Every simulated plan, message, and receipt carries `simulated: true` in the data, and the UI labels it. Supplying keys never changes a reducer, table, or timer, only who produced the plan text and whether an HTTP request left the host. See [.env.example](.env.example) for the variables and the `spacetime publish --env-only` command that sets them. `GET /v1/database/safenight/route/health` reports the module version and modes.
 
 ## Demo
 
