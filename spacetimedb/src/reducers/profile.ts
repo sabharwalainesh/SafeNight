@@ -18,10 +18,22 @@ export const setProfile = spacetimedb.reducer(
         avatarEmoji,
         phoneVerified: false,
         createdAt: ctx.timestamp,
+        phoneE164: '',
       });
     }
   }
 );
+
+// Self-only: E.164 phone number used for consented SMS when Twilio is configured. Empty clears it.
+export const setPhone = spacetimedb.reducer({ phoneE164: t.string() }, (ctx, { phoneE164 }) => {
+  const value = phoneE164.trim();
+  if (value.length > 0 && !/^\+[1-9]\d{6,14}$/.test(value)) {
+    throw new SenderError('Phone must be in E.164 format, like +15551234567');
+  }
+  const existing = ctx.db.userProfile.identity.find(ctx.sender);
+  if (!existing) throw new SenderError('Set up your profile first');
+  ctx.db.userProfile.identity.update({ ...existing, phoneE164: value });
+});
 
 export const addTrustedContact = spacetimedb.reducer(
   { contact: t.identity(), role: ContactRole, messagingConsent: t.bool(), priority: t.u8() },

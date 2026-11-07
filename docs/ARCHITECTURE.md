@@ -219,58 +219,121 @@ Generated bindings (`web/src/module_bindings`): `tables.visibleLocations`, `tabl
 - Actions ← `reducers.*` with `bigint` ids; `postLocation.source` is `{ tag: 'Simulated' }` for demo personas; reducer promises reject with `SenderError` carrying the strings above.
 - Deterministic path to demo: Alex `reportConcern(sessionId, samIdentity, { tag: 'PossibleConsumption' }, note)` → Sam's tab gets a `NoDrivingWarning` alert in the same transaction and `myIncidents` shows the `PossibleImpairedDriving` incident to all four personas.
 
-## 8. C3 — Nemotron agent workflow (PLANNED)
+## 8. C3 — Nemotron agent workflow (IMPLEMENTED)
 
-### Tables
+Module version `0.4.0-c3`. Everything below exists in `spacetimedb/src` (tables in `tables/agent.ts`, logic in `lib/agent/*`, procedures in `procedures/agent.ts`, human reducers in `reducers/agent.ts`, views in `views/agent.ts`) and in the generated bindings.
 
-| Table | Visibility | Columns |
+### Tables (all private; participants read them through views)
+
+| Table | Columns | Indexes / notes |
 |---|---|---|
-| `agent_job` | private | `id pk`, `incidentId unique`, `status: enum AgentJobStatus [queued, planning, waiting_for_ack, escalated, transport_pending, awaiting_home_confirmation, resolved, handed_off, cancelled]`, `planVersion: u32`, `escalationTier: u8`, `lastEvent: string`, `wakeCount: u32`, `createdAt`, `updatedAt` |
-| `agent_plan` | private | `id pk`, `jobId (btree)`, `version: u32`, `summary: string`, `stepsJson: string`, `model: string`, `simulated: bool`, `createdAt` |
-| `agent_action` | private | `id pk`, `jobId (btree)`, `planVersion`, `tool: string`, `argsJson`, `status: enum ActionStatus [proposed, rejected, executed, failed, delivered, acknowledged]`, `resultJson`, `rejectReason`, `simulated: bool`, `idempotencyKey: string unique`, `at` |
-| `agent_wake` | private, **schedule table → scheduled procedure** `agent_step` | `scheduledId`, `scheduledAt`, `jobId`, `event: string` |
-| `followup_timer` | private, schedule → reducer `on_followup_due` | `scheduledId`, `scheduledAt`, `jobId`, `expectedFrom: identity`, `tier: u8` |
-| `notification` | private | `id pk`, `incidentId`, `recipient`, `channel: enum Channel [in_app, sms, voice]`, `template: string`, `body`, `status: enum DeliveryStatus [queued, sent, delivered, failed, acknowledged]`, `providerId`, `simulated`, `createdAt`, `acknowledgedAt: option` |
-| `notification_dispatch` | private, schedule → scheduled procedure `deliver_notification` | `scheduledId`, `scheduledAt`, `notificationId` |
-| `ride_plan` | private | `id pk`, `incidentId`, `riderId`, `optionsJson`, `chosenOption`, `status: enum RideStatus [proposed, accepted, booked_by_user, pickup_confirmed, completed, cancelled]`, `confirmedBy: option<identity>`, `updatedAt` |
+| `agent_job` | `id pk autoInc`, `incidentId u64 unique`, `status: AgentJobStatus [queued, planning, waiting_for_ack, escalated, transport_pending, awaiting_home_confirmation, resolved, handed_off, cancelled]`, `planVersion u32`, `escalationTier u8`, `lastEvent string`, `wakeCount u32`, `createdAt`, `updatedAt` | `status` btree. One job per incident, created in the same transaction that opens the incident. |
+| `agent_plan` | `id pk`, `jobId`, `version u32`, `summary`, `stepsJson` (the tool calls), `model` (`nvidia/…`, `simulated-planner`, or `fallback:<reason>`), `simulated bool`, `createdAt` | `jobId` btree |
+| `agent_action` | `id pk`, `jobId`, `planVersion u32`, `tool`, `argsJson`, `status: ActionStatus [proposed, rejected, executed, failed, delivered, acknowledged]`, `resultJson`, `rejectReason`, `simulated bool`, `idempotencyKey string unique` (`${jobId}:${planVersion}:${index}:${tool}`; wake rejections use `${jobId}:wake:${scheduledId}:agent_step`), `at` | `jobId` btree. Every proposed tool call gets exactly one receipt. |
+| `agent_wake` | schedule → **procedure** `agent_step`. `scheduledId`, `scheduledAt`, `jobId`, `event string`, `planVersion u32` (0 = any) | `jobId` btree. Events: `incident_opened`, `buddy_nonresponse`, `buddy_declined`, `buddy_acknowledged`, `ride_booked`, `pickup_confirmed`. |
+| `followup_timer` | schedule → reducer `on_followup_due`. `scheduledId`, `scheduledAt`, `jobId`, `expectedFrom identity`, `tier u8` | `jobId` btree |
+| `notification` | `id pk`, `incidentId`, `jobId`, `recipient identity`, `channel: Channel [in_app, sms, voice]`, `template`, `body`, `status: DeliveryStatus [queued, sent, delivered, failed, acknowledged]`, `providerId`, `simulated bool` (true unless a real SMS left the host), `createdAt`, `acknowledgedAt?` | `incidentId`, `jobId`, `recipient` btree |
+| `notification_dispatch` | schedule → **procedure** `deliver_notification`. `scheduledId`, `scheduledAt`, `notificationId` | |
+| `ride_plan` | `id pk`, `incidentId`, `jobId`, `riderId identity`, `optionsJson`, `chosenOption`, `status: RideStatus [proposed, accepted, booked_by_user, pickup_confirmed, completed, cancelled]`, `confirmedBy?` (who accepted/booked), `updatedAt` | `incidentId`, `jobId` btree |
+| `user_profile` (C1, extended) | `+ phoneE164: string default ''` | Set by `set_phone` (self-only, E.164 or empty). Empty = in-app only. |
 
-### Agent job state machine
+### Agent job state machine (as shipped)
 
-`queued → planning → waiting_for_ack → (escalated → waiting_for_ack)* → transport_pending → awaiting_home_confirmation → resolved | handed_off | cancelled`
+`queued → planning → waiting_for_ack → (escalated → planning → waiting_for_ack)* → transport_pending → awaiting_home_confirmation → resolved | handed_off | cancelled`
 
-- Transitions happen only in reducers called from `agent_step`'s transaction or from human reducers.
-- A wake with a stale `planVersion` is ignored and recorded (`agent_action` `rejected: stale_plan`).
-- `followup_timer` firing with no acknowledgment → `on_followup_due` sets `escalated`, increments `escalationTier`, inserts `agent_wake {event: 'buddy_nonresponse'}`. Max tier 2 (primary → backup → hand off to human/organizer).
-- `resolved` is entered only via `resolve_incident` / `check_in(home)`; the agent can request it, never set it.
+- Every incident open (`report_concern`, `report_consumption` with disclosure, help check-ins, `on_checkin_due`) inserts the job and an immediate `agent_wake {event: incident_opened}` in the same transaction as the incident, after the deterministic alerts.
+- `agent_step` marks `planning`, then sets `waiting_for_ack` (default), `transport_pending` (a ride plan was proposed), keeps `awaiting_home_confirmation`/`transport_pending` when the wake was `ride_booked`/`pickup_confirmed`, or leaves `handed_off` when the plan handed off.
+- `on_followup_due`: expected person acknowledged → `followup_ok` event, nothing else; timer tier ≠ job tier → `followup_stale` (no double escalation); job in a transport stage → `followup_noted`; otherwise `escalationTier + 1`: tier > 2 → `handed_off` (+ organizer alert), else `escalated` + `agent_wake {buddy_nonresponse, planVersion}`.
+- A wake whose `planVersion` is lower than the job's is rejected with an `agent_step` receipt `stale_plan`. A wake for a terminal job → `job_closed`. A wake for a closed incident → `incident_closed` and the job is closed to match.
+- `resolved` is entered only by `confirm_home`, `check_in(home)`, or `resolve_incident`; `cancelled` only by `cancel_incident`. The agent can propose `update_incident_state` but never a terminal state.
 
-### `agent_step` (scheduled procedure)
+### `agent_step` (scheduled procedure, `t.unit()`)
 
-1. `withTx`: load job, incident, participants, latest plan, **minimal** context (roles, consent flags, last check-in kinds, location age only). Mark `planning`.
-2. HTTP: `POST {NEMOTRON_BASE_URL}/chat/completions` with system prompt, structured context, `tools` from the allowlist, `tool_choice: auto`, 20 s timeout. No key → deterministic simulated planner produces the same JSON shape.
-3. `withTx`: store `agent_plan` (version +1). For each tool call: validate (allowlisted, incident open, plan version current, recipient has consent, rate limit, idempotency key unused) → execute DB tools inline, enqueue external tools (`notification_dispatch`, transport lookup) → write `agent_action` receipt. Set `waiting_for_ack`, insert `followup_timer`.
-4. Never: message non-participants, change consent, resolve incidents, purchase anything, call emergency services.
+1. `withTx` **prepare**: load job + incident, apply the checks above, set `planning`, `wakeCount += 1`, `lastEvent = event`, and build the **minimal context**: incident kind/severity/status/age, subject display name, organizer id, participants (role, acknowledged, `canMessage`, trusted-contact role/priority, `alreadyContacted`), subject check-in kinds in the last 60 min, location **age in minutes only** (never coordinates), previous plan summary, ride-plan status, open follow-up count, and `untrustedNotes` (free text clipped to 280 chars, up to 5).
+2. **Outside any transaction**: with `NEMOTRON_API_KEY` set → `POST {NEMOTRON_BASE_URL|https://integrate.api.nvidia.com/v1}/chat/completions`, headers `authorization: Bearer <key>`, body `{ model: NEMOTRON_MODEL|nvidia/nemotron-3-super-120b-a12b, messages: [system guardrails, user: JSON context], tools: <allowlist as OpenAI function tools>, tool_choice: 'auto', temperature: 0.2, max_tokens: 1200 }`, 20 s timeout. Parsed: `choices[0].message.tool_calls[*].function.{name, arguments}` and `message.content` as the plan summary; `data.model` is recorded. Any non-200, network error, or unparsable reply → the **simulated planner** runs with `model = fallback:<reason>`. No key → simulated planner, `model = simulated-planner`. Both paths produce the same `{summary, calls}` shape.
+3. `withTx` **store + execute**: insert `agent_plan` (version = `planVersion + 1`, job updated), incident event `agent_plan`, then run the calls in order through one executor. Each call is checked against: job open and `planVersion` unchanged, incident open, allowlisted name, hand-written argument validator, and the authorization rule for its tool (below). Executed, rejected, or failed, every call gets an `agent_action` receipt. At most 8 calls per plan.
+4. `get_transport_options` ends the transaction: the HTTP lookups run outside any transaction, then a new transaction completes that receipt and continues with the remaining calls (so `propose_ride_plan` with `"from_transport_lookup"` sees the result).
+5. `withTx` **finalize**: set the job status as described, `lastEvent`, `updatedAt`; if the status is `waiting_for_ack` and the plan scheduled no follow-up and none is open, insert a default `followup_timer` (2 min) expecting the last person asked to confirm (else the organizer).
 
-### Tool allowlist
+All transaction callbacks are pure functions of the database and their immutable inputs, as SpacetimeDB requires (they may be retried).
 
-| Tool | Input | Output | Boundary |
+### Messaging authorization rule (`recipientAllowed`)
+
+A person may be messaged or asked to confirm when they are a **participant of the incident** and (hold the subject's unexpired, unrevoked `messaging` consent grant for the session, **or** are listed in the subject's `trusted_contact` rows with `messagingConsent = true`, **or** are the subject), **except** that the subject of a `possible_impaired_driving` incident is never messaged (no distracting a possibly driving person; the deterministic warning already reached them). The simulated planner orders eligible people: trusted contacts by role (buddy, backup_buddy, emergency) then priority, then other eligible participants (buddy, reporter, organizer). Already-contacted people are skipped on escalation.
+
+### Tool allowlist (exactly as validated)
+
+| Tool | Validated args | Effect | Boundary |
 |---|---|---|---|
-| `get_group_context` | `incidentId` | roles, statuses, consent flags | participants only; no locations |
-| `get_recent_checkins` | `userId, windowMinutes` | check-in kinds + times | subject or buddy with `checkins` consent |
-| `get_last_shared_location` | `userId` | rounded coords, age, accuracy | active `location_*` consent to the **incident subject's buddy**, never to the model's choice of recipient |
-| `get_transport_options` | `pickupArea` | ride deep links, transit/route estimates (OSRM/Nominatim), freshness | read-only; no booking |
-| `send_approved_message` | `recipient, template, vars` | `notificationId` | recipient ∈ participants with `messaging` consent; templates only; no free text to SMS |
-| `request_human_confirmation` | `userId, question` | pending ack id | participants only |
-| `schedule_followup` | `delayMinutes` | timer id | 1–30 min; max 3 open timers per job |
-| `update_incident_state` | `incidentId, state` | audit entry | only `acknowledged`, `assistance_underway`, `transport_pending`; never `resolved` |
-| `propose_ride_plan` | `riderId, options` | `ridePlanId` | subject or buddy; human books |
+| `get_group_context` | — | receipt with participant roles / acknowledged / canMessage | read-only, no locations |
+| `get_recent_checkins` | `userId` 64-hex, `windowMinutes` 1–240 | receipt with the subject's check-in kinds and ages | only the incident subject |
+| `get_last_shared_location` | `userId` 64-hex | receipt with age, accuracy, coordinates rounded to 2 decimals | only the incident subject; the model never receives raw coordinates |
+| `get_transport_options` | `pickupArea` ≤120 chars (hint only) | Nominatim geocode of the session `venueHint` (User-Agent set) + OSRM `route/v1/driving/{venue};{pickup}` from the subject's consented location (rounded to 3 decimals). Result `{status: ok|provider_links_only|failed, fetchedAt, pickup, options[], error?, simulated:false}`; failures keep only the static Uber/Lyft/transit links. | read-only; nothing booked; nothing invented |
+| `send_approved_message` | `recipient` 64-hex, `template ∈ {buddy_alert, backup_alert, ack_request, ride_booked, organizer_handoff, incident_update}`, `vars` (string values clipped to 120 chars; `subjectName` is always server-filled) | `notification {queued}` + `notification_dispatch` now + incident event `message_queued`. Channel `sms` only when Twilio is configured **and** the recipient has `phoneE164`; else `in_app` (`simulated = true`). | `recipientAllowed`; templates only |
+| `request_human_confirmation` | `userId` 64-hex, `question` ≤200 | `ack_request` notification + `safety_alert ack_requested` to that person; becomes the follow-up's `expectedFrom` | `recipientAllowed` |
+| `schedule_followup` | `delayMinutes` 1–30 | `followup_timer` at the job's current tier | max 3 open timers per job |
+| `update_incident_state` | `state ∈ {acknowledged, assistance_underway, transport_pending}` | `acknowledged` only from `open`; the other two map to `assistance_underway` from `open/acknowledged/assistance_underway` | never resolved/cancelled |
+| `propose_ride_plan` | `riderId` 64-hex, `options`: 1–6 `{kind,label,url(https/uber/lyft)}` or `"from_transport_lookup"` | upsert the job's open `ride_plan` (`proposed`), incident event `ride_proposed`, `incident_update` alert to the rider and acknowledged helpers | rider must be a participant; `"from_transport_lookup"` requires a lookup earlier in the same plan |
+| `hand_off` | `reason` ≤280 | job `handed_off`, timers cleared, incident event, `incident_update` alert to the organizer | ends automated coordination |
 
-### Human reducers (C3)
+Rejections you will see in `rejectReason`: `tool_not_allowed`, `invalid_args: …`, `recipient_not_authorized: …`, `unknown_template`, `too_many_open_followups`, `invalid_transition: …`, `rider_not_participant`, `no_transport_lookup_in_plan`, `stale_plan`, `job_closed`, `incident_closed`.
 
-`acknowledge_assistance(jobId)`, `decline_assistance(jobId, reason)`, `accept_ride_option(ridePlanId, option)`, `confirm_ride_booked(ridePlanId)`, `confirm_pickup(ridePlanId)`, `confirm_home(incidentId)` (subject only → `resolved`), `demo_fire_followup(jobId)` (owner/demo only, refuses in `production`).
+### Simulated planner (`lib/agent/simulated.ts`)
 
-### Views
+| Wake event | Plan |
+|---|---|
+| `incident_opened` | `get_group_context`, `send_approved_message(buddy_alert)` + `request_human_confirmation` to the first eligible contact, `update_incident_state(assistance_underway)`, `schedule_followup(2)`; no eligible contact → `hand_off` |
+| `buddy_nonresponse` / `buddy_declined` | `send_approved_message(backup_alert)` + confirmation to the next not-yet-contacted eligible contact, `schedule_followup(2)`; none left → `hand_off` |
+| `buddy_acknowledged` | `get_transport_options`, `propose_ride_plan(subject, "from_transport_lookup")`, `update_incident_state(transport_pending)` |
+| `ride_booked` | `send_approved_message(ride_booked)` to the acknowledged helper, `schedule_followup(5)` |
+| `pickup_confirmed` | no calls (summary only) |
 
-`my_agent_jobs` (per-user, participants), `agent_receipts(jobId)` (per-user, participants; receipts with `simulated` flag), `my_notifications` (per-user), `ride_plan_for_incident(incidentId)`.
+### `deliver_notification` (scheduled procedure)
+
+Loads the queued notification; `sms` with all three `TWILIO_*` set and a recipient `phoneE164` → `POST https://api.twilio.com/2010-04-01/Accounts/{SID}/Messages.json` (HTTP Basic `SID:token`, form `To/From/Body`), result `sent` (+ `providerId` = Twilio `sid`) or `failed` with `twilio_http_<code>`; otherwise `sent` with `simulated = true` and channel downgraded to `in_app`. Always writes incident event `message_sent`/`message_failed` (with the simulated flag) and, when sent, a `safety_alert incident_update` to the recipient carrying the body (that is the in-app delivery). Delivering twice is a no-op.
+
+### Human reducers
+
+| Reducer | Who | Effect | Error strings |
+|---|---|---|---|
+| `acknowledge_assistance(jobId)` | participant, not the subject | participant `acknowledgedAt`, their notifications → `acknowledged`, incident `open → acknowledged`, event, alert to the subject, clears timers of the current tier, inserts `agent_wake {buddy_acknowledged}` once (guarded by a pending wake) | `Job not found`, `Only participants can do that`, `You can't acknowledge your own alert`, `This incident is closed` |
+| `decline_assistance(jobId, reason)` | participant, not the subject | event `declined`, clears tier timers, `agent_wake {buddy_declined}` (treated like non-response) | as above + `Use cancel or resolve for your own incident` |
+| `accept_ride_option(ridePlanId, option)` | subject, or a participant holding the subject's `messaging` grant | `accepted`, `chosenOption`, `confirmedBy = caller` | `Only the rider or a helper with their messaging consent can choose a ride`, `Pick one of the offered options`, `This ride plan is no longer open` |
+| `confirm_ride_booked(ridePlanId)` | subject or the accepter | ride `booked_by_user`; incident `transport_arranged`; job `awaiting_home_confirmation`, timers cleared, `agent_wake {ride_booked}`; alerts | `Only the rider or the helper who chose the ride can confirm the booking` |
+| `confirm_pickup(ridePlanId)` | subject | `pickup_confirmed`, `agent_wake {pickup_confirmed}` | `Only the rider can confirm the pickup`, `Confirm the booking first` |
+| `confirm_home(incidentId)` | subject | incident `resolved`, job `resolved`, timers and wakes cleared, ride plans `completed`, alerts. Allowed from `awaiting_home_confirmation`, `transport_arranged`, or whenever a ride plan is booked/picked up. | `Only the person the incident is about can confirm they are home`, `Home confirmation applies once transport is arranged; use "I'm okay" or resolve otherwise` |
+| `demo_fire_followup(jobId)` | owner, or anyone when `APP_ENV != production` | runs the earliest open follow-up now | `No open follow-up timer for this job`, `Demo controls are disabled in production` |
+| `demo_wake_agent(jobId, event)` | same | inserts an immediate wake with the given event | `event must be one of …`, `This job is closed` |
+| `set_phone(phoneE164)` | self | E.164 or empty | `Phone must be in E.164 format, like +15551234567` |
+
+`check_in(home)`, `resolve_incident`, and `cancel_incident` (C2) now also close the job (`resolved`/`cancelled`) and clear its timers and wakes.
+
+### Views (argument-free, per-user; participants of the incident only)
+
+| View | Row | Notes |
+|---|---|---|
+| `my_agent_jobs` | `AgentJobRow {id pk, incidentId, subjectName, status, planVersion, escalationTier, lastEvent, wakeCount, createdAt, updatedAt}` | one per incident |
+| `my_agent_plans` | `agent_plan` rows | render newest `version` first; `simulated` → SIMULATED badge |
+| `my_agent_actions` | `agent_action` rows | receipts; `status` + `rejectReason` + `simulated` |
+| `my_notifications` | `notification` rows where `recipient = caller` | `status` queued/sent/failed/acknowledged |
+| `my_ride_plans` | `ride_plan` rows | `optionsJson` is the transport result above |
+
+### Environment
+
+`NEMOTRON_API_KEY` (absent → simulated), `NEMOTRON_MODEL`, `NEMOTRON_BASE_URL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (all three → real SMS to profiles with a phone), `APP_ENV`. Read through `lib/env.ts` `envOf()`, which tolerates the unit-test harness (no `env_get`).
+
+### Verified
+
+49 unit tests (`spacetimedb/src/agent.test.ts` adds 17): job + wake on incident open; simulated plan v1 to the priority-1 buddy only; live plan with mocked Nemotron tool calls and request shape (no coordinates leave the host); non-participant and unknown-tool rejections with receipts and no side effects; 500/network fallback; stale wake; one escalation per tier, backup messaged, hand-off after tier 2; acknowledge once; revocation blocks the next message; decline moves on; transport with mocked Nominatim + OSRM and the 503 failure path; accept → booked → pickup → home by the subject only; human resolution closes the job; simulated delivery; demo follow-up. `scripts/demo_driver_incident.mts` ran the full flow against the local server (four live identities) and passed; in that run Nominatim answered and the OSRM request failed with a TLS handshake error from the host, which surfaced as a `failed` receipt with provider links only.
+
+### Client notes for the agent UI (Person B)
+
+- Subscribe to `tables.myAgentJobs`, `tables.myAgentPlans`, `tables.myAgentActions`, `tables.myNotifications`, `tables.myRidePlans` (all per-user, argument-free). Filter by `jobId`/`incidentId` client-side. Enum tags are PascalCase in bindings: `AgentJobStatus` `{Queued, Planning, WaitingForAck, Escalated, TransportPending, AwaitingHomeConfirmation, Resolved, HandedOff, Cancelled}`, `ActionStatus` `{Proposed, Rejected, Executed, Failed, Delivered, Acknowledged}`, `Channel` `{InApp, Sms, Voice}`, `DeliveryStatus` `{Queued, Sent, Delivered, Failed, Acknowledged}`, `RideStatus` `{Proposed, Accepted, BookedByUser, PickupConfirmed, Completed, Cancelled}`.
+- Incident screen: show the plan list (version, `model`, `summary`, SIMULATED badge when `simulated`), then receipts grouped by `planVersion` with `tool`, `status.tag`, `rejectReason`, and `simulated`. `stepsJson`/`argsJson`/`resultJson` are JSON strings.
+- Buddy actions: `reducers.acknowledgeAssistance({ jobId })`, `reducers.declineAssistance({ jobId, reason })`. Show the person's own `my_notifications` rows as the inbox; `template` tells you which card to render; `body` is the message text.
+- Ride card (from `my_ride_plans`): parse `optionsJson` → `options[]` with `label`, `kind`, `url`, `source` (`osrm` rows carry `durationMinutes`/`distanceKm`), `status` (`ok`/`provider_links_only`/`failed`, with `error`). Buttons: `acceptRideOption({ ridePlanId, option: label })`, `confirmRideBooked({ ridePlanId })`, `confirmPickup({ ridePlanId })`, `confirmHome({ incidentId })` (subject only). Distinct states to label: sent (`notification.status Sent`), acknowledged, booked (`RideStatus BookedByUser`), pickup confirmed, home confirmed (`IncidentStatus Resolved`).
+- Judge/demo panel: `demoFireFollowup({ jobId })` advances the "buddy did not respond" timer; `demoWakeAgent({ jobId, event })` re-plans with a chosen event. Both are refused in production.
+- Timeline (`my_incident_events`) now includes `agent_plan`, `message_queued`, `message_sent`/`message_failed`, `confirmation_requested`, `state_updated`, `escalated`, `handed_off`, `ride_proposed`, `ride_accepted`, `ride_booked`, `pickup_confirmed`, `followup_*` events; each carries `simulated`.
 
 ## 9. C4 — Community, hardening, integrations (PLANNED)
 

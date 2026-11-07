@@ -32,6 +32,8 @@ export const userProfile = table(
     avatarEmoji: t.string(),
     phoneVerified: t.bool(),
     createdAt: t.timestamp(),
+    // E.164 number for consented SMS; empty means in-app only. Added in C3 with a default.
+    phoneE164: t.string().default(''),
   }
 );
 

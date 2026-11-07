@@ -22,6 +22,16 @@ import {
   locationUpdate,
   safetyAlert,
 } from './tables/safety';
+import {
+  agentAction,
+  agentJob,
+  agentPlan,
+  agentWake,
+  followupTimer,
+  notification,
+  notificationDispatch,
+  ridePlan,
+} from './tables/agent';
 
 // Private: single row recording who published the database (module owner).
 export const config = table(
@@ -81,6 +91,14 @@ export const spacetimedb = schema(
     safetyAlert,
     checkinTimer,
     locationSweep,
+    agentJob,
+    agentPlan,
+    agentAction,
+    agentWake,
+    followupTimer,
+    notification,
+    notificationDispatch,
+    ridePlan,
   },
   {
     env: {

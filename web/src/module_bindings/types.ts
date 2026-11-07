@@ -10,6 +10,100 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+// The tagged union or sum type for the algebraic type `ActionStatus`.
+export const ActionStatus = __t.enum("ActionStatus", {
+  Proposed: __t.unit(),
+  Rejected: __t.unit(),
+  Executed: __t.unit(),
+  Failed: __t.unit(),
+  Delivered: __t.unit(),
+  Acknowledged: __t.unit(),
+});
+export type ActionStatus = __Infer<typeof ActionStatus>;
+
+export const AgentAction = __t.object("AgentAction", {
+  id: __t.u64(),
+  jobId: __t.u64(),
+  planVersion: __t.u32(),
+  tool: __t.string(),
+  argsJson: __t.string(),
+  get status() {
+    return ActionStatus;
+  },
+  resultJson: __t.string(),
+  rejectReason: __t.string(),
+  simulated: __t.bool(),
+  idempotencyKey: __t.string(),
+  at: __t.timestamp(),
+});
+export type AgentAction = __Infer<typeof AgentAction>;
+
+export const AgentJob = __t.object("AgentJob", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  get status() {
+    return AgentJobStatus;
+  },
+  planVersion: __t.u32(),
+  escalationTier: __t.u8(),
+  lastEvent: __t.string(),
+  wakeCount: __t.u32(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type AgentJob = __Infer<typeof AgentJob>;
+
+export const AgentJobRow = __t.object("AgentJobRow", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  subjectName: __t.string(),
+  get status() {
+    return AgentJobStatus;
+  },
+  planVersion: __t.u32(),
+  escalationTier: __t.u8(),
+  lastEvent: __t.string(),
+  wakeCount: __t.u32(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type AgentJobRow = __Infer<typeof AgentJobRow>;
+
+// The tagged union or sum type for the algebraic type `AgentJobStatus`.
+export const AgentJobStatus = __t.enum("AgentJobStatus", {
+  Queued: __t.unit(),
+  Planning: __t.unit(),
+  WaitingForAck: __t.unit(),
+  Escalated: __t.unit(),
+  TransportPending: __t.unit(),
+  AwaitingHomeConfirmation: __t.unit(),
+  Resolved: __t.unit(),
+  HandedOff: __t.unit(),
+  Cancelled: __t.unit(),
+});
+export type AgentJobStatus = __Infer<typeof AgentJobStatus>;
+
+export const AgentPlan = __t.object("AgentPlan", {
+  id: __t.u64(),
+  jobId: __t.u64(),
+  version: __t.u32(),
+  summary: __t.string(),
+  stepsJson: __t.string(),
+  model: __t.string(),
+  simulated: __t.bool(),
+  createdAt: __t.timestamp(),
+});
+export type AgentPlan = __Infer<typeof AgentPlan>;
+
+export const AgentWake = __t.object("AgentWake", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  jobId: __t.u64(),
+  event: __t.string(),
+  planVersion: __t.u32(),
+});
+export type AgentWake = __Infer<typeof AgentWake>;
+
 // The tagged union or sum type for the algebraic type `AlertKind`.
 export const AlertKind = __t.enum("AlertKind", {
   NoDrivingWarning: __t.unit(),
@@ -28,6 +122,14 @@ export const AuditEvent = __t.object("AuditEvent", {
   at: __t.timestamp(),
 });
 export type AuditEvent = __Infer<typeof AuditEvent>;
+
+// The tagged union or sum type for the algebraic type `Channel`.
+export const Channel = __t.enum("Channel", {
+  InApp: __t.unit(),
+  Sms: __t.unit(),
+  Voice: __t.unit(),
+});
+export type Channel = __Infer<typeof Channel>;
 
 export const Checkin = __t.object("Checkin", {
   id: __t.u64(),
@@ -151,6 +253,16 @@ export const ContactRole = __t.enum("ContactRole", {
 });
 export type ContactRole = __Infer<typeof ContactRole>;
 
+// The tagged union or sum type for the algebraic type `DeliveryStatus`.
+export const DeliveryStatus = __t.enum("DeliveryStatus", {
+  Queued: __t.unit(),
+  Sent: __t.unit(),
+  Delivered: __t.unit(),
+  Failed: __t.unit(),
+  Acknowledged: __t.unit(),
+});
+export type DeliveryStatus = __Infer<typeof DeliveryStatus>;
+
 export const DriverAssignment = __t.object("DriverAssignment", {
   id: __t.u64(),
   sessionId: __t.u64(),
@@ -181,6 +293,15 @@ export const DriverStatus = __t.enum("DriverStatus", {
   Accepted: __t.unit(),
 });
 export type DriverStatus = __Infer<typeof DriverStatus>;
+
+export const FollowupTimer = __t.object("FollowupTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  jobId: __t.u64(),
+  expectedFrom: __t.identity(),
+  tier: __t.u8(),
+});
+export type FollowupTimer = __Infer<typeof FollowupTimer>;
 
 export const Incident = __t.object("Incident", {
   id: __t.u64(),
@@ -354,6 +475,15 @@ export const MemberRole = __t.enum("MemberRole", {
 });
 export type MemberRole = __Infer<typeof MemberRole>;
 
+export const MyAgentActions = __t.object("MyAgentActions", {});
+export type MyAgentActions = __Infer<typeof MyAgentActions>;
+
+export const MyAgentJobs = __t.object("MyAgentJobs", {});
+export type MyAgentJobs = __Infer<typeof MyAgentJobs>;
+
+export const MyAgentPlans = __t.object("MyAgentPlans", {});
+export type MyAgentPlans = __Infer<typeof MyAgentPlans>;
+
 export const MyCheckins = __t.object("MyCheckins", {});
 export type MyCheckins = __Infer<typeof MyCheckins>;
 
@@ -374,6 +504,12 @@ export type MyIncidents = __Infer<typeof MyIncidents>;
 
 export const MyInvites = __t.object("MyInvites", {});
 export type MyInvites = __Infer<typeof MyInvites>;
+
+export const MyNotifications = __t.object("MyNotifications", {});
+export type MyNotifications = __Infer<typeof MyNotifications>;
+
+export const MyRidePlans = __t.object("MyRidePlans", {});
+export type MyRidePlans = __Infer<typeof MyRidePlans>;
 
 export const MyRosters = __t.object("MyRosters", {});
 export type MyRosters = __Infer<typeof MyRosters>;
@@ -396,6 +532,33 @@ export const NightSession = __t.object("NightSession", {
 });
 export type NightSession = __Infer<typeof NightSession>;
 
+export const Notification = __t.object("Notification", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  jobId: __t.u64(),
+  recipient: __t.identity(),
+  get channel() {
+    return Channel;
+  },
+  template: __t.string(),
+  body: __t.string(),
+  get status() {
+    return DeliveryStatus;
+  },
+  providerId: __t.string(),
+  simulated: __t.bool(),
+  createdAt: __t.timestamp(),
+  acknowledgedAt: __t.option(__t.timestamp()),
+});
+export type Notification = __Infer<typeof Notification>;
+
+export const NotificationDispatch = __t.object("NotificationDispatch", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  notificationId: __t.u64(),
+});
+export type NotificationDispatch = __Infer<typeof NotificationDispatch>;
+
 export const OnlineMembers = __t.object("OnlineMembers", {});
 export type OnlineMembers = __Infer<typeof OnlineMembers>;
 
@@ -408,6 +571,32 @@ export const ParticipantRole = __t.enum("ParticipantRole", {
   Organizer: __t.unit(),
 });
 export type ParticipantRole = __Infer<typeof ParticipantRole>;
+
+export const RidePlan = __t.object("RidePlan", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  jobId: __t.u64(),
+  riderId: __t.identity(),
+  optionsJson: __t.string(),
+  chosenOption: __t.string(),
+  get status() {
+    return RideStatus;
+  },
+  confirmedBy: __t.option(__t.identity()),
+  updatedAt: __t.timestamp(),
+});
+export type RidePlan = __Infer<typeof RidePlan>;
+
+// The tagged union or sum type for the algebraic type `RideStatus`.
+export const RideStatus = __t.enum("RideStatus", {
+  Proposed: __t.unit(),
+  Accepted: __t.unit(),
+  BookedByUser: __t.unit(),
+  PickupConfirmed: __t.unit(),
+  Completed: __t.unit(),
+  Cancelled: __t.unit(),
+});
+export type RideStatus = __Infer<typeof RideStatus>;
 
 export const RosterRow = __t.object("RosterRow", {
   memberId: __t.u64(),
@@ -520,6 +709,7 @@ export const UserProfile = __t.object("UserProfile", {
   avatarEmoji: __t.string(),
   phoneVerified: __t.bool(),
   createdAt: __t.timestamp(),
+  phoneE164: __t.string(),
 });
 export type UserProfile = __Infer<typeof UserProfile>;
 

@@ -30,6 +30,7 @@ import {
   sendAlert,
 } from '../lib/safety';
 import { isAtOrBefore, isBefore, minutesAfter } from '../lib/time';
+import { closeJobForIncident, completeRidePlans } from '../lib/agent/jobs';
 
 export const postLocation = spacetimedb.reducer(
   { sessionId: t.u64(), lat: t.f64(), lng: t.f64(), accuracyM: t.f32(), source: LocationSource },
@@ -84,6 +85,8 @@ export const checkIn = spacetimedb.reducer(
       if (open && (open.status.tag === 'awaiting_home_confirmation' || open.status.tag === 'transport_arranged')) {
         ctx.db.incident.id.update({ ...open, status: { tag: 'resolved' }, resolvedAt: ctx.timestamp, resolvedBy: ctx.sender });
         addEvent(ctx, open.id, 'resolved', `${me} confirmed they are home`);
+        closeJobForIncident(ctx, open.id, 'resolved', 'home_confirmed');
+        completeRidePlans(ctx, open.id);
         for (const p of participantsOf(ctx, open.id)) {
           if (!p.userId.isEqual(ctx.sender)) sendAlert(ctx, p.userId, open.id, 'incident_update', `${me} confirmed they are home.`);
         }
@@ -227,6 +230,7 @@ export const resolveIncident = spacetimedb.reducer({ incidentId: t.u64(), note: 
   ctx.db.incident.id.update({ ...inc, status: { tag: 'resolved' }, resolvedAt: ctx.timestamp, resolvedBy: ctx.sender });
   const me = displayNameOf(ctx, ctx.sender);
   addEvent(ctx, incidentId, 'resolved', clean || `Resolved by ${me}`);
+  closeJobForIncident(ctx, incidentId, 'resolved', 'resolved_by_human');
   audit(ctx, 'resolve_incident', `incident:${incidentId}`);
   for (const other of participantsOf(ctx, incidentId)) {
     if (!other.userId.isEqual(ctx.sender)) sendAlert(ctx, other.userId, incidentId, 'incident_update', `${me} resolved the incident.`);
@@ -246,6 +250,7 @@ export const cancelIncident = spacetimedb.reducer({ incidentId: t.u64(), reason:
   ctx.db.incident.id.update({ ...inc, status: { tag: 'cancelled' }, resolvedAt: ctx.timestamp, resolvedBy: ctx.sender });
   const me = displayNameOf(ctx, ctx.sender);
   addEvent(ctx, incidentId, 'cancelled', clean || `Cancelled by ${me}`);
+  closeJobForIncident(ctx, incidentId, 'cancelled', 'cancelled_by_subject');
   for (const other of participantsOf(ctx, incidentId)) {
     if (!other.userId.isEqual(ctx.sender)) sendAlert(ctx, other.userId, incidentId, 'incident_update', `${me} cancelled their request.`);
   }

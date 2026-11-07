@@ -35,12 +35,20 @@ import {
 
 // Import all reducer arg schemas
 import AcceptDriverRoleReducer from "./accept_driver_role_reducer";
+import AcceptRideOptionReducer from "./accept_ride_option_reducer";
+import AcknowledgeAssistanceReducer from "./acknowledge_assistance_reducer";
 import AcknowledgeIncidentReducer from "./acknowledge_incident_reducer";
 import AddTrustedContactReducer from "./add_trusted_contact_reducer";
 import CancelIncidentReducer from "./cancel_incident_reducer";
 import CheckInReducer from "./check_in_reducer";
+import ConfirmHomeReducer from "./confirm_home_reducer";
+import ConfirmPickupReducer from "./confirm_pickup_reducer";
+import ConfirmRideBookedReducer from "./confirm_ride_booked_reducer";
 import CreateInviteReducer from "./create_invite_reducer";
 import CreateSessionReducer from "./create_session_reducer";
+import DeclineAssistanceReducer from "./decline_assistance_reducer";
+import DemoFireFollowupReducer from "./demo_fire_followup_reducer";
+import DemoWakeAgentReducer from "./demo_wake_agent_reducer";
 import EndDriverRoleReducer from "./end_driver_role_reducer";
 import EndSessionReducer from "./end_session_reducer";
 import EnsureSchedulesReducer from "./ensure_schedules_reducer";
@@ -55,6 +63,7 @@ import ReportConsumptionReducer from "./report_consumption_reducer";
 import ResolveIncidentReducer from "./resolve_incident_reducer";
 import RevokeConsentReducer from "./revoke_consent_reducer";
 import RevokeInviteReducer from "./revoke_invite_reducer";
+import SetPhoneReducer from "./set_phone_reducer";
 import SetProfileReducer from "./set_profile_reducer";
 import SetSharingScopeReducer from "./set_sharing_scope_reducer";
 import VolunteerDriverReducer from "./volunteer_driver_reducer";
@@ -64,6 +73,9 @@ import VolunteerDriverReducer from "./volunteer_driver_reducer";
 // Import all table schema definitions
 import ClientPresenceRow from "./client_presence_table";
 import DriverAssignmentRow from "./driver_assignment_table";
+import MyAgentActionsRow from "./my_agent_actions_table";
+import MyAgentJobsRow from "./my_agent_jobs_table";
+import MyAgentPlansRow from "./my_agent_plans_table";
 import MyCheckinsRow from "./my_checkins_table";
 import MyConsentsRow from "./my_consents_table";
 import MyContactsRow from "./my_contacts_table";
@@ -71,6 +83,8 @@ import MyIncidentEventsRow from "./my_incident_events_table";
 import MyIncidentParticipantsRow from "./my_incident_participants_table";
 import MyIncidentsRow from "./my_incidents_table";
 import MyInvitesRow from "./my_invites_table";
+import MyNotificationsRow from "./my_notifications_table";
+import MyRidePlansRow from "./my_ride_plans_table";
 import MyRostersRow from "./my_rosters_table";
 import MySessionsRow from "./my_sessions_table";
 import NightSessionRow from "./night_session_table";
@@ -173,6 +187,27 @@ const tablesSchema = __schema({
       { name: 'user_profile_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, UserProfileRow),
+  myAgentActions: __table({
+    name: 'my_agent_actions',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyAgentActionsRow),
+  myAgentJobs: __table({
+    name: 'my_agent_jobs',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyAgentJobsRow),
+  myAgentPlans: __table({
+    name: 'my_agent_plans',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyAgentPlansRow),
   myCheckins: __table({
     name: 'my_checkins',
     indexes: [
@@ -222,6 +257,20 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyInvitesRow),
+  myNotifications: __table({
+    name: 'my_notifications',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyNotificationsRow),
+  myRidePlans: __table({
+    name: 'my_ride_plans',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyRidePlansRow),
   myRosters: __table({
     name: 'my_rosters',
     indexes: [
@@ -262,12 +311,20 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("accept_driver_role", AcceptDriverRoleReducer),
+  __reducerSchema("accept_ride_option", AcceptRideOptionReducer),
+  __reducerSchema("acknowledge_assistance", AcknowledgeAssistanceReducer),
   __reducerSchema("acknowledge_incident", AcknowledgeIncidentReducer),
   __reducerSchema("add_trusted_contact", AddTrustedContactReducer),
   __reducerSchema("cancel_incident", CancelIncidentReducer),
   __reducerSchema("check_in", CheckInReducer),
+  __reducerSchema("confirm_home", ConfirmHomeReducer),
+  __reducerSchema("confirm_pickup", ConfirmPickupReducer),
+  __reducerSchema("confirm_ride_booked", ConfirmRideBookedReducer),
   __reducerSchema("create_invite", CreateInviteReducer),
   __reducerSchema("create_session", CreateSessionReducer),
+  __reducerSchema("decline_assistance", DeclineAssistanceReducer),
+  __reducerSchema("demo_fire_followup", DemoFireFollowupReducer),
+  __reducerSchema("demo_wake_agent", DemoWakeAgentReducer),
   __reducerSchema("end_driver_role", EndDriverRoleReducer),
   __reducerSchema("end_session", EndSessionReducer),
   __reducerSchema("ensure_schedules", EnsureSchedulesReducer),
@@ -282,6 +339,7 @@ const reducersSchema = __reducers(
   __reducerSchema("resolve_incident", ResolveIncidentReducer),
   __reducerSchema("revoke_consent", RevokeConsentReducer),
   __reducerSchema("revoke_invite", RevokeInviteReducer),
+  __reducerSchema("set_phone", SetPhoneReducer),
   __reducerSchema("set_profile", SetProfileReducer),
   __reducerSchema("set_sharing_scope", SetSharingScopeReducer),
   __reducerSchema("volunteer_driver", VolunteerDriverReducer),

@@ -3,6 +3,7 @@ import { ScheduleAt, type Identity } from 'spacetimedb';
 import type { Ctx } from './auth';
 import { findMembership, getSession, sessionIsOpen } from './auth';
 import { isBefore, minutesAfter } from './time';
+import { enqueueAgentJob } from './agent/jobs';
 
 export const DRIVER_WARNING =
   "Please don't drive tonight. A friend is worried you may have been drinking. Your group will help you get home.";
@@ -132,7 +133,8 @@ export function openIncident(
     });
   }
   addEvent(ctx, inc.id, 'opened', detail);
-  addEvent(ctx, inc.id, 'agent_requested', 'Coordination agent requested (C3 wires the wake-up)');
+  addEvent(ctx, inc.id, 'agent_requested', 'Coordination agent queued; first step runs immediately');
+  enqueueAgentJob(ctx, inc.id);
   return inc;
 }
 

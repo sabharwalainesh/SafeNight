@@ -16,4 +16,5 @@ export default __t.row({
   avatarEmoji: __t.string().name("avatar_emoji"),
   phoneVerified: __t.bool().name("phone_verified"),
   createdAt: __t.timestamp().name("created_at"),
+  phoneE164: __t.string().name("phone_e_164"),
 });
