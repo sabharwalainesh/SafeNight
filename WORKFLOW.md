@@ -210,11 +210,14 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-07 — **Verification and live-mode readiness.** Web test harness (`npm test -w web`: vitest + jsdom + Testing Library + axe-core), **80 tests passing**: the full `docs/DEMO_SCRIPT.md` flow driven through four persona hooks (setup → concern → instant no-driving warning → plan v1 → follow-up → backup buddy → ack → ride booked → pickup → only Sam confirms home → resolved; reset), C1–C3 safety rules (driver acceptance, consent revocation, dedupe, okay-doesn't-close, subject-only cancel, blocked messaging, no false handoff); axe-core on every screen with zero violations; accessible names on every control; keyboard hold-to-confirm; WCAG contrast ≥ 4.5:1 for all theme and chip colour pairs (57). Agent/safety mocks and demo panel no longer read the mock Night Out store directly, so they run with `VITE_NIGHTOUT_SOURCE=live` (limit: in live mode the agent only sees consents the caller can see; group setup needs a backend demo reducer). Shared current session (`features/night-out/currentSession.tsx`) so Map/Inbox follow the session opened in Night Out. Gate: tests, typecheck, and `vite build` (mock and live) pass. **Not covered:** a real-browser walk and Lighthouse score (no browser automation on B's machine; jsdom axe skips colour contrast, covered by the computed contrast test instead); no live-server run.
 
+- 2026-11-07 — **C2-B live adapter** `web/src/features/safety/live/` implements `SafetyApi` on the C2-A bindings per ARCHITECTURE §7 client notes (visible_locations, my_checkins, my_incidents + my_incident_participants, my_incident_events, `safety_alert` via `onInsert` only; dismissals per identity in localStorage). Switch with `VITE_SAFETY_SOURCE=live` (`features/safety/SafetyProvider.tsx`), independent of `VITE_NIGHTOUT_SOURCE`. The agent mock now reads incidents through a `SafetyView`: in live-safety mode it plans from caller-visible incidents, never writes the safety mock store, records status changes as "pending backend C3-A" receipts, and "I'm home" calls `check_in(home)`. Gate: 87 tests, typecheck, and build (all-mock and all-live) pass. **Not covered:** no run against a live server (no SpacetimeDB CLI on B's machine).
+
 **In progress**
 - Nothing.
 
 **Next**
-- Blocked on A: C2-A/C3-A/C4-A bindings → adapters for `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi`, then flip all providers to live and run every gate against the local server.
+- Run the C1/C2 gates on live data: `VITE_NIGHTOUT_SOURCE=live VITE_SAFETY_SOURCE=live npm run dev -w web` against `spacetime start` + published module, four persona tabs.
+- Blocked on A: C3-A/C4-A bindings → adapters for `AgentApi`, `ReportsApi`, `ProfileApi`, then flip the remaining providers to live.
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**
