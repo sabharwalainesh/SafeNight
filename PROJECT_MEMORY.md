@@ -26,6 +26,14 @@ NVIDIA Nemotron chooses approved tools and coordinates multi-step incident follo
 
 Updated stack: SwiftUI iOS/watchOS; ActivityKit, WidgetKit, App Intents, Core Location; SpacetimeDB as the primary backend and authoritative state store; NVIDIA Nemotron endpoint; MapKit or Google Maps; APNs and consented Twilio messaging. SpacetimeDB owns the majority of backend business logic, consent enforcement, incident transitions, scheduling state, and real-time synchronization. External HTTP integrations use supported procedures or thin adapters. This supersedes the blueprint's FastAPI/Supabase-primary proposal. Exact model, APIs, platform behavior, and integrations need verification at implementation time.
 
+### Substantive Nemotron capability
+
+The user challenged simple messaging/fallback tasks as too trivial to justify an intelligent model. The refined AI role is **adaptive group return-home planning under changing constraints**: interpret ambiguous human replies, identify missing information, selectively query transport/maps tools, propose coordinated plans, and replan after disruptions while preserving accepted commitments.
+
+Example: six friends at different concert exits, stale GPS, an unavailable driver, an accessible pickup requirement, a transit deadline, limited accompaniment/capacity, and a reported entrance closure. Nemotron extracts tentative constraints and asks targeted questions; external tools supply facts; a deterministic planner/checker validates capacity, timing, accessibility, consent, and accepted accompaniment. SpacetimeDB remains authoritative for constraints, plan versions, permissions, commitments, and execution. Humans accept changed responsibilities, book transport, and confirm outcomes. Unknown facts remain unknown; infeasible plans require clarification or human assistance rather than silently relaxed constraints.
+
+The stronger demo introduces “the pickup entrance is closed and our helper can't come” after a plan is accepted, then shows tool-informed, validated replanning. Evaluate unseen constraint combinations against a rules-based baseline for violations, unnecessary questions/tool calls, time/user effort, and preserved commitments. Simple timers and notifications remain deterministic infrastructure. See `docs/HACKATHON_TRACK_REQUIREMENTS.md` for the detailed design; capability and benefits are planned, not demonstrated.
+
 ## Mandatory hackathon tracks
 
 The user's November 7 requirements are recorded in `docs/HACKATHON_TRACK_REQUIREMENTS.md`:

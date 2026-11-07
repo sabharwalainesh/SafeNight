@@ -17,6 +17,55 @@ The project must use Nemotron and satisfy all four supplied criteria:
 
 Nemotron must perform meaningful contextual planning and adaptation, not merely generate notification wording. Immediate warnings and authorization checks remain deterministic and independent of the model. Persist a concise structured plan and action receipts; do not require or expose private model reasoning.
 
+## Nemotron's substantive role: adaptive group return-home planning
+
+Basic contact selection, message delivery, timers, and backup escalation are state-machine tasks. They are necessary infrastructure but do not by themselves justify an intelligent model. The core AI capability will be coordinating a group's journey home under changing constraints, incomplete information, and conflicting human replies.
+
+### Example problem
+
+Six friends leave a concert through different exits. One phone's location is stale. The designated driver says they cannot drive. One participant needs an accessible pickup point; another wants to catch a train departing in 15 minutes. Two friends can accompany others, but neither can transport the entire group. A nearby pickup entrance is reportedly closed.
+
+The system must clarify positions, establish accepted responsibilities, retrieve current transport information, and propose feasible arrangements. A reported closure remains uncertain until checked; stale GPS is not a confirmed meeting location. A deadline must not override accessibility, consent, or other hard constraints.
+
+### Reasoning and tool responsibilities
+
+| Problem | Nemotron's contribution |
+|---|---|
+| Ambiguous replies | Interpret “I'm by the other exit with Maya; we can walk over but can't fit everyone” as tentative facts and constraints, then clarify which exit and what capacity is actually available. |
+| Missing information | Identify information that could change the plan and ask targeted questions before making unnecessary tool calls. |
+| Tool selection | Request relevant directions, travel times, transit departures, accessible pickup information, and approved helper availability. Preserve source and freshness. |
+| Coordinated planning | Propose who accompanies whom, meeting points, transport options, dependencies, and human acceptance steps. |
+| Disruption | Revise affected steps after a helper declines, an entrance closes, or transport becomes unavailable; retain unaffected accepted commitments when feasible. |
+| Uncertainty and communication | Distinguish observations, assumptions, proposed actions, accepted commitments, and confirmed outcomes. Explain choices and unresolved issues concisely. |
+
+### Execution architecture
+
+1. **SpacetimeDB supplies authoritative state:** scoped permissions, event timestamps, incident status, accepted responsibilities, and plan versions.
+2. **Nemotron interprets messages:** extract schema-validated facts and constraints with provenance and uncertainty. Consequential ambiguities require human clarification.
+3. **External tools retrieve facts:** routes, travel times, departures, and pickup/accessibility information where supported. Missing data must remain unknown rather than invented.
+4. **A deterministic planner or constraint checker validates candidates:** capacity, timing, accessibility, consent, and accepted accompaniment for users requesting it. Keep this business logic in the SpacetimeDB module where feasible; any specialized solver must be a narrow calculation tool with final authorization and state transitions enforced by SpacetimeDB.
+5. **Nemotron communicates feasible choices and coordinates acceptance:** people approve responsibilities and book transportation. If no feasible plan is found, disclose the unresolved constraints and seek clarification or human assistance; never silently relax safety or permission constraints.
+6. **New events trigger replanning:** persist revised proposals and action receipts. Check current consent and plan version before executing outward actions so a stale model response cannot revive a superseded plan.
+
+Hard constraints are validated independently of the LLM. Distinguish user preferences from hard requirements; do not turn the model's guesses into constraints or verified facts. Nemotron must not diagnose impairment, certify safe driving, purchase rides autonomously, infer safety from arrival, or override immediate emergency controls.
+
+### Dynamic demo and evaluation
+
+The basic fallback demo below remains a baseline. The stronger demonstration begins with an accepted group transport plan, then introduces a change not encoded as a fixed demo branch: **“The pickup entrance is closed, and our helper can't come.”**
+
+Show Nemotron obtaining the missing facts, invoking relevant tools, proposing alternatives, and revising the plan after independent validation rejects an infeasible option. Request acceptance for changed responsibilities and show the updated plan to affected participants. Synthetic closures or transport data must be labeled as simulated.
+
+Compare against a simple rules-based contact-and-fallback baseline on previously unseen combinations of constraints. Measure:
+
+- Candidate-plan constraint violations and whether any invalid action passes execution validation.
+- Successful handling of new combinations of location uncertainty, accessibility needs, capacity limits, deadlines, and helper availability.
+- Useful versus unnecessary clarification questions and external tool calls.
+- Time and user effort needed to obtain a feasible, human-accepted plan.
+- Correct preservation or explicit renegotiation of existing commitments after disruption.
+- Transparent handling of infeasible plans, missing data, API failures, and consent revocation.
+
+No improvement is claimed until measured. The goal is a useful adaptive coordination capability, not complexity or extra tool calls added solely for the competition.
+
 ## Track 2: Spacetime-backed application
 
 Supplied requirements:
@@ -36,6 +85,7 @@ SpacetimeDB will own the authoritative application state and the substantial maj
 | Location freshness, check-ins, outing state, session expiration | SpacetimeDB module |
 | Immediate safety triggers, incident transitions, acknowledgment and resolution | SpacetimeDB module |
 | Agent job state, saved plans, tool permissions, action receipts | SpacetimeDB module |
+| Structured constraints, plan versions, deterministic feasibility checks, accepted commitments | SpacetimeDB module; specialized calculation tools only if needed |
 | Follow-up scheduling, backup escalation decisions, retry/deduplication state | SpacetimeDB module |
 | Ride-plan confirmations and live client updates | SpacetimeDB module |
 | Nemotron inference, SMS delivery, maps/directions data | External providers called through constrained integrations |
@@ -62,6 +112,8 @@ FastAPI and Supabase are no longer the planned core backend. LangGraph is option
 - [ ] Nemotron inference is connected and its exact model/endpoint is documented.
 - [ ] An event initiates a workflow without a chat prompt.
 - [ ] The agent executes multiple tool steps and adapts to an actual response or nonresponse.
+- [ ] A changed pickup point and unavailable helper trigger validated replanning rather than a fixed backup-contact script.
+- [ ] Constraint handling and user effort are evaluated against a simple rules-based baseline on unseen scenario combinations.
 - [ ] Real external integrations are demonstrated; simulations are explicitly labeled.
 - [ ] SpacetimeDB contains the core state and business logic listed above.
 - [ ] Tests cover consent revocation, unauthorized access, duplicate events, fallback escalation, and human-only resolution semantics.
