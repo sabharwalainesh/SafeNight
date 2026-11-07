@@ -29,6 +29,7 @@ export function ProfileScreen() {
 
   const [name, setName] = useState(profile?.displayName ?? '');
   const [emoji, setEmoji] = useState(profile?.avatarEmoji ?? EMOJIS[0]);
+  const [phone, setPhone] = useState(profile?.phone ?? '');
   const [profMsg, setProfMsg] = useState<Msg>(null);
 
   const [person, setPerson] = useState('');
@@ -38,7 +39,9 @@ export function ProfileScreen() {
 
   const [sharing, setSharing] = useState(privacy.defaultSharing);
   const [minutes, setMinutes] = useState(privacy.defaultConsentMinutes);
-  const [checkins, setCheckins] = useState(privacy.shareCheckinsWithBuddies);
+  const [buddyAlerts, setBuddyAlerts] = useState(privacy.allowBuddyAlerts);
+  const [groupAlerts, setGroupAlerts] = useState(privacy.allowGroupAlerts);
+  const [retain, setRetain] = useState(privacy.retainCheckinsDays);
   const [privMsg, setPrivMsg] = useState<Msg>(null);
 
   const [confirmText, setConfirmText] = useState('');
@@ -46,15 +49,19 @@ export function ProfileScreen() {
 
   const pName = profile?.displayName;
   const pEmoji = profile?.avatarEmoji;
+  const pPhone = profile?.phone;
   useEffect(() => {
     if (pName !== undefined) setName(pName);
     if (pEmoji !== undefined) setEmoji(pEmoji);
-  }, [pName, pEmoji]);
+    if (pPhone !== undefined) setPhone(pPhone);
+  }, [pName, pEmoji, pPhone]);
   useEffect(() => {
     setSharing(privacy.defaultSharing);
     setMinutes(privacy.defaultConsentMinutes);
-    setCheckins(privacy.shareCheckinsWithBuddies);
-  }, [privacy.defaultSharing, privacy.defaultConsentMinutes, privacy.shareCheckinsWithBuddies]);
+    setBuddyAlerts(privacy.allowBuddyAlerts);
+    setGroupAlerts(privacy.allowGroupAlerts);
+    setRetain(privacy.retainCheckinsDays);
+  }, [privacy.defaultSharing, privacy.defaultConsentMinutes, privacy.allowBuddyAlerts, privacy.allowGroupAlerts, privacy.retainCheckinsDays]);
 
   const candidates = knownPeople.filter((p) => p.userId !== api.me && !contacts.some((c) => c.contact === p.userId));
   const selected = candidates.some((p) => p.userId === person) ? person : (candidates[0]?.userId ?? '');
@@ -70,7 +77,14 @@ export function ProfileScreen() {
 
   const saveProfile = (e: FormEvent) => {
     e.preventDefault();
-    void attempt(() => actions.setProfile(name, emoji), setProfMsg, 'Profile saved.');
+    void attempt(
+      async () => {
+        await actions.setProfile(name, emoji);
+        if (phone.trim() !== (profile?.phone ?? '')) await actions.setPhone(phone.trim());
+      },
+      setProfMsg,
+      'Profile saved.',
+    );
   };
   const addContact = (e: FormEvent) => {
     e.preventDefault();
@@ -86,7 +100,7 @@ export function ProfileScreen() {
   const savePrivacy = (e: FormEvent) => {
     e.preventDefault();
     void attempt(
-      () => actions.setPrivacyDefaults({ defaultSharing: sharing, defaultConsentMinutes: minutes, shareCheckinsWithBuddies: checkins }),
+      () => actions.setPrivacyDefaults({ defaultSharing: sharing, defaultConsentMinutes: minutes, allowBuddyAlerts: buddyAlerts, allowGroupAlerts: groupAlerts, retainCheckinsDays: retain }),
       setPrivMsg,
       'Privacy defaults saved.',
     );
@@ -100,7 +114,7 @@ export function ProfileScreen() {
         setConfirmText('');
       },
       setDelMsg,
-      'Your profile, contacts and privacy defaults were deleted.',
+      api.mocked ? 'Your profile, contacts and privacy defaults were deleted.' : 'Your data was deleted. Set up your profile to continue.',
     );
   };
 
@@ -110,11 +124,16 @@ export function ProfileScreen() {
 
       <section className="card" aria-labelledby="pf-profile">
         <h2 id="pf-profile">Profile</h2>
-        {!profile && <p className="muted">You have no profile yet. Save one to appear to others.</p>}
+        {!profile && <p className="muted">{api.mocked ? 'You have no profile yet. Save one to appear to others.' : 'You have no profile yet. Set up your profile to continue.'}</p>}
         <form onSubmit={saveProfile}>
           <label>
             Display name
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} autoComplete="nickname" />
+          </label>
+          <label>
+            Phone (optional)
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" placeholder="+15551234567" inputMode="tel" />
+            <span className="muted small">International format (E.164), like +15551234567. Leave empty for none.</span>
           </label>
           <fieldset>
             <legend>Avatar</legend>
@@ -194,6 +213,7 @@ export function ProfileScreen() {
 
       <section className="card" aria-labelledby="pf-privacy">
         <h2 id="pf-privacy">Privacy defaults</h2>
+        {!api.privacySaved && !api.mocked && <p className="muted small">Not saved yet. These are the starting defaults.</p>}
         <form onSubmit={savePrivacy}>
           <fieldset>
             <legend>Default location sharing</legend>
@@ -213,8 +233,20 @@ export function ProfileScreen() {
             </select>
           </label>
           <label className="inline">
-            <input type="checkbox" checked={checkins} onChange={(e) => setCheckins(e.target.checked)} />
-            Share my check-ins with my buddies
+            <input type="checkbox" checked={buddyAlerts} onChange={(e) => setBuddyAlerts(e.target.checked)} />
+            Allow alerts to my buddies
+          </label>
+          <label className="inline">
+            <input type="checkbox" checked={groupAlerts} onChange={(e) => setGroupAlerts(e.target.checked)} />
+            Allow alerts to my Night Out group
+          </label>
+          <label>
+            Keep my check-ins for
+            <select value={retain} onChange={(e) => setRetain(Number(e.target.value))}>
+              <option value={1}>1 day</option>
+              <option value={7}>7 days</option>
+              <option value={30}>30 days</option>
+            </select>
           </label>
           <button className="btn" type="submit">Save privacy defaults</button>
         </form>
@@ -224,7 +256,9 @@ export function ProfileScreen() {
       <section className="card danger-zone" aria-labelledby="pf-data">
         <h2 id="pf-data">Your data</h2>
         <p className="muted small">
-          Deleting removes your profile, your trusted contacts, other people's contacts lists that include you, and your privacy defaults. Night Out, location, incident and report data are not deleted by this demo control yet. Full deletion arrives with the backend. This cannot be undone.
+          {api.mocked
+            ? "Deleting removes your profile, your trusted contacts, other people's contacts lists that include you, and your privacy defaults. Night Out, location, incident and report data are not deleted by this demo control yet. Full deletion arrives with the backend. This cannot be undone."
+            : 'Delete my data deletes everything SafeNight stores about you: your profile, trusted contacts, privacy settings, locations, check-ins and your part in Night Out sessions and incidents. Reports you posted stay, anonymized. This cannot be undone.'}
         </p>
         <form onSubmit={del}>
           <label>

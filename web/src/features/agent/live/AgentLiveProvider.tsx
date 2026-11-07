@@ -42,6 +42,7 @@ export function AgentLiveProvider(props: { children?: ReactNode }) {
   const rPickup = useReducer(reducers.confirmPickup);
   const rHome = useReducer(reducers.confirmHome);
   const rFire = useReducer(reducers.demoFireFollowup);
+  const rReset = useReducer(reducers.resetDemo);
 
   const actions = useMemo<AgentActions>(
     () => ({
@@ -58,7 +59,7 @@ export function AgentLiveProvider(props: { children?: ReactNode }) {
   const demo = useMemo<DemoActions>(
     () => ({
       fireFollowup: (id) => wrap(() => rFire({ jobId: BigInt(id) })),
-      reset: unavailable,
+      reset: () => wrap(() => rReset()),
       setupGroup: unavailable,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

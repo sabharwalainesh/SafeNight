@@ -50,12 +50,12 @@ export function DemoPanel() {
           Set up demo group
         </button>
         {!agent.mocked ? (
-          <span className="small muted">Needs the backend reset_demo reducer (C4)</span>
+          <span className="small muted">Create the session from the Night Out tab and join from each persona tab</span>
         ) : (
           !mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>
         )}
         {!confirming ? (
-          <button type="button" className="demo-btn danger" disabled={busy || !agent.mocked} onClick={() => setConfirming(true)}>
+          <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
             Reset demo
           </button>
         ) : (
@@ -67,7 +67,9 @@ export function DemoPanel() {
               onClick={() => {
                 setConfirming(false);
                 void run(
-                  mockedNightOut && safety.mocked
+                  !agent.mocked
+                    ? 'Demo data wiped on the server; venues and resources stay'
+                    : mockedNightOut && safety.mocked
                     ? 'Demo data cleared'
                     : `Cleared local agent${safety.mocked ? ', safety and report' : ''} demo data only. ${safety.mocked ? '' : 'Live safety data (incidents, check-ins) is untouched. '}${mockedNightOut ? '' : 'Live Night Out data is untouched.'}`,
                   () => agent.demo.reset(),
@@ -82,6 +84,7 @@ export function DemoPanel() {
           </>
         )}
       </div>
+      {!agent.mocked && <p className="small muted">Wipes every demo row on the server; venues and resources stay.</p>}
       {msg && (
         <div className={`result ${msg.ok ? 'ok' : 'err'}`} role="status">
           {msg.text}

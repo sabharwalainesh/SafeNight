@@ -7,7 +7,7 @@ export type EpochMs = number;
 export type ContactRole = 'buddy' | 'backup_buddy' | 'emergency';
 export type DefaultSharing = 'none' | 'approximate' | 'precise';
 
-export type UserProfile = { userId: UserId; displayName: string; avatarEmoji: string; phoneVerified: boolean };
+export type UserProfile = { userId: UserId; displayName: string; avatarEmoji: string; phoneVerified: boolean; phone: string };
 export type TrustedContact = {
   id: string;
   owner: UserId;
@@ -21,10 +21,22 @@ export type TrustedContact = {
 export type PrivacyDefaults = {
   defaultSharing: DefaultSharing;
   defaultConsentMinutes: number;
-  shareCheckinsWithBuddies: boolean;
+  allowBuddyAlerts: boolean;
+  allowGroupAlerts: boolean;
+  retainCheckinsDays: number;
+};
+
+export const DEFAULT_PRIVACY: PrivacyDefaults = {
+  defaultSharing: 'approximate',
+  defaultConsentMinutes: 180,
+  allowBuddyAlerts: true,
+  allowGroupAlerts: true,
+  retainCheckinsDays: 7,
 };
 
 export type ProfileActions = {
+  /** E.164 (+15551234567) or empty to clear. */
+  setPhone(e164: string): Promise<void>;
   setProfile(displayName: string, avatarEmoji: string): Promise<void>;
   addTrustedContact(contact: UserId, role: ContactRole, messagingConsent: boolean, priority: number): Promise<void>;
   removeTrustedContact(id: string): Promise<void>;
@@ -43,6 +55,8 @@ export type ProfileApi = {
   contacts: TrustedContact[];
   knownPeople: { userId: UserId; displayName: string }[];
   privacy: PrivacyDefaults;
+  /** False when the server has no privacy row yet and `privacy` shows defaults. */
+  privacySaved: boolean;
   actions: ProfileActions;
 };
 

@@ -1,13 +1,9 @@
 // MOCK until C4-A bindings: ProfileApi backed by localStorage + BroadcastChannel.
 import { createElement, useMemo, useSyncExternalStore, type ReactNode } from 'react';
-import { ProfileContext, type PrivacyDefaults, type ProfileActions, type ProfileApi, type UserId } from '../api';
+import { DEFAULT_PRIVACY, ProfileContext, type ProfileActions, type ProfileApi, type UserId } from '../api';
 import { getSnapshot, mutate, subscribe, type MockState } from './store';
 
-export const DEFAULT_PRIVACY: PrivacyDefaults = {
-  defaultSharing: 'approximate',
-  defaultConsentMinutes: 180,
-  shareCheckinsWithBuddies: true,
-};
+export { DEFAULT_PRIVACY };
 
 function normalize(s: MockState, me: UserId) {
   const mine = s.contacts.filter((c) => c.owner === me).sort((a, b) => a.priority - b.priority || a.createdAt - b.createdAt);
@@ -27,7 +23,7 @@ function makeActions(me: UserId): ProfileActions {
         if (p) {
           p.displayName = n;
           p.avatarEmoji = emoji;
-        } else s.profiles.push({ userId: me, displayName: n, avatarEmoji: emoji, phoneVerified: false });
+        } else s.profiles.push({ userId: me, displayName: n, avatarEmoji: emoji, phoneVerified: false, phone: '' });
       }),
     addTrustedContact: (contact, role, messagingConsent, priority) =>
       run((s, id) => {
@@ -67,6 +63,14 @@ function makeActions(me: UserId): ProfileActions {
         mine[i].priority = mine[j].priority;
         mine[j].priority = t;
       }),
+    setPhone: (e164) =>
+      run((s) => {
+        const v = e164.trim();
+        if (v && !/^\+[1-9]\d{6,14}$/.test(v)) throw new Error('Phone must be E.164, like +15551234567');
+        const p = s.profiles.find((x) => x.userId === me);
+        if (!p) throw new Error('Save a profile first');
+        p.phone = v;
+      }),
     setPrivacyDefaults: (p) =>
       run((s) => {
         s.privacy[me] = { ...p };
@@ -92,7 +96,8 @@ export function useProfileMock(me: UserId, _displayName: string): ProfileApi {
     profile: state.profiles.find((p) => p.userId === me) ?? null,
     contacts: state.contacts.filter((c) => c.owner === me).sort((a, b) => a.priority - b.priority),
     knownPeople: state.profiles.map((p) => ({ userId: p.userId, displayName: p.displayName })),
-    privacy: state.privacy[me] ?? DEFAULT_PRIVACY,
+    privacy: { ...DEFAULT_PRIVACY, ...(state.privacy[me] ?? {}) },
+    privacySaved: !!state.privacy[me],
     actions,
   };
 }

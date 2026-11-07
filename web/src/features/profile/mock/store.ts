@@ -20,6 +20,7 @@ const seed = (): MockState => ({
     displayName: p.name,
     avatarEmoji: EMOJI[p.id] ?? '🙂',
     phoneVerified: false,
+    phone: '',
   })),
   contacts: [],
   privacy: {},
