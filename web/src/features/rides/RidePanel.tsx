@@ -4,7 +4,7 @@ import './rides.css';
 
 // Ride options can come from model output, so only render links to known
 // ride providers over https (or their app schemes). Anything else is dropped.
-const SAFE_LINK_HOSTS = ['m.uber.com', 'uber.com', 'www.uber.com', 'lyft.com', 'www.lyft.com', 'ride.lyft.com'];
+const SAFE_LINK_HOSTS = ['m.uber.com', 'uber.com', 'www.uber.com', 'lyft.com', 'www.lyft.com', 'ride.lyft.com', 'www.google.com'];
 const SAFE_APP_SCHEMES = ['uber:', 'lyft:'];
 
 function safeRideLink(raw: string | null): string | null {

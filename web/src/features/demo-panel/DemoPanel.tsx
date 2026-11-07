@@ -43,15 +43,19 @@ export function DemoPanel() {
     <section className="card demo-panel" aria-label="Judge demo">
       <div className="demo-head">
         <h2>Judge demo</h2>
-        <span className="badge sim">MOCK</span>
+        <span className="badge sim">{agent.mocked ? 'MOCK' : 'LIVE'}</span>
       </div>
       <div className="demo-row">
-        <button type="button" className="demo-btn primary" disabled={busy || !mockedNightOut} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
+        <button type="button" className="demo-btn primary" disabled={busy || !mockedNightOut || !agent.mocked} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
           Set up demo group
         </button>
-        {!mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>}
+        {!agent.mocked ? (
+          <span className="small muted">Needs the backend reset_demo reducer (C4)</span>
+        ) : (
+          !mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>
+        )}
         {!confirming ? (
-          <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
+          <button type="button" className="demo-btn danger" disabled={busy || !agent.mocked} onClick={() => setConfirming(true)}>
             Reset demo
           </button>
         ) : (
@@ -88,17 +92,17 @@ export function DemoPanel() {
         return (
           <div className="demo-job" key={job.id}>
             <strong>
-              {subject}: {JOB_STATUS_LABELS[job.status]} <span className="badge sim">SIMULATED</span>
+              {subject}: {JOB_STATUS_LABELS[job.status]} {agent.plannerMode === 'simulated' && <span className="badge sim">SIMULATED</span>}
             </strong>
             <span className="small muted">
               Tier {job.escalationTier} ({TIER_LABELS[job.escalationTier] ?? 'Unknown'})
-              {secs !== null ? ` · follow-up due in ${secs}s` : ' · no follow-up timer'}
+              {secs !== null ? ` · follow-up due in ${secs}s` : (agent.mocked ? ' · no follow-up timer' : '')}
             </span>
             <div className="demo-row">
               <button
                 type="button"
                 className="demo-btn"
-                disabled={busy || secs === null}
+                disabled={busy || (agent.mocked && secs === null)}
                 onClick={() => void run('Timer advanced', () => agent.demo.fireFollowup(job.id))}
               >
                 Advance timer (simulate no reply)
