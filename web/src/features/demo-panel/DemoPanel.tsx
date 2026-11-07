@@ -1,0 +1,110 @@
+// MOCK until C3-A bindings: judge controls for the simulated agent.
+import { useEffect, useState } from 'react';
+import { JOB_STATUS_LABELS, useAgent } from '../agent/api';
+import { useSafety } from '../safety/api';
+import './demo-panel.css';
+
+const TIER_LABELS = ['Primary buddy', 'Backup buddy', 'Organizer'];
+const CLOSED = ['resolved', 'cancelled', 'handed_off'];
+
+export function DemoPanel() {
+  const agent = useAgent();
+  const safety = useSafety();
+  const [now, setNow] = useState(() => Date.now());
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const run = async (label: string, fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+      setMsg({ ok: true, text: label });
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : 'Something went wrong' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const jobs = safety.incidents.flatMap((i) => {
+    const j = agent.jobForIncident(i.id);
+    return j && !CLOSED.includes(j.status) ? [{ job: j, subject: i.subjectName }] : [];
+  });
+
+  return (
+    <section className="card demo-panel" aria-label="Judge demo">
+      <div className="demo-head">
+        <h2>Judge demo</h2>
+        <span className="badge sim">MOCK</span>
+      </div>
+      <div className="demo-row">
+        <button type="button" className="demo-btn primary" disabled={busy} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
+          Set up demo group
+        </button>
+        {!confirming ? (
+          <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
+            Reset demo
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="demo-btn danger"
+              disabled={busy}
+              onClick={() => {
+                setConfirming(false);
+                void run('Demo data cleared', () => agent.demo.reset());
+              }}
+            >
+              Yes, erase all demo data
+            </button>
+            <button type="button" className="demo-btn" onClick={() => setConfirming(false)}>
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
+      {msg && (
+        <div className={`result ${msg.ok ? 'ok' : 'err'}`} role="status">
+          {msg.text}
+        </div>
+      )}
+      {jobs.map(({ job, subject }) => {
+        const secs = job.followupDueAt === null ? null : Math.max(0, Math.ceil((job.followupDueAt - now) / 1000));
+        return (
+          <div className="demo-job" key={job.id}>
+            <strong>
+              {subject}: {JOB_STATUS_LABELS[job.status]} <span className="badge sim">SIMULATED</span>
+            </strong>
+            <span className="small muted">
+              Tier {job.escalationTier} ({TIER_LABELS[job.escalationTier] ?? 'Unknown'})
+              {secs !== null ? ` · follow-up due in ${secs}s` : ' · no follow-up timer'}
+            </span>
+            <div className="demo-row">
+              <button
+                type="button"
+                className="demo-btn"
+                disabled={busy || secs === null}
+                onClick={() => void run('Timer advanced', () => agent.demo.fireFollowup(job.id))}
+              >
+                Advance timer (simulate no reply)
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      <ol className="demo-script small muted">
+        <li>Set up the demo group, then switch persona to Sam or Alex.</li>
+        <li>Report a concern about the driver (Sam) from the Map tab.</li>
+        <li>Switch to Maya: acknowledge, or advance the timer to escalate to Jordan.</li>
+        <li>Choose and book a ride, confirm pickup, then Sam confirms "I'm home".</li>
+      </ol>
+    </section>
+  );
+}
