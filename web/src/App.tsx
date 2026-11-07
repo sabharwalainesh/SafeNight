@@ -7,12 +7,14 @@ import { relativeTime, shortIdentity } from './lib/format';
 import { NightOutMockProvider } from './features/night-out/mock';
 import { AgentMockProvider } from './features/agent/mock';
 import { DemoPanel } from './features/demo-panel';
+import { ProfileMockProvider } from './features/profile/mock';
 import { ReportsMockProvider } from './features/reports/mock';
 import { SafetyMockProvider } from './features/safety/mock';
 import { NoDrivingBanner, StatusBar } from './features/status';
 import { InboxScreen } from './screens/inbox';
 import { MapScreen } from './screens/map';
 import { NightOutTab } from './screens/night-out';
+import { ProfileScreen } from './screens/profile';
 import { ReportsScreen } from './screens/reports';
 
 type TabId = 'night' | 'map' | 'reports' | 'inbox' | 'profile';
@@ -60,6 +62,7 @@ export default function App({ persona, host, dbName }: Props) {
       <SafetyMockProvider>
       <AgentMockProvider>
       <ReportsMockProvider>
+      <ProfileMockProvider me={persona.id} displayName={persona.name}>
       <main className="content">
         <NoDrivingBanner onViewIncident={openIncident} />
         <RuntimeStrip />
@@ -78,7 +81,7 @@ export default function App({ persona, host, dbName }: Props) {
           <ReportsScreen />
         ) : tab === 'profile' ? (
           <>
-            <TabPanel tab={tab} />
+            <ProfileScreen />
             <DemoPanel />
           </>
         ) : (
@@ -88,6 +91,7 @@ export default function App({ persona, host, dbName }: Props) {
           Server {host} · database {dbName}
         </p>
       </main>
+      </ProfileMockProvider>
       </ReportsMockProvider>
       </AgentMockProvider>
       </SafetyMockProvider>
