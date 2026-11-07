@@ -72,6 +72,8 @@ export const agentAction = table(
     simulated: t.bool(),
     idempotencyKey: t.string().unique(),
     at: t.timestamp(),
+    // Short human summary of the result (≤ 120 chars); empty for rejected calls. Added in C4 with a default.
+    resultText: t.string().default(''),
   }
 );
 

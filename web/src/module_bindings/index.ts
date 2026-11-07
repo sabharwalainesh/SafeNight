@@ -46,7 +46,9 @@ import ConfirmPickupReducer from "./confirm_pickup_reducer";
 import ConfirmRideBookedReducer from "./confirm_ride_booked_reducer";
 import CreateInviteReducer from "./create_invite_reducer";
 import CreateSessionReducer from "./create_session_reducer";
+import CreateVenueReducer from "./create_venue_reducer";
 import DeclineAssistanceReducer from "./decline_assistance_reducer";
+import DeleteMyDataReducer from "./delete_my_data_reducer";
 import DemoFireFollowupReducer from "./demo_fire_followup_reducer";
 import DemoWakeAgentReducer from "./demo_wake_agent_reducer";
 import EndDriverRoleReducer from "./end_driver_role_reducer";
@@ -55,18 +57,25 @@ import EnsureSchedulesReducer from "./ensure_schedules_reducer";
 import GrantConsentReducer from "./grant_consent_reducer";
 import JoinSessionReducer from "./join_session_reducer";
 import LeaveSessionReducer from "./leave_session_reducer";
+import ModerateVenueReportReducer from "./moderate_venue_report_reducer";
 import PingReducer from "./ping_reducer";
 import PostLocationReducer from "./post_location_reducer";
 import RemoveTrustedContactReducer from "./remove_trusted_contact_reducer";
 import ReportConcernReducer from "./report_concern_reducer";
 import ReportConsumptionReducer from "./report_consumption_reducer";
+import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveIncidentReducer from "./resolve_incident_reducer";
 import RevokeConsentReducer from "./revoke_consent_reducer";
 import RevokeInviteReducer from "./revoke_invite_reducer";
+import SeedResourcesReducer from "./seed_resources_reducer";
+import SetAppRoleReducer from "./set_app_role_reducer";
 import SetPhoneReducer from "./set_phone_reducer";
+import SetPrivacySettingsReducer from "./set_privacy_settings_reducer";
 import SetProfileReducer from "./set_profile_reducer";
 import SetSharingScopeReducer from "./set_sharing_scope_reducer";
+import SubmitVenueReportReducer from "./submit_venue_report_reducer";
 import VolunteerDriverReducer from "./volunteer_driver_reducer";
+import VoteVenueReportReducer from "./vote_venue_report_reducer";
 
 // Import all procedure arg schemas
 
@@ -84,15 +93,20 @@ import MyIncidentParticipantsRow from "./my_incident_participants_table";
 import MyIncidentsRow from "./my_incidents_table";
 import MyInvitesRow from "./my_invites_table";
 import MyNotificationsRow from "./my_notifications_table";
+import MyPrivacySettingsRow from "./my_privacy_settings_table";
 import MyRidePlansRow from "./my_ride_plans_table";
 import MyRostersRow from "./my_rosters_table";
 import MySessionsRow from "./my_sessions_table";
+import MyVenueReportsRow from "./my_venue_reports_table";
 import NightSessionRow from "./night_session_table";
 import OnlineMembersRow from "./online_members_table";
+import PublishedVenueReportsRow from "./published_venue_reports_table";
 import RuntimeStatusRow from "./runtime_status_table";
 import SafetyAlertRow from "./safety_alert_table";
+import SafetyResourceRow from "./safety_resource_table";
 import SessionMemberRow from "./session_member_table";
 import UserProfileRow from "./user_profile_table";
+import VenueRow from "./venue_table";
 import VisibleLocationsRow from "./visible_locations_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -155,6 +169,21 @@ const tablesSchema = __schema({
     ],
     event: true,
   }, SafetyAlertRow),
+  safetyResource: __table({
+    name: 'safety_resource',
+    indexes: [
+      { accessor: 'id', name: 'safety_resource_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'name', name: 'safety_resource_name_idx_btree', algorithm: 'btree', columns: [
+        'name',
+      ] },
+    ],
+    constraints: [
+      { name: 'safety_resource_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'safety_resource_name_key', constraint: 'unique', columns: ['name'] },
+    ],
+  }, SafetyResourceRow),
   sessionMember: __table({
     name: 'session_member',
     indexes: [
@@ -187,6 +216,17 @@ const tablesSchema = __schema({
       { name: 'user_profile_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, UserProfileRow),
+  venue: __table({
+    name: 'venue',
+    indexes: [
+      { accessor: 'id', name: 'venue_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'venue_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, VenueRow),
   myAgentActions: __table({
     name: 'my_agent_actions',
     indexes: [
@@ -264,6 +304,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyNotificationsRow),
+  myPrivacySettings: __table({
+    name: 'my_privacy_settings',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyPrivacySettingsRow),
   myRidePlans: __table({
     name: 'my_ride_plans',
     indexes: [
@@ -285,6 +332,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MySessionsRow),
+  myVenueReports: __table({
+    name: 'my_venue_reports',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyVenueReportsRow),
   onlineMembers: __table({
     name: 'online_members',
     indexes: [
@@ -292,6 +346,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, OnlineMembersRow),
+  publishedVenueReports: __table({
+    name: 'published_venue_reports',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, PublishedVenueReportsRow),
   runtimeStatus: __table({
     name: 'runtime_status',
     indexes: [
@@ -322,7 +383,9 @@ const reducersSchema = __reducers(
   __reducerSchema("confirm_ride_booked", ConfirmRideBookedReducer),
   __reducerSchema("create_invite", CreateInviteReducer),
   __reducerSchema("create_session", CreateSessionReducer),
+  __reducerSchema("create_venue", CreateVenueReducer),
   __reducerSchema("decline_assistance", DeclineAssistanceReducer),
+  __reducerSchema("delete_my_data", DeleteMyDataReducer),
   __reducerSchema("demo_fire_followup", DemoFireFollowupReducer),
   __reducerSchema("demo_wake_agent", DemoWakeAgentReducer),
   __reducerSchema("end_driver_role", EndDriverRoleReducer),
@@ -331,18 +394,25 @@ const reducersSchema = __reducers(
   __reducerSchema("grant_consent", GrantConsentReducer),
   __reducerSchema("join_session", JoinSessionReducer),
   __reducerSchema("leave_session", LeaveSessionReducer),
+  __reducerSchema("moderate_venue_report", ModerateVenueReportReducer),
   __reducerSchema("ping", PingReducer),
   __reducerSchema("post_location", PostLocationReducer),
   __reducerSchema("remove_trusted_contact", RemoveTrustedContactReducer),
   __reducerSchema("report_concern", ReportConcernReducer),
   __reducerSchema("report_consumption", ReportConsumptionReducer),
+  __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_incident", ResolveIncidentReducer),
   __reducerSchema("revoke_consent", RevokeConsentReducer),
   __reducerSchema("revoke_invite", RevokeInviteReducer),
+  __reducerSchema("seed_resources", SeedResourcesReducer),
+  __reducerSchema("set_app_role", SetAppRoleReducer),
   __reducerSchema("set_phone", SetPhoneReducer),
+  __reducerSchema("set_privacy_settings", SetPrivacySettingsReducer),
   __reducerSchema("set_profile", SetProfileReducer),
   __reducerSchema("set_sharing_scope", SetSharingScopeReducer),
+  __reducerSchema("submit_venue_report", SubmitVenueReportReducer),
   __reducerSchema("volunteer_driver", VolunteerDriverReducer),
+  __reducerSchema("vote_venue_report", VoteVenueReportReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

@@ -27,4 +27,6 @@ export default __t.row({
   wakeCount: __t.u32().name("wake_count"),
   createdAt: __t.timestamp().name("created_at"),
   updatedAt: __t.timestamp().name("updated_at"),
+  followupDueAt: __t.option(__t.timestamp()).name("followup_due_at"),
+  followupExpectedFrom: __t.option(__t.identity()).name("followup_expected_from"),
 });

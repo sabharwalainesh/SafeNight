@@ -33,4 +33,5 @@ export default __t.row({
   },
   joinedAt: __t.timestamp().name("joined_at"),
   active: __t.bool(),
+  leftAt: __t.option(__t.timestamp()).name("left_at"),
 });

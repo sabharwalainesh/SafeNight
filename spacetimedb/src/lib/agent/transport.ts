@@ -1,6 +1,7 @@
 import { TimeDuration } from 'spacetimedb';
 import type { ProcedureCtx, InferSchema } from 'spacetimedb/server';
 import type { spacetimedb } from '../../schema';
+import { sanitizeOptions } from './links';
 
 type PCtx = ProcedureCtx<InferSchema<typeof spacetimedb>>;
 
@@ -9,6 +10,8 @@ export type TransportOption = {
   label: string;
   url: string;
   source: string;
+  /** Epoch milliseconds when this option was produced. */
+  fetchedAt?: number;
   durationMinutes?: number;
   distanceKm?: number;
 };
@@ -42,11 +45,15 @@ const UA = 'SafeNight-hackathon/0.1 (https://github.com/sabharwalainesh/SafeNigh
  * failure is reported as `failed`/`provider_links_only` with the provider links only.
  */
 export function fetchTransportOptions(ctx: PCtx, input: TransportInput): TransportResult {
+  const fetchedAt = Date.parse(input.nowIso) || 0;
+  const stamp = (o: TransportOption): TransportOption => ({ ...o, fetchedAt });
+  // Provider links are constants, but they pass through the same allowlist as model output.
+  const links = sanitizeOptions(PROVIDER_LINKS).kept.map(stamp);
   const base: TransportResult = {
     status: 'provider_links_only',
     fetchedAt: input.nowIso,
     pickup: input.pickup ? { lat: round3(input.pickup.lat), lng: round3(input.pickup.lng), approximate: true } : null,
-    options: [...PROVIDER_LINKS],
+    options: links,
     simulated: false,
   };
   if (!input.pickup || input.venueHint.trim().length === 0) return base;
@@ -80,10 +87,11 @@ export function fetchTransportOptions(ctx: PCtx, input: TransportInput): Transpo
           label: `Drive from ${input.venueHint.trim()} to the pickup`,
           url: '',
           source: 'osrm',
+          fetchedAt,
           durationMinutes: Math.round(r.duration / 60),
           distanceKm: Math.round(r.distance / 100) / 10,
         },
-        ...PROVIDER_LINKS,
+        ...links,
       ],
     };
   } catch (e) {

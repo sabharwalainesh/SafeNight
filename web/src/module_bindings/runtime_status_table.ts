@@ -17,4 +17,5 @@ export default __t.row({
   nemotronModel: __t.string().name("nemotron_model"),
   messagingMode: __t.string().name("messaging_mode"),
   moduleVersion: __t.string().name("module_version"),
+  publishedAt: __t.option(__t.timestamp()).name("published_at"),
 });

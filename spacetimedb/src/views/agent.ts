@@ -28,6 +28,8 @@ const agentJobRow = t.row('AgentJobRow', {
   wakeCount: t.u32(),
   createdAt: t.timestamp(),
   updatedAt: t.timestamp(),
+  followupDueAt: t.timestamp().optional(),
+  followupExpectedFrom: t.identity().optional(),
 });
 type AgentJobValue = Infer<typeof agentJobRow>;
 
@@ -41,6 +43,16 @@ export const myAgentJobs = spacetimedb.view(
       const job = ctx.db.agentJob.incidentId.find(incidentId);
       if (!job) continue;
       const incident = ctx.db.incident.id.find(incidentId);
+      let followupDueAt: AgentJobValue['followupDueAt'];
+      let followupExpectedFrom: AgentJobValue['followupExpectedFrom'];
+      for (const timer of ctx.db.followupTimer.jobId.filter(job.id)) {
+        if (timer.scheduledAt.tag !== 'Time') continue;
+        const due = timer.scheduledAt.value;
+        if (!followupDueAt || due.microsSinceUnixEpoch < followupDueAt.microsSinceUnixEpoch) {
+          followupDueAt = due;
+          followupExpectedFrom = timer.expectedFrom;
+        }
+      }
       rows.push({
         id: job.id,
         incidentId: job.incidentId,
@@ -52,6 +64,8 @@ export const myAgentJobs = spacetimedb.view(
         wakeCount: job.wakeCount,
         createdAt: job.createdAt,
         updatedAt: job.updatedAt,
+        followupDueAt,
+        followupExpectedFrom,
       });
     }
     return rows;

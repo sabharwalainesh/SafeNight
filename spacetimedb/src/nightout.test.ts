@@ -228,7 +228,7 @@ describe('C1 consent and sharing', () => {
     ).toThrow('Recipient is not an active member');
     expect(() =>
       test.withReducerTx(alex, ctx =>
-        m.grantConsent(ctx, { recipient: id(sam), sessionId: session.id, scope: { tag: 'checkins' }, ttlMinutes: 0 })
+        m.grantConsent(ctx, { recipient: id(sam), sessionId: session.id, scope: { tag: 'checkins' }, ttlMinutes: 1441 })
       )
     ).toThrow('ttlMinutes must be between 1 and 1440');
     test.withReducerTx(alex, ctx =>

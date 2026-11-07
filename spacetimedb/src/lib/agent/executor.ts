@@ -9,6 +9,7 @@ import { isTemplateName, renderTemplate } from './templates';
 import { isToolName, MAX_OPEN_FOLLOWUPS, validateArgs, type ToolCall } from './tools';
 import type { TransportInput, TransportResult } from './transport';
 import { twilioConfig } from './twilio';
+import { sanitizeOptions } from './links';
 
 export type SegmentInput = {
   jobId: bigint;
@@ -49,7 +50,8 @@ function receipt(
   status: 'proposed' | 'rejected' | 'executed' | 'failed',
   result: unknown,
   rejectReason: string,
-  simulated: boolean
+  simulated: boolean,
+  resultText = ''
 ) {
   const key = `${jobId}:${planVersion}:${index}:${tool}`;
   if (ctx.db.agentAction.idempotencyKey.find(key)) return undefined;
@@ -65,7 +67,18 @@ function receipt(
     simulated,
     idempotencyKey: key,
     at: ctx.timestamp,
+    resultText: status === 'rejected' ? '' : resultText.slice(0, 120),
   });
+}
+
+/** Short human summary for a receipt (≤ 120 chars). */
+export function summarizeTransport(result: TransportResult): string {
+  if (result.status === 'failed') return `Transport lookup failed (${result.error ?? 'unknown'}); provider links only`;
+  if (result.status === 'ok') {
+    const route = result.options.find(o => o.source === 'osrm');
+    return `Route ~${route?.durationMinutes ?? '?'} min, ${route?.distanceKm ?? '?'} km; ${result.options.length} options`;
+  }
+  return `Provider links only (${result.options.length})`;
 }
 
 /** Mark a `proposed` receipt as executed/failed once its HTTP result is known. */
@@ -78,6 +91,7 @@ export function completeTransportReceipt(ctx: Ctx, receiptId: bigint, result: Tr
     resultJson: JSON.stringify(result),
     rejectReason: result.error ?? '',
     simulated: false,
+    resultText: summarizeTransport(result).slice(0, 120),
   });
 }
 
@@ -142,7 +156,8 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
             canMessage: recipientAllowed(ctx, incident, p.userId),
           });
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { incident: incident.status.tag, participants }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { incident: incident.status.tag, participants }, '', sim,
+          `${participants.length} participants, ${participants.filter(p => p.canMessage).length} reachable; incident ${incident.status.tag}`);
         break;
       }
       case 'get_recent_checkins': {
@@ -156,7 +171,8 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           const age = ctx.timestamp.microsSinceUnixEpoch - c.createdAt.microsSinceUnixEpoch;
           if (age <= windowMicros) kinds.push({ kind: c.kind.tag, minutesAgo: Number(age / 60_000_000n) });
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { checkins: kinds }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { checkins: kinds }, '', sim,
+          kinds.length ? `${kinds.length} check-ins; latest ${kinds[0]!.kind} ${kinds[0]!.minutesAgo} min ago` : 'No recent check-ins');
         break;
       }
       case 'get_last_shared_location': {
@@ -175,7 +191,9 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
             approximate: true,
           };
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', result, '', sim);
+        const loc = result as { available: boolean; ageMinutes?: number };
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', result, '', sim,
+          loc.available ? `Last shared location is ${loc.ageMinutes} min old (rounded)` : 'No shared location available');
         break;
       }
       case 'get_transport_options': {
@@ -244,7 +262,8 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           addEvent(ctx, incident.id, 'message_queued', `${template} queued for ${targetName} via ${channel}`, channel !== 'sms');
           if (out.confirmationTarget === undefined) out.confirmationTarget = targetHex;
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { notificationId: String(n.id), channel }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { notificationId: String(n.id), channel }, '', sim,
+          call.name === 'request_human_confirmation' ? `Asked ${targetName} to confirm` : `${template} queued for ${targetName} via ${channel}`);
         break;
       }
       case 'schedule_followup': {
@@ -266,7 +285,8 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           tier: job.escalationTier,
         });
         out.scheduledFollowup = true;
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { timerId: String(timer.scheduledId), minutes }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { timerId: String(timer.scheduledId), minutes }, '', sim,
+          `Follow-up in ${minutes} min`);
         break;
       }
       case 'update_incident_state': {
@@ -282,7 +302,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           ctx.db.incident.id.update({ ...incident, status: { tag: target } });
           addEvent(ctx, incident.id, 'state_updated', `Agent set status ${target}`, sim);
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { from, to: target }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { from, to: target }, '', sim, `Status ${from} → ${target}`);
         break;
       }
       case 'propose_ride_plan': {
@@ -294,14 +314,25 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           break;
         }
         let options: unknown;
+        let dropped = 0;
+        const fetchedAtMs = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
         if (args.options === 'from_transport_lookup') {
           if (!input.transport) {
             receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'no_transport_lookup_in_plan', sim);
             break;
           }
-          options = input.transport;
+          const clean = sanitizeOptions(input.transport.options);
+          dropped = clean.dropped;
+          options = { ...input.transport, options: clean.kept.map(o => ({ ...o, fetchedAt: fetchedAtMs })) };
         } else {
-          options = { status: 'model_proposed', fetchedAt: ctx.timestamp.toDate().toISOString(), options: args.options, simulated: sim };
+          const clean = sanitizeOptions(args.options as { kind: string; label: string; url: string; source: string }[]);
+          dropped = clean.dropped;
+          options = {
+            status: 'model_proposed',
+            fetchedAt: ctx.timestamp.toDate().toISOString(),
+            options: clean.kept.map(o => ({ ...o, fetchedAt: fetchedAtMs })),
+            simulated: sim,
+          };
         }
         let existing;
         for (const r of ctx.db.ridePlan.jobId.filter(job.id)) {
@@ -332,7 +363,8 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
             sendAlert(ctx, p.userId, incident.id, 'incident_update', `Ride options for ${subjectName} are ready. Someone needs to book and confirm.`);
           }
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { ridePlanId: String(planId) }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { ridePlanId: String(planId), droppedLinks: dropped }, '', sim,
+          `Ride plan #${planId} proposed${dropped ? `; ${dropped} link(s) dropped by the allowlist` : ''}`);
         break;
       }
       case 'hand_off': {
@@ -345,7 +377,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           sendAlert(ctx, session.organizer, incident.id, 'incident_update', `SafeNight could not reach a helper for ${subjectName}. Please take over coordination.`);
         }
         out.handedOff = true;
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { reason }, '', sim);
+        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { reason }, '', sim, `Handed off to the organizer: ${reason}`);
         out.stopped = true;
         out.nextIndex = input.calls.length;
         return out;

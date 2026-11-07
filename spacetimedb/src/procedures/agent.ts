@@ -34,6 +34,7 @@ function wakeReceipt(tx: Ctx, wake: { jobId: bigint; scheduledId: bigint; event:
     simulated: true,
     idempotencyKey: key,
     at: tx.timestamp,
+    resultText: '',
   });
 }
 
@@ -46,6 +47,11 @@ function prepare(tx: Ctx, wake: { jobId: bigint; scheduledId: bigint; event: str
   }
   if (wake.planVersion !== 0 && wake.planVersion < job.planVersion) {
     wakeReceipt(tx, wake, 'stale_plan');
+    return { kind: 'skip' };
+  }
+  // A second `incident_opened` wake for a job that already planned is a duplicate event, not a new one.
+  if (wake.planVersion === 0 && wake.event === 'incident_opened' && job.planVersion > 0) {
+    wakeReceipt(tx, wake, 'duplicate_wake');
     return { kind: 'skip' };
   }
   const incident = tx.db.incident.id.find(job.incidentId);

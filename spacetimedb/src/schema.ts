@@ -32,6 +32,17 @@ import {
   notificationDispatch,
   ridePlan,
 } from './tables/agent';
+import {
+  appRole,
+  retentionSweep,
+  safetyResource,
+  userPrivacySettings,
+  venue,
+  venueReport,
+  venueReportAuthor,
+  venueReportExpiry,
+  venueReportVote,
+} from './tables/community';
 
 // Private: single row recording who published the database (module owner).
 export const config = table(
@@ -67,9 +78,21 @@ export const auditEvent = table(
   }
 );
 
+// Private: what module version is published. Read by `runtime_status` so the view's read set
+// includes a table row and re-evaluates after every publish + `ensure_schedules`.
+export const moduleMeta = table(
+  { name: 'module_meta' },
+  {
+    id: t.u8().primaryKey(),
+    moduleVersion: t.string(),
+    publishedAt: t.timestamp(),
+  }
+);
+
 export const spacetimedb = schema(
   {
     config,
+    moduleMeta,
     clientPresence,
     auditEvent,
     userProfile,
@@ -99,6 +122,15 @@ export const spacetimedb = schema(
     notification,
     notificationDispatch,
     ridePlan,
+    venue,
+    venueReport,
+    venueReportAuthor,
+    venueReportVote,
+    venueReportExpiry,
+    safetyResource,
+    retentionSweep,
+    appRole,
+    userPrivacySettings,
   },
   {
     env: {

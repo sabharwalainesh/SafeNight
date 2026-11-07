@@ -33,6 +33,7 @@ const rosterRow = t.row('RosterRow', {
   driverStatus: DriverStatus,
   joinedAt: t.timestamp(),
   active: t.bool(),
+  leftAt: t.timestamp().optional(),
 });
 
 type RosterRowValue = Infer<typeof rosterRow>;
@@ -69,6 +70,7 @@ export const myRosters = spacetimedb.view(
           driverStatus: { tag: isDriver ? (accepted ? 'accepted' : 'volunteered') : 'none' },
           joinedAt: m.joinedAt,
           active: m.active,
+          leftAt: m.leftAt,
         });
       }
     }

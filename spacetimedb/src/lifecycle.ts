@@ -1,5 +1,7 @@
 import { spacetimedb } from './schema';
 import { ensureSweepScheduled } from './lib/safety';
+import { ensureCommunitySchedules, seedResources } from './lib/community';
+import { MODULE_VERSION } from './lib/constants';
 
 export const init = spacetimedb.init(ctx => {
   ctx.db.config.insert({ id: 0, owner: ctx.sender, createdAt: ctx.timestamp });
@@ -12,6 +14,9 @@ export const init = spacetimedb.init(ctx => {
     at: ctx.timestamp,
   });
   ensureSweepScheduled(ctx);
+  ensureCommunitySchedules(ctx);
+  seedResources(ctx);
+  ctx.db.moduleMeta.insert({ id: 0, moduleVersion: MODULE_VERSION, publishedAt: ctx.timestamp });
 });
 
 export const onConnect = spacetimedb.clientConnected(ctx => {

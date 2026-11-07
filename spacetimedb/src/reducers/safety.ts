@@ -31,6 +31,8 @@ import {
 } from '../lib/safety';
 import { isAtOrBefore, isBefore, minutesAfter } from '../lib/time';
 import { closeJobForIncident, completeRidePlans } from '../lib/agent/jobs';
+import { ensureCommunitySchedules } from '../lib/community';
+import { MODULE_VERSION } from '../lib/constants';
 
 export const postLocation = spacetimedb.reducer(
   { sessionId: t.u64(), lat: t.f64(), lng: t.f64(), accuracyM: t.f32(), source: LocationSource },
@@ -322,6 +324,10 @@ export const sweepLocations = spacetimedb.reducer(
 export const ensureSchedules = spacetimedb.reducer(ctx => {
   const owner = ctx.db.config.id.find(0)?.owner;
   if (!owner || !owner.isEqual(ctx.sender)) throw new SenderError('Only the database owner can do that');
-  const created = ensureSweepScheduled(ctx);
-  audit(ctx, 'ensure_schedules', created ? 'location_sweep:created' : 'location_sweep:present');
+  const created = [...(ensureSweepScheduled(ctx) ? ['location_sweep'] : []), ...ensureCommunitySchedules(ctx)];
+  // Record the published version so `runtime_status` (whose read set includes this row) refreshes.
+  const meta = ctx.db.moduleMeta.id.find(0);
+  if (meta) ctx.db.moduleMeta.id.update({ ...meta, moduleVersion: MODULE_VERSION, publishedAt: ctx.timestamp });
+  else ctx.db.moduleMeta.insert({ id: 0, moduleVersion: MODULE_VERSION, publishedAt: ctx.timestamp });
+  audit(ctx, 'ensure_schedules', created.length ? `created:${created.join(',')}` : 'all_present');
 });

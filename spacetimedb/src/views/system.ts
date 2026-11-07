@@ -19,6 +19,7 @@ const runtimeStatusRow = t.row('RuntimeStatusRow', {
   nemotronModel: t.string(),
   messagingMode: t.string(),
   moduleVersion: t.string(),
+  publishedAt: t.timestamp().optional(),
 });
 
 // Tells clients whether external integrations are live or simulated. Never exposes secret values.
@@ -27,6 +28,9 @@ export const runtimeStatus = spacetimedb.anonymousView(
   t.array(runtimeStatusRow),
   ctx => {
     const env = envOf(ctx);
+    // Reading a table row keeps this view's read set non-empty, so it re-evaluates after a publish
+    // once `ensure_schedules` upserts module_meta. A constant-only view is cached forever.
+    const meta = ctx.db.moduleMeta.id.find(0);
     const messagingLive = Boolean(
       env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM_NUMBER
     );
@@ -37,7 +41,8 @@ export const runtimeStatus = spacetimedb.anonymousView(
         nemotronMode: env.NEMOTRON_API_KEY ? 'live' : 'simulated',
         nemotronModel: env.NEMOTRON_MODEL ?? DEFAULT_NEMOTRON_MODEL,
         messagingMode: messagingLive ? 'live' : 'simulated',
-        moduleVersion: MODULE_VERSION,
+        moduleVersion: meta?.moduleVersion ?? MODULE_VERSION,
+        publishedAt: meta?.publishedAt,
       },
     ];
   }

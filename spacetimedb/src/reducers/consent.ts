@@ -4,6 +4,7 @@ import { ConsentScope, SharingScope } from '../tables/nightout';
 import { audit, deny, getSession, requireActiveMember, sessionIsOpen } from '../lib/auth';
 import { MAX_TTL_MINUTES } from '../lib/constants';
 import { minutesAfter } from '../lib/time';
+import { DEFAULT_CONSENT_TTL_MINUTES, privacyDefaults } from '../lib/community';
 
 export const grantConsent = spacetimedb.reducer(
   { recipient: t.identity(), sessionId: t.u64(), scope: ConsentScope, ttlMinutes: t.u32() },
@@ -13,7 +14,9 @@ export const grantConsent = spacetimedb.reducer(
     requireActiveMember(ctx, sessionId);
     if (recipient.isEqual(ctx.sender)) throw new SenderError('Cannot grant consent to yourself');
     requireActiveMember(ctx, sessionId, recipient);
-    if (ttlMinutes < 1 || ttlMinutes > MAX_TTL_MINUTES) {
+    // ttlMinutes 0 means "use my privacy default" (user_privacy_settings, else 180 minutes).
+    const ttl = ttlMinutes === 0 ? (privacyDefaults(ctx, ctx.sender)?.defaultConsentTtlMinutes ?? DEFAULT_CONSENT_TTL_MINUTES) : ttlMinutes;
+    if (ttl < 1 || ttl > MAX_TTL_MINUTES) {
       throw new SenderError('ttlMinutes must be between 1 and 1440');
     }
     // Replace an existing open grant for the same (recipient, session, scope).
@@ -29,7 +32,7 @@ export const grantConsent = spacetimedb.reducer(
       sessionId,
       scope,
       startsAt: ctx.timestamp,
-      expiresAt: minutesAfter(ctx.timestamp, ttlMinutes),
+      expiresAt: minutesAfter(ctx.timestamp, ttl),
       revokedAt: undefined,
     });
     audit(ctx, 'grant_consent', `consent_grant:${grant.id}:${scope.tag}`);
