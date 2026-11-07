@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -15,10 +16,15 @@
     "spacetimedb": "^2.14.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.2",
+    "axe-core": "^4.14.0",
+    "jsdom": "^26.1.0",
     "typescript": "~5.9.3",
-    "vite": "^7.1.5"
+    "vite": "^7.1.5",
+    "vitest": "^3.2.7"
   }
 }
