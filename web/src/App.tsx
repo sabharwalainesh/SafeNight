@@ -10,7 +10,7 @@ import { AgentMockProvider } from './features/agent/mock';
 import { DemoPanel } from './features/demo-panel';
 import { ProfileMockProvider } from './features/profile/mock';
 import { ReportsMockProvider } from './features/reports/mock';
-import { SafetyMockProvider } from './features/safety/mock';
+import { SafetyProvider } from './features/safety/SafetyProvider';
 import { NoDrivingBanner, StatusBar } from './features/status';
 import { InboxScreen } from './screens/inbox';
 import { MapScreen } from './screens/map';
@@ -58,10 +58,10 @@ export default function App({ persona, host, dbName }: Props) {
         </div>
       </header>
 
-      {/* Night Out can run live (VITE_NIGHTOUT_SOURCE=live); the other providers are mocks until their bindings land. */}
+      {/* Night Out and Safety can run live (VITE_NIGHTOUT_SOURCE / VITE_SAFETY_SOURCE=live); agent, reports and profile are mocks until their bindings land. */}
       <NightOutProvider persona={persona}>
       <CurrentSessionProvider>
-      <SafetyMockProvider>
+      <SafetyProvider>
       <AgentMockProvider>
       <ReportsMockProvider me={persona.id}>
       <ProfileMockProvider me={persona.id} displayName={persona.name}>
@@ -96,7 +96,7 @@ export default function App({ persona, host, dbName }: Props) {
       </ProfileMockProvider>
       </ReportsMockProvider>
       </AgentMockProvider>
-      </SafetyMockProvider>
+      </SafetyProvider>
       </CurrentSessionProvider>
       </NightOutProvider>
 

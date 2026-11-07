@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_ENV?: string;
   /** `live` runs the Night Out tab against the SpacetimeDB module; default `mock`. */
   readonly VITE_NIGHTOUT_SOURCE?: string;
+  /** `live` runs Map/Inbox/status against the SpacetimeDB module; default `mock`. */
+  readonly VITE_SAFETY_SOURCE?: string;
 }
 
 interface ImportMeta {
