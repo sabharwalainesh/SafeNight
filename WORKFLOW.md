@@ -183,13 +183,16 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-07 — **C1-B Night Out tab built against a local mock** (C1-A bindings not landed yet). `web/src/features/night-out/api.ts` is the client contract (types mirror ARCHITECTURE §6; `useNightOut()` hook). `features/night-out/mock/` implements it with §6 rules (explicit driver acceptance, caller-only sharing, leave revokes own grants, end revokes all) and syncs persona tabs via localStorage + BroadcastChannel. Screens: `screens/night-out/start/` (my sessions, create, join by code) and `screens/night-out/session/` (roster, invites, driver volunteer/accept/stop, own sharing scope, per-recipient consent toggles, leave/end with inline confirm). Every screen shows a `MOCK DATA — C1-A pending` badge. Gate: typecheck + `vite build` pass. **Not covered:** four-tab live roster check not yet run by hand; no server-backed data.
 
+- 2026-11-07 — **C2-B built against a local mock** (C2-A bindings not landed). Contract `web/src/features/safety/api.ts` (`useSafety()`; current session = first of `mySessions`). Mock `features/safety/mock/` follows ARCHITECTURE §7: consent-filtered `visible_locations` with approximate rounding and 5-min stale flag; concern on the accepted driver with `possible_consumption` opens the incident, warns the driver and alerts organizer/participants in one mutation; dedupe "Already reported"; `okay` never closes an open incident; acknowledge excludes the subject; resolve only by the subject or organizer/buddy with live `messaging`+`checkins` grants; cancel subject-only within 2 min; driver self-report stays private unless shared. Screens: Map tab (`screens/map/`, SVG plot + list, SIMULATED badge, stale state) with the status bar (`features/status/`: check-ins, 1.5 s hold-to-confirm emergency with keyboard support, concern sheet in a native dialog, private self-report); app-wide no-driving banner; Inbox tab (`screens/inbox/`) with incident timeline (`screens/incident/`). Gate: typecheck + `vite build` pass. **Not covered:** the "Alex's concern shows Sam's warning within 1 s" check has not been run by hand (no browser automation available); `awaiting_home_confirmation` is never reached until C3 transport flow exists.
+
 **In progress**
 - Nothing.
 
 **Next**
-- When C1-A bindings land: add a bindings adapter implementing `NightOutApi` and swap it for `NightOutMockProvider` in `web/src/screens/night-out/index.tsx`; screens should not change. Then run the four-tab gate against the local server.
+- When C1-A/C2-A bindings land: write bindings adapters implementing `NightOutApi` and `SafetyApi`, swap them for `NightOutMockProvider`/`SafetyMockProvider` in `web/src/App.tsx`; screens should not change. Then run the C1 and C2 gates in four tabs against the local server.
 
 **Blockers / needs from A**
+- C2-A: the UI expects `visible_locations` rows to carry display name and an `approximate` flag, incidents to include participants with display names, and `safety_alert` event rows to be delivered to the recipient tab via `onInsert`. The UI keeps alert dismissals client-side.
 - C1-A bindings. The UI expects: `session_roster` rows to carry the member's display name (join with `user_profile`) and `my_sessions` to exclude sessions the caller left. Error messages from reducers are shown verbatim, so keep them human-readable.
 
 ---

@@ -21,12 +21,14 @@ export type MockState = {
   events: IncidentEvent[];
   alerts: SafetyAlert[];
   reports: string[]; // concern dedupe keys
+  dismissed: string[]; // `${recipient}:${alertId}`
+  consumptions: { id: string; sessionId: string; userId: UserId; level: string; at: EpochMs }[]; // private
 };
 
 export const STORAGE_KEY = 'safenight.mock.safety.v1';
 export const CHANNEL_NAME = 'safenight-safety';
 
-const empty = (): MockState => ({ counter: 0, locations: [], checkins: [], incidents: [], events: [], alerts: [], reports: [] });
+const empty = (): MockState => ({ counter: 0, locations: [], checkins: [], incidents: [], events: [], alerts: [], reports: [], dismissed: [], consumptions: [] });
 
 let memory: MockState = empty();
 let snapshot: MockState = memory;

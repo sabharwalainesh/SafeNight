@@ -30,7 +30,7 @@ type Ctx = {
   members: SessionMember[]; // all, incl. departed
   organizer: UserId | null;
   driverId: UserId | null; // accepted, active driver
-  grants: { subject: UserId; recipient: UserId; scope: string }[];
+  grants: { subject: UserId; recipient: UserId; scope: string; revokedAt: EpochMs | null; expiresAt: EpochMs }[];
 };
 
 function addEvent(s: MockState, nextId: () => string, inc: Incident, actor: UserId, actorName: string, kind: string, detail: string) {
@@ -97,6 +97,11 @@ function makeActions(getCtx: () => Ctx): SafetyActions {
     const driver = c.driverId!;
     const inc = openIncident(s, id, c, driver, reporter, 'possible_impaired_driving', 'urgent', note || 'Possible drinking reported for the driver');
     sendAlert(s, id, driver, inc.id, 'no_driving_warning', DRIVER_MESSAGE);
+    const msg = `${nameIn(c, reporter)} is worried about ${nameIn(c, driver)}. The driver has been asked not to drive.`;
+    if (c.organizer && c.organizer !== reporter && c.organizer !== driver && isActive(c, c.organizer))
+      sendAlert(s, id, c.organizer, inc.id, 'incident_update', msg);
+    for (const p of inc.participants)
+      if (p.userId !== driver && p.userId !== c.organizer) sendAlert(s, id, p.userId, inc.id, 'ack_requested', msg);
   };
 
   const concern = (s: MockState, id: () => string, c: Ctx, subject: UserId, category: ConcernCategory, note: string) => {
@@ -154,9 +159,14 @@ function makeActions(getCtx: () => Ctx): SafetyActions {
             }
         }
       }),
-    reportConsumption: (level) =>
+    reportConsumption: (level, shareWithBuddy) =>
       run((s, id, c) => {
+        s.consumptions.push({ id: id(), sessionId: c.sessionId!, userId: c.me, level, at: Date.now() });
         if (c.driverId !== c.me || level === 'none') return;
+        if (!shareWithBuddy) {
+          sendAlert(s, id, c.me, '', 'no_driving_warning', DRIVER_MESSAGE);
+          return;
+        }
         driverConcern(s, id, c, c.me, `Driver reports: ${level.replace('_', ' ')}`);
       }),
     reportConcern: (subject, category, note) => run((s, id, c) => concern(s, id, c, subject, category, note)),
@@ -165,6 +175,8 @@ function makeActions(getCtx: () => Ctx): SafetyActions {
         const inc = s.incidents.find((i) => i.id === incidentId);
         const p = inc?.participants.find((x) => x.userId === c.me);
         if (!inc || !p) throw new Error('Only participants can acknowledge');
+        if (inc.subject === c.me) throw new Error("You can't acknowledge your own alert");
+        if (!isOpen(inc)) throw new Error('This incident is closed');
         p.acknowledgedAt ??= Date.now();
         if (inc.status === 'open') inc.status = 'acknowledged';
         addEvent(s, id, inc, c.me, nameIn(c, c.me), 'acknowledged', `${nameIn(c, c.me)} acknowledged`);
@@ -174,7 +186,10 @@ function makeActions(getCtx: () => Ctx): SafetyActions {
         const inc = s.incidents.find((i) => i.id === incidentId);
         const p = inc?.participants.find((x) => x.userId === c.me);
         if (!inc || !p) throw new Error('You are not allowed to resolve this incident');
-        const has = (scope: string) => c.grants.some((g) => g.subject === inc.subject && g.recipient === c.me && g.scope === scope);
+        if (!isOpen(inc)) throw new Error('This incident is closed');
+        const t = Date.now();
+        const has = (scope: string) =>
+          c.grants.some((g) => g.subject === inc.subject && g.recipient === c.me && g.scope === scope && g.revokedAt === null && g.expiresAt > t);
         const allowed = inc.subject === c.me || ((p.role === 'organizer' || p.role === 'buddy') && has('messaging') && has('checkins'));
         if (!allowed) throw new Error('You are not allowed to resolve this incident');
         inc.status = 'resolved';
@@ -185,6 +200,7 @@ function makeActions(getCtx: () => Ctx): SafetyActions {
     cancelIncident: (incidentId, reason) =>
       run((s, id, c) => {
         const inc = s.incidents.find((i) => i.id === incidentId);
+        if (inc && !isOpen(inc)) throw new Error('This incident is closed');
         if (!inc || inc.subject !== c.me || Date.now() - inc.openedAt > 2 * MIN)
           throw new Error('Only the person can cancel, within 2 minutes');
         inc.status = 'cancelled';
@@ -198,7 +214,6 @@ function makeActions(getCtx: () => Ctx): SafetyActions {
 export function SafetyMockProvider(props: { children?: ReactNode }) {
   const no = useNightOut();
   const state = useSyncExternalStore(subscribe, getSnapshot);
-  const [dismissed, setDismissed] = useState<string[]>([]);
   const [, setTick] = useState(0);
   useEffect(() => {
     const t = window.setInterval(() => setTick((n) => n + 1), 15000);
@@ -219,7 +234,14 @@ export function SafetyMockProvider(props: { children?: ReactNode }) {
     grants: no.myConsents.filter((g) => g.sessionId === sessionId),
   };
   const actions = useMemo(() => makeActions(() => ctxRef.current), []);
-  const dismiss = useCallback((id: string) => setDismissed((d) => [...d, id]), []);
+  const dismiss = useCallback(
+    (alertId: string) =>
+      void mutate((s) => {
+        const k = `${ctxRef.current.me}:${alertId}`;
+        if (!s.dismissed.includes(k)) s.dismissed.push(k);
+      }),
+    [],
+  );
 
   const now = Date.now();
   const me = no.me;
@@ -269,7 +291,7 @@ export function SafetyMockProvider(props: { children?: ReactNode }) {
       return state.events.filter((e) => e.incidentId === incidentId).sort((a, b) => a.at - b.at);
     },
     alerts: state.alerts
-      .filter((a) => a.recipient === me && a.at >= TAB_LOADED_AT && !dismissed.includes(a.id))
+      .filter((a) => a.recipient === me && (a.kind === 'no_driving_warning' || a.at >= TAB_LOADED_AT) && !state.dismissed.includes(`${me}:${a.id}`))
       .sort((a, b) => b.at - a.at),
     dismissAlert: dismiss,
     actions,

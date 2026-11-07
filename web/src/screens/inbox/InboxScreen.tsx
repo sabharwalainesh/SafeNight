@@ -36,7 +36,7 @@ export default function InboxScreen({ initialIncidentId }: { initialIncidentId?:
               <p>{a.message}</p>
               <p className="small muted">{ago(a.at)}</p>
               <div className="inbox-actions">
-                <button type="button" className="btn" onClick={() => setOpenId(a.incidentId)}>Open incident</button>
+                {a.incidentId && <button type="button" className="btn" onClick={() => setOpenId(a.incidentId)}>Open incident</button>}
                 <button type="button" className="btn" onClick={() => dismissAlert(a.id)}>Dismiss</button>
               </div>
             </li>
@@ -50,7 +50,7 @@ export default function InboxScreen({ initialIncidentId }: { initialIncidentId?:
         <ul className="inbox-list">
           {[...active, ...closed].map(i => {
             const needs =
-              i.status === 'open' && i.participants.some(p => p.userId === me && p.acknowledgedAt === null);
+              i.status === 'open' && i.participants.some(p => p.userId === me && p.role !== 'subject' && p.acknowledgedAt === null);
             return (
               <li key={i.id}>
                 <button type="button" className="inbox-row" onClick={() => setOpenId(i.id)}>

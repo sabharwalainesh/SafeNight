@@ -14,7 +14,7 @@ export function NoDrivingBanner({ onViewIncident }: { onViewIncident?: (incident
           <p>{a.message}</p>
           <div className="status-row">
             <button type="button" className="status-btn" onClick={() => dismissAlert(a.id)}>I won't drive</button>
-            {onViewIncident && (
+            {onViewIncident && a.incidentId && (
               <button type="button" className="status-btn" onClick={() => onViewIncident(a.incidentId)}>
                 View incident
               </button>

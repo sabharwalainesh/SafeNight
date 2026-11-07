@@ -48,6 +48,10 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
   );
 
   useEffect(() => {
+    if (who && !others.some((m) => m.userId === who)) setWho('');
+  }, [who, others]);
+
+  useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) {
@@ -89,7 +93,7 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
     setBusy(true);
     try {
       await actions.reportConsumption(level, share);
-      setSelfMsg({ ok: true, text: 'Saved.' });
+      setSelfMsg({ ok: true, text: 'Saved privately.' });
     } catch (err) {
       setSelfMsg({ ok: false, text: err instanceof Error ? err.message : 'Could not save.' });
     } finally {
@@ -135,7 +139,8 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
       <form onSubmit={submitSelf} className="status-form status-private">
         <h3>About me (private)</h3>
         <p className="status-help">
-          This is only for you. It is not shared unless you tick the box to tell your buddy.
+          Your answer stays private. If you are tonight's accepted driver and say you have had some, you get a
+          private reminder not to drive. The group is told only if you tick "Share with my buddies".
         </p>
         <fieldset className="status-field">
           <legend>How are you?</legend>
@@ -148,7 +153,7 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
         </fieldset>
         <label className="status-radio">
           <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} />
-          Share this with my buddy
+          Share with my buddies
         </label>
         <MsgLine m={selfMsg} />
         <button type="submit" className="status-btn" disabled={busy}>Save privately</button>

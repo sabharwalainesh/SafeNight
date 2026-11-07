@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNightOut } from '../../features/night-out/api';
 import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../features/safety/api';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
@@ -31,6 +32,14 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [announce, setAnnounce] = useState('');
   const seen = useRef<number | null>(null);
+  const { myConsents } = useNightOut();
+  const noteRef = useRef<HTMLInputElement>(null);
+  const reasonRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mode === 'resolve') noteRef.current?.focus();
+    else if (mode === 'cancel') reasonRef.current?.focus();
+  }, [mode]);
 
   useEffect(() => {
     if (seen.current === null) {
@@ -56,7 +65,22 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
 
   const isSubject = incident.subject === me;
   const closed = ['resolved', 'cancelled', 'handed_off'].includes(incident.status);
-  const canAck = !!mine && mine.acknowledgedAt === null && incident.status === 'open';
+  const canAck =
+    !!mine && mine.role !== 'subject' && mine.acknowledgedAt === null && incident.status === 'open' && !closed;
+  const now = Date.now();
+  const hasGrant = (scope: string) =>
+    myConsents.some(
+      c =>
+        c.subject === incident.subject &&
+        c.recipient === me &&
+        c.revokedAt === null &&
+        c.expiresAt > now &&
+        c.sessionId === incident.sessionId &&
+        c.scope === scope,
+    );
+  const canResolve =
+    isSubject ||
+    (!!mine && (mine.role === 'organizer' || mine.role === 'buddy') && hasGrant('messaging') && hasGrant('checkins'));
   const canCancel = isSubject && !closed && Date.now() - incident.openedAt <= 120_000;
   const resolvedByName = incident.resolvedBy
     ? (incident.participants.find(p => p.userId === incident.resolvedBy)?.displayName ?? incident.resolvedBy)
@@ -127,9 +151,11 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
               Acknowledge
             </button>
           )}
-          <button type="button" className="btn inc-primary" disabled={busy} onClick={() => openMode('resolve')}>
-            {isSubject ? "I'm safe — resolve" : 'Resolve'}
-          </button>
+          {canResolve && (
+            <button type="button" className="btn inc-primary" disabled={busy} onClick={() => openMode('resolve')}>
+              {isSubject ? "I'm safe — resolve" : 'Resolve'}
+            </button>
+          )}
           {canCancel && (
             <button type="button" className="btn" disabled={busy} onClick={() => openMode('cancel')}>
               Cancel incident
@@ -154,6 +180,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
           <label htmlFor="inc-note">Short note (required)</label>
           <input
             id="inc-note"
+            ref={noteRef}
             value={text}
             maxLength={200}
             onChange={e => {
@@ -186,7 +213,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
           }}
         >
           <label htmlFor="inc-reason">Reason for cancelling</label>
-          <input id="inc-reason" value={text} maxLength={200} onChange={e => setText(e.target.value)} />
+          <input id="inc-reason" ref={reasonRef} value={text} maxLength={200} onChange={e => setText(e.target.value)} />
           <div className="inc-actions">
             <button type="submit" className="btn inc-primary" disabled={busy || !text.trim()}>
               Cancel incident

@@ -37,6 +37,9 @@ export function HoldButton({ label, describedBy, disabled, onConfirm }: Props) {
   }, [disabled, onConfirm, stop]);
 
   useEffect(() => stop, [stop]);
+  useEffect(() => {
+    if (disabled) stop();
+  }, [disabled, stop]);
 
   const pct = Math.min(100, (elapsed / HOLD_MS) * 100);
   const secsLeft = (Math.ceil((HOLD_MS - elapsed) / 500) / 2).toFixed(1);
@@ -48,6 +51,7 @@ export function HoldButton({ label, describedBy, disabled, onConfirm }: Props) {
       aria-describedby={describedBy}
       disabled={disabled}
       onPointerDown={(e) => {
+        if (e.button !== 0) return;
         e.currentTarget.setPointerCapture?.(e.pointerId);
         start();
       }}
