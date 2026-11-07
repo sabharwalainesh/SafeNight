@@ -4,6 +4,7 @@ import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import { PERSONAS, personaHref, type Persona } from './personas';
 import { relativeTime, shortIdentity } from './lib/format';
+import { NightOutMockProvider } from './features/night-out/mock';
 import { NightOutTab } from './screens/night-out';
 
 type TabId = 'night' | 'map' | 'reports' | 'inbox' | 'profile';
@@ -40,15 +41,18 @@ export default function App({ persona, host, dbName }: Props) {
         </div>
       </header>
 
+      {/* Mock data providers until C1-A/C2-A bindings land; swap for bindings adapters then. */}
+      <NightOutMockProvider me={persona.id} displayName={persona.name}>
       <main className="content">
         <RuntimeStrip />
         <OnlineCard />
         <PingCard persona={persona} connected={isActive} />
-        {tab === 'night' ? <NightOutTab persona={persona} /> : <TabPanel tab={tab} />}
+        {tab === 'night' ? <NightOutTab /> : <TabPanel tab={tab} />}
         <p className="muted small">
           Server {host} · database {dbName}
         </p>
       </main>
+      </NightOutMockProvider>
 
       <nav className="tabbar" aria-label="Primary">
         {TABS.map(t => (
