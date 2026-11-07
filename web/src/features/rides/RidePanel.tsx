@@ -2,6 +2,23 @@ import { useState } from 'react';
 import { RIDE_STATUS_LABELS, useAgent, type RideStatus } from '../agent/api';
 import './rides.css';
 
+// Ride options can come from model output, so only render links to known
+// ride providers over https (or their app schemes). Anything else is dropped.
+const SAFE_LINK_HOSTS = ['m.uber.com', 'uber.com', 'www.uber.com', 'lyft.com', 'www.lyft.com', 'ride.lyft.com'];
+const SAFE_APP_SCHEMES = ['uber:', 'lyft:'];
+
+function safeRideLink(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    if (SAFE_APP_SCHEMES.includes(u.protocol)) return u.href;
+    if (u.protocol === 'https:' && SAFE_LINK_HOSTS.includes(u.hostname)) return u.href;
+  } catch {
+    // Not a parseable URL.
+  }
+  return null;
+}
+
 const STEPS: RideStatus[] = ['proposed', 'accepted', 'booked_by_user', 'pickup_confirmed', 'completed'];
 
 function agoText(at: number): string {
@@ -63,8 +80,8 @@ export default function RidePanel({ incidentId }: { incidentId: string }) {
                   {o.source}, fetched {agoText(o.fetchedAt)}
                 </div>
                 <div className="rides-row">
-                  {o.url && (
-                    <a className="btn" href={o.url} target="_blank" rel="noopener">Open in app</a>
+                  {safeRideLink(o.url) && (
+                    <a className="btn" href={safeRideLink(o.url)!} target="_blank" rel="noopener noreferrer">Open in app</a>
                   )}
                   {plan.status === 'proposed' && (
                     <button
