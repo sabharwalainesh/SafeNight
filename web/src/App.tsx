@@ -7,11 +7,13 @@ import { relativeTime, shortIdentity } from './lib/format';
 import { NightOutMockProvider } from './features/night-out/mock';
 import { AgentMockProvider } from './features/agent/mock';
 import { DemoPanel } from './features/demo-panel';
+import { ReportsMockProvider } from './features/reports/mock';
 import { SafetyMockProvider } from './features/safety/mock';
 import { NoDrivingBanner, StatusBar } from './features/status';
 import { InboxScreen } from './screens/inbox';
 import { MapScreen } from './screens/map';
 import { NightOutTab } from './screens/night-out';
+import { ReportsScreen } from './screens/reports';
 
 type TabId = 'night' | 'map' | 'reports' | 'inbox' | 'profile';
 
@@ -57,6 +59,7 @@ export default function App({ persona, host, dbName }: Props) {
       <NightOutMockProvider me={persona.id} displayName={persona.name}>
       <SafetyMockProvider>
       <AgentMockProvider>
+      <ReportsMockProvider>
       <main className="content">
         <NoDrivingBanner onViewIncident={openIncident} />
         <RuntimeStrip />
@@ -71,6 +74,8 @@ export default function App({ persona, host, dbName }: Props) {
           </>
         ) : tab === 'inbox' ? (
           <InboxScreen key={inboxTarget?.n ?? 0} initialIncidentId={inboxTarget?.id} />
+        ) : tab === 'reports' ? (
+          <ReportsScreen />
         ) : tab === 'profile' ? (
           <>
             <TabPanel tab={tab} />
@@ -83,6 +88,7 @@ export default function App({ persona, host, dbName }: Props) {
           Server {host} · database {dbName}
         </p>
       </main>
+      </ReportsMockProvider>
       </AgentMockProvider>
       </SafetyMockProvider>
       </NightOutMockProvider>
