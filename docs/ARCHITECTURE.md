@@ -70,7 +70,7 @@ Supply: `NEMOTRON_API_KEY='...' spacetime publish safenight --env-only --server 
 | lifecycle | `init` | — | Inserts `config {id: 0, owner: ctx.sender}`. |
 | lifecycle | `clientConnected` | — | Upserts `client_presence` for `ctx.sender`: `online = true`, `connectionCount += 1`, `lastSeenAt = now`. |
 | lifecycle | `clientDisconnected` | — | Decrements `connectionCount`; `online = connectionCount > 0`. |
-| reducer | `ping` | `note: string` | Writes `audit_event {action: 'ping', resource: note, decision: 'ok'}`. Rejects empty or > 200-char notes with `SenderError`. |
+| reducer | `ping` | `note: string` | Writes `audit_event {action: 'ping', resource: 'system', decision: 'allow'}`. Rejects notes longer than 200 chars with `SenderError('Note too long')`; empty notes are allowed. |
 | anonymous view | `online_members` | — | `client_presence` rows where `online = true` (query builder). |
 | anonymous view | `runtime_status` | — | One row: `id: u8 (0)`, `appEnv`, `nemotronMode` (`live`/`simulated`), `nemotronModel`, `messagingMode`, `moduleVersion`. Never returns secrets. |
 
@@ -78,50 +78,84 @@ Supply: `NEMOTRON_API_KEY='...' spacetime publish safenight --env-only --server 
 
 `spacetime generate` writes `web/src/module_bindings/`. Import `{ DbConnection, tables, reducers }` from `web/src/module_bindings` (index). Views appear on `tables.*` for subscriptions (`tables.onlineMembers`, `tables.runtimeStatus`).
 
-## 6. C1 — Night Out core (PLANNED)
+## 6. C1 — Night Out core (IMPLEMENTED)
+
+Module version `0.2.0-c1`. Source: `spacetimedb/src/tables/nightout.ts`, `reducers/{profile,sessions,driver,consent}.ts`, `views/nightout.ts`, helpers in `lib/{auth,time,constants}.ts`. Tests: `spacetimedb/src/nightout.test.ts` (14 tests) plus the 6 C0 tests.
+
+### Enums (module spelling → client binding spelling)
+
+Module code uses the snake_case variant names below. **Generated client bindings convert variants to PascalCase** (`{ tag: 'LocationPrecise' }`, `{ tag: 'Active' }`), so the web client must use the PascalCase form both when reading rows and when passing reducer arguments.
+
+| Enum | Module variants | Client tags |
+|---|---|---|
+| `ContactRole` | `buddy`, `backup_buddy`, `emergency` | `Buddy`, `BackupBuddy`, `Emergency` |
+| `SessionStatus` | `planned`, `active`, `ended`, `expired` | `Planned`, `Active`, `Ended`, `Expired` |
+| `MemberRole` | `organizer`, `participant` | `Organizer`, `Participant` |
+| `SharingScope` | `none`, `approximate`, `precise` | `None`, `Approximate`, `Precise` |
+| `DriverEndReason` | `none`, `cannot_drive`, `replaced`, `session_ended`, `left_session` | `None`, `CannotDrive`, `Replaced`, `SessionEnded`, `LeftSession` |
+| `ConsentScope` | `location_precise`, `location_approximate`, `checkins`, `concern_reports`, `messaging` | `LocationPrecise`, `LocationApproximate`, `Checkins`, `ConcernReports`, `Messaging` |
+| `DriverStatus` (view-only) | `none`, `volunteered`, `accepted` | `None`, `Volunteered`, `Accepted` |
 
 ### Tables
 
-| Table | Visibility | Columns | Indexes |
+| Table | Visibility | Columns (binding field names) | Indexes |
 |---|---|---|---|
-| `user_profile` | public | `identity pk`, `displayName`, `avatarEmoji`, `phoneVerified: bool`, `createdAt` | — |
-| `trusted_contact` | private | `id pk`, `owner: identity`, `contact: identity`, `role: enum ContactRole [buddy, backup_buddy, emergency]`, `messagingConsent: bool`, `priority: u8`, `createdAt` | `owner`, (`owner`,`priority`) |
-| `night_session` | public | `id pk`, `organizer: identity`, `name`, `venueHint: string`, `startsAt`, `expiresAt`, `status: enum SessionStatus [planned, active, ended, expired]`, `checkinIntervalMinutes: u16`, `createdAt` | `organizer`, `status` |
-| `invite` | public | `id pk`, `sessionId`, `code: string unique`, `createdBy`, `expiresAt`, `revokedAt: option<timestamp>`, `maxUses: u8`, `uses: u8` | `sessionId` |
-| `session_member` | public | `id pk`, `sessionId`, `userId: identity`, `role: enum MemberRole [organizer, participant]`, `joinedAt`, `leftAt: option<timestamp>`, `sharingScope: enum SharingScope [none, approximate, precise]` | (`sessionId`,`userId`), `userId` |
-| `driver_assignment` | public | `id pk`, `sessionId`, `driverId`, `volunteeredAt`, `acceptedAt: option`, `endedAt: option`, `endReason: enum DriverEndReason [none, cannot_drive, replaced, session_ended]` | `sessionId`, `driverId` |
-| `consent_grant` | private | `id pk`, `subject: identity`, `recipient: identity`, `sessionId`, `scope: enum ConsentScope [location_precise, location_approximate, checkins, concern_reports, messaging]`, `startsAt`, `expiresAt`, `revokedAt: option` | (`subject`,`recipient`), `recipient`, `sessionId` |
-| `session_expiry` | private, **schedule table** | `scheduledId pk autoInc`, `scheduledAt: scheduleAt`, `sessionId` | → reducer `expire_session` |
+| `user_profile` | public | `identity: Identity pk`, `displayName`, `avatarEmoji`, `phoneVerified: bool`, `createdAt` | pk |
+| `trusted_contact` | private | `id pk autoInc`, `owner: Identity`, `contact: Identity`, `role: ContactRole`, `messagingConsent: bool`, `priority: u8`, `createdAt` | `owner`; `byOwnerPriority(owner, priority)` |
+| `night_session` | public | `id pk autoInc`, `organizer: Identity`, `name`, `venueHint`, `startsAt`, `expiresAt`, `status: SessionStatus`, `checkinIntervalMinutes: u16`, `createdAt` | `organizer`, `status` |
+| `invite` | **private** | `id pk autoInc`, `sessionId`, `code: string unique`, `createdBy: Identity`, `expiresAt`, `revokedAt?: Timestamp`, `maxUses: u8`, `uses: u8` | `sessionId`, `code` (unique) |
+| `session_member` | public | `id pk autoInc`, `sessionId`, `userId: Identity`, `role: MemberRole`, `joinedAt`, `leftAt?: Timestamp`, `sharingScope: SharingScope`, `active: bool` | `sessionId`, `userId`, `bySessionUser(sessionId, userId)` |
+| `driver_assignment` | public | `id pk autoInc`, `sessionId`, `driverId: Identity`, `volunteeredAt`, `acceptedAt?: Timestamp`, `endedAt?: Timestamp`, `endReason: DriverEndReason` | `sessionId`, `driverId` |
+| `consent_grant` | private | `id pk autoInc`, `subject: Identity`, `recipient: Identity`, `sessionId`, `scope: ConsentScope`, `startsAt`, `expiresAt`, `revokedAt?: Timestamp` | `subject`, `recipient`, `sessionId`, `bySubjectRecipient(subject, recipient)` |
+| `session_expiry` | private, **schedule table** | `scheduledId pk autoInc`, `scheduledAt: ScheduleAt`, `sessionId` | → reducer `expire_session` (scheduler-only) |
+
+`active` always mirrors `leftAt === undefined`; filter on `active` in subscriptions. Optional timestamps are `undefined` when absent.
 
 ### Reducers
 
-| Name | Args | Authorization | Errors |
-|---|---|---|---|
-| `set_profile` | `displayName, avatarEmoji` | self | empty name |
-| `add_trusted_contact` | `contact, role, messagingConsent, priority` | self; contact must have a profile | duplicate |
-| `remove_trusted_contact` | `id` | owner only | not found |
-| `create_session` | `name, venueHint, startsAt, expiresAt, checkinIntervalMinutes` | any profiled user; inserts organizer member + `session_expiry` row | expiresAt in past |
-| `create_invite` | `sessionId, ttlMinutes, maxUses` | organizer; code 6 chars from `ctx.random` | session not active |
-| `revoke_invite` | `inviteId` | organizer | — |
-| `join_session` | `code` | invite valid, unexpired, unrevoked, uses < max; member row with `sharingScope: none` | invalid/expired code |
-| `leave_session` | `sessionId` | member; sets `leftAt`, revokes own consent grants for that session, ends driver assignment if driver | not a member |
-| `end_session` | `sessionId` | organizer; status `ended`; revokes all grants | — |
-| `volunteer_driver` | `sessionId` | member; one open assignment per session | already a driver |
-| `accept_driver_role` | `assignmentId` | **the volunteer only** (explicit acceptance) | — |
-| `end_driver_role` | `assignmentId, reason` | the driver or organizer | — |
-| `grant_consent` | `recipient, sessionId, scope, ttlMinutes` | subject only; recipient must be a member | — |
-| `revoke_consent` | `grantId` | subject only; sets `revokedAt` | — |
-| `set_sharing_scope` | `sessionId, scope` | self only; organizer **cannot** call for others | — |
-| `expire_session` | schedule row | scheduler only (private) | — |
+Binding name is the camelCase of the canonical name (`reducers.createSession`). All arguments are passed as one object.
 
-### Views
-
-| Name | Context | Args | Returns |
+| Canonical name | Args | Rule | Error strings |
 |---|---|---|---|
-| `my_sessions` | per-user | — | `night_session` rows where caller is an active member (semijoin) |
-| `session_roster` | per-user | `sessionId` | members + role + sharing state for callers who are members |
-| `my_consents` | per-user | — | grants where caller is subject or recipient |
-| `my_contacts` | per-user | — | caller's `trusted_contact` rows |
+| `set_profile` | `displayName, avatarEmoji` | upsert caller's profile; name trimmed, 1–40 chars | `Display name cannot be empty`, `Display name too long` |
+| `add_trusted_contact` | `contact: Identity, role: ContactRole, messagingConsent, priority: u8` | contact must have a profile and not be the caller; one row per (owner, contact) | `Cannot add yourself as a contact`, `Contact has no SafeNight profile`, `Contact already added` |
+| `remove_trusted_contact` | `id` | owner only (others get not-found) | `Contact not found` |
+| `create_session` | `name, venueHint, startsAt: Timestamp, expiresAt: Timestamp, checkinIntervalMinutes: u16` | profile required; status `active` if `startsAt <= now` else `planned`; inserts organizer member (`sharingScope: none`) and a `session_expiry` row at `expiresAt` | `Set up your profile first`, `Session name cannot be empty`, `Session end must be in the future`, `Session end must be after its start` |
+| `create_invite` | `sessionId, ttlMinutes: u32 (1–1440), maxUses: u8 (≥1)` | organizer only; session `planned`/`active`; 6-char code from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` | `Only the organizer can do that`, `Session is not active`, `ttlMinutes must be between 1 and 1440`, `maxUses must be at least 1` |
+| `revoke_invite` | `inviteId` | organizer only; idempotent | `Invite not found`, `Only the organizer can do that` |
+| `join_session` | `code` | profile required; code is case-insensitive; invite unrevoked, unexpired, `uses < maxUses`; session open; existing active member rejected; departed member re-activated (same row, role `participant`, scope `none`); `uses += 1` | `Set up your profile first`, `Invalid invite code`, `Invite was revoked`, `Invite has expired`, `Invite has no uses left`, `Session is not active`, `Already a member` |
+| `leave_session` | `sessionId` | active member; the organizer of an open session cannot leave (must end it); sets `active=false, leftAt`; ends the caller's open driver assignment (`left_session`); revokes every open grant for that session where the caller is subject **or** recipient | `Session not found`, `Not a member of this session`, `Organizer must end the session instead` |
+| `end_session` | `sessionId` | organizer only; status `ended`; members inactive; all session grants revoked; open driver assignment ended (`session_ended`); pending `session_expiry` rows deleted; no-op if already closed | `Only the organizer can do that` |
+| `volunteer_driver` | `sessionId` | active member; session open; at most one open assignment (`endedAt` undefined) per session; `acceptedAt` stays undefined until acceptance | `Session is not active`, `Not a member of this session`, `A driver is already assigned for this session` |
+| `accept_driver_role` | `assignmentId` | **the volunteer only**; idempotent once accepted | `Driver assignment not found`, `Driver assignment has ended`, `Only the volunteer can accept the driver role` |
+| `end_driver_role` | `assignmentId, reason: DriverEndReason` | the driver or the organizer; `reason` must not be `none` | `Provide a reason for ending the driver role`, `Only the driver or organizer can end the driver role` |
+| `grant_consent` | `recipient: Identity, sessionId, scope: ConsentScope, ttlMinutes: u32 (1–1440)` | subject is always the caller; caller and recipient must be active members; recipient ≠ caller; an open grant with the same (recipient, session, scope) is revoked first | `Session is not active`, `Not a member of this session`, `Cannot grant consent to yourself`, `Recipient is not an active member`, `ttlMinutes must be between 1 and 1440` |
+| `revoke_consent` | `grantId` | subject only; idempotent | `Consent grant not found`, `Only the subject can revoke consent` |
+| `set_sharing_scope` | `sessionId, scope: SharingScope` | changes only the caller's own member row; there is no reducer that changes another member's scope | `Not a member of this session` |
+| `expire_session` | schedule row | scheduler-only (private); same closing logic as `end_session` with status `expired`; idempotent | — |
+
+Denials: a throwing reducer rolls back its transaction, so denials cannot persist an `audit_event` row; `lib/auth.ts#deny` writes the actor/action/resource to the module log (not transactional) and throws the `SenderError`. Allowed sensitive actions (`create_session`, `join_session`, `leave_session`, `end_session`, `volunteer_driver`, `accept_driver_role`, `end_driver_role`, `grant_consent`, `revoke_consent`, `revoke_invite`) write `audit_event` rows with `decision: 'allow'`.
+
+### Views (all per-user, no arguments)
+
+| Canonical name | Binding | Row type | Returns |
+|---|---|---|---|
+| `my_sessions` | `tables.mySessions` | `NightSession` (pk `id`, so `onUpdate` fires) | sessions where the caller is an **active** member. Query-builder semijoin: `session_member.where(userId = caller AND active).rightSemijoin(night_session)` |
+| `my_rosters` | `tables.myRosters` | `RosterRow`: `memberId: u64 (pk)`, `sessionId`, `userId: Identity`, `displayName`, `avatarEmoji`, `role: MemberRole`, `sharingScope: SharingScope`, `driverStatus: DriverStatus`, `joinedAt`, `active: bool` | one row per member (active **and departed**) of every session the caller is an active member of, including the caller's own row. `driverStatus` is `volunteered`/`accepted` for the member holding the session's open driver assignment |
+| `my_invites` | `tables.myInvites` | `Invite` | invites of sessions the caller organizes (the only way a client sees codes) |
+| `my_consents` | `tables.myConsents` | `ConsentGrant` | grants where the caller is subject or recipient (revoked ones included; check `revokedAt`/`expiresAt`) |
+| `my_contacts` | `tables.myContacts` | `TrustedContact` | the caller's own trusted contacts |
+
+The procedural views read only through indexes (`sessionMember.userId`, `sessionMember.sessionId`, `driverAssignment.sessionId`, `userProfile.identity`, `nightSession.organizer`, `invite.sessionId`, `consentGrant.subject`, `consentGrant.recipient`, `trustedContact.owner`).
+
+### Client notes (Person B)
+
+- Public tables you can subscribe to directly: `tables.userProfile`, `tables.nightSession`, `tables.sessionMember`, `tables.driverAssignment`, `tables.clientPresence`. Prefer the views for "my" data: `tables.mySessions`, `tables.myRosters`, `tables.myInvites`, `tables.myConsents`, `tables.myContacts`.
+- Enum values in bindings are PascalCase tagged objects: read `row.status.tag === 'Active'`; pass `{ tag: 'LocationPrecise' }` to `reducers.grantConsent`.
+- Timestamps are `Timestamp` objects (`.toDate()`, `.microsSinceUnixEpoch`); build them with `Timestamp.fromDate(new Date(...))` for `createSession`.
+- `u64` ids are `bigint` in bindings; `u8`/`u16`/`u32` are `number`.
+- In the generated `types.ts`, `MySessions`, `MyRosters`, `MyInvites`, `MyConsents`, `MyContacts` are empty placeholder objects; type rows with `NightSession`, `RosterRow`, `Invite`, `ConsentGrant`, `TrustedContact`.
+- Reducer calls return promises that reject with `SenderError` carrying the error strings above; show them verbatim.
 
 ## 7. C2 — Location, status, deterministic safety engine (PLANNED)
 

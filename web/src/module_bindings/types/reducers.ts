@@ -6,7 +6,37 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AcceptDriverRoleReducer from "../accept_driver_role_reducer";
+import AddTrustedContactReducer from "../add_trusted_contact_reducer";
+import CreateInviteReducer from "../create_invite_reducer";
+import CreateSessionReducer from "../create_session_reducer";
+import EndDriverRoleReducer from "../end_driver_role_reducer";
+import EndSessionReducer from "../end_session_reducer";
+import GrantConsentReducer from "../grant_consent_reducer";
+import JoinSessionReducer from "../join_session_reducer";
+import LeaveSessionReducer from "../leave_session_reducer";
 import PingReducer from "../ping_reducer";
+import RemoveTrustedContactReducer from "../remove_trusted_contact_reducer";
+import RevokeConsentReducer from "../revoke_consent_reducer";
+import RevokeInviteReducer from "../revoke_invite_reducer";
+import SetProfileReducer from "../set_profile_reducer";
+import SetSharingScopeReducer from "../set_sharing_scope_reducer";
+import VolunteerDriverReducer from "../volunteer_driver_reducer";
 
+export type AcceptDriverRoleParams = __Infer<typeof AcceptDriverRoleReducer>;
+export type AddTrustedContactParams = __Infer<typeof AddTrustedContactReducer>;
+export type CreateInviteParams = __Infer<typeof CreateInviteReducer>;
+export type CreateSessionParams = __Infer<typeof CreateSessionReducer>;
+export type EndDriverRoleParams = __Infer<typeof EndDriverRoleReducer>;
+export type EndSessionParams = __Infer<typeof EndSessionReducer>;
+export type GrantConsentParams = __Infer<typeof GrantConsentReducer>;
+export type JoinSessionParams = __Infer<typeof JoinSessionReducer>;
+export type LeaveSessionParams = __Infer<typeof LeaveSessionReducer>;
 export type PingParams = __Infer<typeof PingReducer>;
+export type RemoveTrustedContactParams = __Infer<typeof RemoveTrustedContactReducer>;
+export type RevokeConsentParams = __Infer<typeof RevokeConsentReducer>;
+export type RevokeInviteParams = __Infer<typeof RevokeInviteReducer>;
+export type SetProfileParams = __Infer<typeof SetProfileReducer>;
+export type SetSharingScopeParams = __Infer<typeof SetSharingScopeReducer>;
+export type VolunteerDriverParams = __Infer<typeof VolunteerDriverReducer>;
 

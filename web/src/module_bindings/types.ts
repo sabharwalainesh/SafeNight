@@ -35,8 +35,140 @@ export const Config = __t.object("Config", {
 });
 export type Config = __Infer<typeof Config>;
 
+export const ConsentGrant = __t.object("ConsentGrant", {
+  id: __t.u64(),
+  subject: __t.identity(),
+  recipient: __t.identity(),
+  sessionId: __t.u64(),
+  get scope() {
+    return ConsentScope;
+  },
+  startsAt: __t.timestamp(),
+  expiresAt: __t.timestamp(),
+  revokedAt: __t.option(__t.timestamp()),
+});
+export type ConsentGrant = __Infer<typeof ConsentGrant>;
+
+// The tagged union or sum type for the algebraic type `ConsentScope`.
+export const ConsentScope = __t.enum("ConsentScope", {
+  LocationPrecise: __t.unit(),
+  LocationApproximate: __t.unit(),
+  Checkins: __t.unit(),
+  ConcernReports: __t.unit(),
+  Messaging: __t.unit(),
+});
+export type ConsentScope = __Infer<typeof ConsentScope>;
+
+// The tagged union or sum type for the algebraic type `ContactRole`.
+export const ContactRole = __t.enum("ContactRole", {
+  Buddy: __t.unit(),
+  BackupBuddy: __t.unit(),
+  Emergency: __t.unit(),
+});
+export type ContactRole = __Infer<typeof ContactRole>;
+
+export const DriverAssignment = __t.object("DriverAssignment", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  driverId: __t.identity(),
+  volunteeredAt: __t.timestamp(),
+  acceptedAt: __t.option(__t.timestamp()),
+  endedAt: __t.option(__t.timestamp()),
+  get endReason() {
+    return DriverEndReason;
+  },
+});
+export type DriverAssignment = __Infer<typeof DriverAssignment>;
+
+// The tagged union or sum type for the algebraic type `DriverEndReason`.
+export const DriverEndReason = __t.enum("DriverEndReason", {
+  None: __t.unit(),
+  CannotDrive: __t.unit(),
+  Replaced: __t.unit(),
+  SessionEnded: __t.unit(),
+  LeftSession: __t.unit(),
+});
+export type DriverEndReason = __Infer<typeof DriverEndReason>;
+
+// The tagged union or sum type for the algebraic type `DriverStatus`.
+export const DriverStatus = __t.enum("DriverStatus", {
+  None: __t.unit(),
+  Volunteered: __t.unit(),
+  Accepted: __t.unit(),
+});
+export type DriverStatus = __Infer<typeof DriverStatus>;
+
+export const Invite = __t.object("Invite", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  code: __t.string(),
+  createdBy: __t.identity(),
+  expiresAt: __t.timestamp(),
+  revokedAt: __t.option(__t.timestamp()),
+  maxUses: __t.u8(),
+  uses: __t.u8(),
+});
+export type Invite = __Infer<typeof Invite>;
+
+// The tagged union or sum type for the algebraic type `MemberRole`.
+export const MemberRole = __t.enum("MemberRole", {
+  Organizer: __t.unit(),
+  Participant: __t.unit(),
+});
+export type MemberRole = __Infer<typeof MemberRole>;
+
+export const MyConsents = __t.object("MyConsents", {});
+export type MyConsents = __Infer<typeof MyConsents>;
+
+export const MyContacts = __t.object("MyContacts", {});
+export type MyContacts = __Infer<typeof MyContacts>;
+
+export const MyInvites = __t.object("MyInvites", {});
+export type MyInvites = __Infer<typeof MyInvites>;
+
+export const MyRosters = __t.object("MyRosters", {});
+export type MyRosters = __Infer<typeof MyRosters>;
+
+export const MySessions = __t.object("MySessions", {});
+export type MySessions = __Infer<typeof MySessions>;
+
+export const NightSession = __t.object("NightSession", {
+  id: __t.u64(),
+  organizer: __t.identity(),
+  name: __t.string(),
+  venueHint: __t.string(),
+  startsAt: __t.timestamp(),
+  expiresAt: __t.timestamp(),
+  get status() {
+    return SessionStatus;
+  },
+  checkinIntervalMinutes: __t.u16(),
+  createdAt: __t.timestamp(),
+});
+export type NightSession = __Infer<typeof NightSession>;
+
 export const OnlineMembers = __t.object("OnlineMembers", {});
 export type OnlineMembers = __Infer<typeof OnlineMembers>;
+
+export const RosterRow = __t.object("RosterRow", {
+  memberId: __t.u64(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  displayName: __t.string(),
+  avatarEmoji: __t.string(),
+  get role() {
+    return MemberRole;
+  },
+  get sharingScope() {
+    return SharingScope;
+  },
+  get driverStatus() {
+    return DriverStatus;
+  },
+  joinedAt: __t.timestamp(),
+  active: __t.bool(),
+});
+export type RosterRow = __Infer<typeof RosterRow>;
 
 export const RuntimeStatus = __t.object("RuntimeStatus", {});
 export type RuntimeStatus = __Infer<typeof RuntimeStatus>;
@@ -50,4 +182,66 @@ export const RuntimeStatusRow = __t.object("RuntimeStatusRow", {
   moduleVersion: __t.string(),
 });
 export type RuntimeStatusRow = __Infer<typeof RuntimeStatusRow>;
+
+export const SessionExpiry = __t.object("SessionExpiry", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  sessionId: __t.u64(),
+});
+export type SessionExpiry = __Infer<typeof SessionExpiry>;
+
+export const SessionMember = __t.object("SessionMember", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  get role() {
+    return MemberRole;
+  },
+  joinedAt: __t.timestamp(),
+  leftAt: __t.option(__t.timestamp()),
+  get sharingScope() {
+    return SharingScope;
+  },
+  active: __t.bool(),
+});
+export type SessionMember = __Infer<typeof SessionMember>;
+
+// The tagged union or sum type for the algebraic type `SessionStatus`.
+export const SessionStatus = __t.enum("SessionStatus", {
+  Planned: __t.unit(),
+  Active: __t.unit(),
+  Ended: __t.unit(),
+  Expired: __t.unit(),
+});
+export type SessionStatus = __Infer<typeof SessionStatus>;
+
+// The tagged union or sum type for the algebraic type `SharingScope`.
+export const SharingScope = __t.enum("SharingScope", {
+  None: __t.unit(),
+  Approximate: __t.unit(),
+  Precise: __t.unit(),
+});
+export type SharingScope = __Infer<typeof SharingScope>;
+
+export const TrustedContact = __t.object("TrustedContact", {
+  id: __t.u64(),
+  owner: __t.identity(),
+  contact: __t.identity(),
+  get role() {
+    return ContactRole;
+  },
+  messagingConsent: __t.bool(),
+  priority: __t.u8(),
+  createdAt: __t.timestamp(),
+});
+export type TrustedContact = __Infer<typeof TrustedContact>;
+
+export const UserProfile = __t.object("UserProfile", {
+  identity: __t.identity(),
+  displayName: __t.string(),
+  avatarEmoji: __t.string(),
+  phoneVerified: __t.bool(),
+  createdAt: __t.timestamp(),
+});
+export type UserProfile = __Infer<typeof UserProfile>;
 

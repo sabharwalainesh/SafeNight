@@ -155,11 +155,13 @@ _Owner: Person A (Claude Max). Edit only this section._
 - 2026-11-07 — Plan, ownership map, and chunk list written (this file). SpacetimeDB CLI 2.14.1 installed on the planning machine.
 - 2026-11-07 — **C0 scaffold complete, gate green.** npm workspaces (`spacetimedb`, `web`), `spacetime.json`, module with `config` / `client_presence` / `audit_event`, optional env declarations, `ping` reducer, lifecycle reducers, `online_members` and `runtime_status` views, 6 vitest unit tests passing, `spacetime build` and `spacetime publish --server local` succeed, bindings generated into `web/src/module_bindings/`, `scripts/e2e.ts` passes against the live local database, CI workflow added, `docs/ARCHITECTURE.md` contract written (C0 exact, C1–C4 planned).
 
+- 2026-11-07 — **C1-A Night Out core complete, gate green.** Tables `user_profile`, `trusted_contact`, `night_session`, `invite` (private), `session_member` (+`active`), `driver_assignment`, `consent_grant`, `session_expiry` schedule → `expire_session`. 15 reducers with explicit driver acceptance, subject-only consent, organizer-only invites/end, self-only sharing scope. Views `my_sessions` (query-builder semijoin), `my_rosters`, `my_invites`, `my_consents`, `my_contacts`. 20/20 unit tests, automatic migration on local publish (no reset), bindings regenerated, ARCHITECTURE.md §6 marked IMPLEMENTED with deviations.
+
 **In progress**
-- Nothing.
+- C2-A location, status, deterministic safety engine.
 
 **Next**
-- C1-A Night Out core (sessions, invites, membership, driver acceptance, consent grants, views). Starts on go-ahead.
+- C3-A agent workflow.
 
 **Blockers / needs from B**
 - None.
@@ -171,6 +173,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 - The module entry (and anything it `export *`s) may only export Spacetime objects; keep constants/helpers in `src/lib/` and do not re-export them.
 - A view named `foo_bar` reserves the type name `FooBar`; custom `t.row` names must differ (e.g. `FooBarRow`).
 - `ctx.env` is undefined in the vitest harness; read it through `envOf(ctx)` in `src/lib/env.ts` so tests see simulated mode.
+- Enum variants are PascalCase in generated bindings (`{ tag: 'Active' }`) even though module code declares them snake_case.
+- Query-builder semijoin: the right side must be a bare table ref; put filters on the left/source side and use `rightSemijoin` to return the other table.
+- Prefix lookups on multi-column indexes fail in the test harness; add a single-column index for the column you filter alone.
+- A `throw` rolls back the transaction, so denied actions cannot persist `audit_event` rows; `deny()` logs and throws instead.
 
 ---
 
@@ -186,7 +192,7 @@ _Owner: Person B (Claude Pro). Edit only this section._
 - 2026-11-07 — **C2-B built against a local mock** (C2-A bindings not landed). Contract `web/src/features/safety/api.ts` (`useSafety()`; current session = first of `mySessions`). Mock `features/safety/mock/` follows ARCHITECTURE §7: consent-filtered `visible_locations` with approximate rounding and 5-min stale flag; concern on the accepted driver with `possible_consumption` opens the incident, warns the driver and alerts organizer/participants in one mutation; dedupe "Already reported"; `okay` never closes an open incident; acknowledge excludes the subject; resolve only by the subject or organizer/buddy with live `messaging`+`checkins` grants; cancel subject-only within 2 min; driver self-report stays private unless shared. Screens: Map tab (`screens/map/`, SVG plot + list, SIMULATED badge, stale state) with the status bar (`features/status/`: check-ins, 1.5 s hold-to-confirm emergency with keyboard support, concern sheet in a native dialog, private self-report); app-wide no-driving banner; Inbox tab (`screens/inbox/`) with incident timeline (`screens/incident/`). Gate: typecheck + `vite build` pass. **Not covered:** the "Alex's concern shows Sam's warning within 1 s" check has not been run by hand (no browser automation available); `awaiting_home_confirmation` is never reached until C3 transport flow exists.
 
 **In progress**
-- Nothing.
+- C2-B map, status actions, warning banner, inbox, incident timeline.
 
 **Next**
 - When C1-A/C2-A bindings land: write bindings adapters implementing `NightOutApi` and `SafetyApi`, swap them for `NightOutMockProvider`/`SafetyMockProvider` in `web/src/App.tsx`; screens should not change. Then run the C1 and C2 gates in four tabs against the local server.

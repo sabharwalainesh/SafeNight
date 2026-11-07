@@ -34,14 +34,38 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AcceptDriverRoleReducer from "./accept_driver_role_reducer";
+import AddTrustedContactReducer from "./add_trusted_contact_reducer";
+import CreateInviteReducer from "./create_invite_reducer";
+import CreateSessionReducer from "./create_session_reducer";
+import EndDriverRoleReducer from "./end_driver_role_reducer";
+import EndSessionReducer from "./end_session_reducer";
+import GrantConsentReducer from "./grant_consent_reducer";
+import JoinSessionReducer from "./join_session_reducer";
+import LeaveSessionReducer from "./leave_session_reducer";
 import PingReducer from "./ping_reducer";
+import RemoveTrustedContactReducer from "./remove_trusted_contact_reducer";
+import RevokeConsentReducer from "./revoke_consent_reducer";
+import RevokeInviteReducer from "./revoke_invite_reducer";
+import SetProfileReducer from "./set_profile_reducer";
+import SetSharingScopeReducer from "./set_sharing_scope_reducer";
+import VolunteerDriverReducer from "./volunteer_driver_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
 import ClientPresenceRow from "./client_presence_table";
+import DriverAssignmentRow from "./driver_assignment_table";
+import MyConsentsRow from "./my_consents_table";
+import MyContactsRow from "./my_contacts_table";
+import MyInvitesRow from "./my_invites_table";
+import MyRostersRow from "./my_rosters_table";
+import MySessionsRow from "./my_sessions_table";
+import NightSessionRow from "./night_session_table";
 import OnlineMembersRow from "./online_members_table";
 import RuntimeStatusRow from "./runtime_status_table";
+import SessionMemberRow from "./session_member_table";
+import UserProfileRow from "./user_profile_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -58,6 +82,107 @@ const tablesSchema = __schema({
       { name: 'client_presence_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, ClientPresenceRow),
+  driverAssignment: __table({
+    name: 'driver_assignment',
+    indexes: [
+      { accessor: 'driverId', name: 'driver_assignment_driver_id_idx_btree', algorithm: 'btree', columns: [
+        'driverId',
+      ] },
+      { accessor: 'id', name: 'driver_assignment_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'sessionId', name: 'driver_assignment_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'driver_assignment_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, DriverAssignmentRow),
+  nightSession: __table({
+    name: 'night_session',
+    indexes: [
+      { accessor: 'id', name: 'night_session_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'organizer', name: 'night_session_organizer_idx_btree', algorithm: 'btree', columns: [
+        'organizer',
+      ] },
+      { accessor: 'status', name: 'night_session_status_idx_btree', algorithm: 'btree', columns: [
+        'status',
+      ] },
+    ],
+    constraints: [
+      { name: 'night_session_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, NightSessionRow),
+  sessionMember: __table({
+    name: 'session_member',
+    indexes: [
+      { accessor: 'id', name: 'session_member_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'sessionId', name: 'session_member_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+      { accessor: 'bySessionUser', name: 'session_member_session_id_user_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+        'userId',
+      ] },
+      { accessor: 'userId', name: 'session_member_user_id_idx_btree', algorithm: 'btree', columns: [
+        'userId',
+      ] },
+    ],
+    constraints: [
+      { name: 'session_member_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, SessionMemberRow),
+  userProfile: __table({
+    name: 'user_profile',
+    indexes: [
+      { accessor: 'identity', name: 'user_profile_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'user_profile_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, UserProfileRow),
+  myConsents: __table({
+    name: 'my_consents',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyConsentsRow),
+  myContacts: __table({
+    name: 'my_contacts',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyContactsRow),
+  myInvites: __table({
+    name: 'my_invites',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyInvitesRow),
+  myRosters: __table({
+    name: 'my_rosters',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyRostersRow),
+  mySessions: __table({
+    name: 'my_sessions',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MySessionsRow),
   onlineMembers: __table({
     name: 'online_members',
     indexes: [
@@ -76,7 +201,22 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("accept_driver_role", AcceptDriverRoleReducer),
+  __reducerSchema("add_trusted_contact", AddTrustedContactReducer),
+  __reducerSchema("create_invite", CreateInviteReducer),
+  __reducerSchema("create_session", CreateSessionReducer),
+  __reducerSchema("end_driver_role", EndDriverRoleReducer),
+  __reducerSchema("end_session", EndSessionReducer),
+  __reducerSchema("grant_consent", GrantConsentReducer),
+  __reducerSchema("join_session", JoinSessionReducer),
+  __reducerSchema("leave_session", LeaveSessionReducer),
   __reducerSchema("ping", PingReducer),
+  __reducerSchema("remove_trusted_contact", RemoveTrustedContactReducer),
+  __reducerSchema("revoke_consent", RevokeConsentReducer),
+  __reducerSchema("revoke_invite", RevokeInviteReducer),
+  __reducerSchema("set_profile", SetProfileReducer),
+  __reducerSchema("set_sharing_scope", SetSharingScopeReducer),
+  __reducerSchema("volunteer_driver", VolunteerDriverReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

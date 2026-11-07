@@ -1,4 +1,14 @@
 import { schema, t, table } from 'spacetimedb/server';
+import {
+  consentGrant,
+  driverAssignment,
+  invite,
+  nightSession,
+  sessionExpiry,
+  sessionMember,
+  trustedContact,
+  userProfile,
+} from './tables/nightout';
 
 // Private: single row recording who published the database (module owner).
 export const config = table(
@@ -35,7 +45,19 @@ export const auditEvent = table(
 );
 
 export const spacetimedb = schema(
-  { config, clientPresence, auditEvent },
+  {
+    config,
+    clientPresence,
+    auditEvent,
+    userProfile,
+    trustedContact,
+    nightSession,
+    invite,
+    sessionMember,
+    driverAssignment,
+    consentGrant,
+    sessionExpiry,
+  },
   {
     env: {
       NEMOTRON_API_KEY: t.string().optional(),
