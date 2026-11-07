@@ -1,5 +1,6 @@
 // MOCK until C2-A bindings: SafetyApi backed by localStorage + BroadcastChannel.
 import { createElement, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useCurrentSessionId } from '../../night-out/currentSession';
 import { useNightOut, type EpochMs, type SessionMember, type UserId } from '../../night-out/api';
 import {
   SafetyContext,
@@ -220,7 +221,7 @@ export function SafetyMockProvider(props: { children?: ReactNode }) {
     return () => window.clearInterval(t);
   }, []);
 
-  const sessionId = no.mySessions[0]?.id ?? null;
+  const sessionId = useCurrentSessionId(); // falls back to first of mySessions without a CurrentSessionProvider
   const roster = sessionId ? no.roster(sessionId) : null;
 
   const ctxRef = useRef<Ctx>({ me: no.me, sessionId, members: [], organizer: null, driverId: null, grants: [] });

@@ -7,8 +7,10 @@ const CENTER = { lat: 30.2672, lng: -97.7431 };
 const SIZE = 300;
 const PAD = 40;
 
-function colorOf(userId: string): string {
-  return PERSONAS.find((p) => p.id === userId)?.accent ?? '#a3abbd';
+// Mock user ids are persona ids; live ids are identity hex, so also match by display name.
+function colorOf(userId: string, displayName: string): string {
+  const name = displayName.trim().toLowerCase();
+  return PERSONAS.find((p) => p.id === userId.toLowerCase() || p.name.toLowerCase() === name)?.accent ?? '#a3abbd';
 }
 
 function ago(ms: number): string {
@@ -70,7 +72,7 @@ export function MapScreen() {
                 const isMe = p.userId === safety.me;
                 return (
                   <g key={p.userId} opacity={p.isStale ? 0.4 : 1}>
-                    <circle cx={x} cy={y} r={isMe ? 10 : 8} fill={colorOf(p.userId)} stroke="#fff" strokeWidth={isMe ? 3 : 0} />
+                    <circle cx={x} cy={y} r={isMe ? 10 : 8} fill={colorOf(p.userId, p.displayName)} stroke="#fff" strokeWidth={isMe ? 3 : 0} />
                     <text x={x} y={y - 15} textAnchor="middle" className="map-label">
                       {nameOf(p)}
                     </text>
@@ -96,7 +98,7 @@ export function MapScreen() {
             <ul className="map-list" aria-label="Locations">
               {points.map((p) => (
                 <li key={p.userId} className="map-item">
-                  <span className="map-dot" style={{ background: colorOf(p.userId) }} aria-hidden="true" />
+                  <span className="map-dot" style={{ background: colorOf(p.userId, p.displayName) }} aria-hidden="true" />
                   <div className="map-item-body">
                     <strong>{nameOf(p)}</strong>
                     <span>

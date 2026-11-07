@@ -5,7 +5,8 @@ import { useNightOut } from '../../night-out/api';
 import { useSafety } from '../../safety/api';
 import { getSnapshot as safeSnap, subscribe as safeSubscribe } from '../../safety/mock/store';
 import { AgentContext, type AgentApi, type AgentNotification } from '../api';
-import { checkFollowups, makeActions, makeDemo, runPlanner } from './engine';
+import { apiView, mockStoreView } from './nightOutView';
+import { checkFollowups, makeActions, makeDemo, runPlanner, setNightOutView } from './engine';
 import { getSnapshot, subscribe, type StoredNotification } from './store';
 
 function liveStatus(n: StoredNotification, now: number): AgentNotification['status'] {
@@ -23,6 +24,8 @@ export function AgentMockProvider(props: { children?: ReactNode }) {
   const [, setTick] = useState(0);
   const meRef = useRef(no.me);
   meRef.current = no.me;
+  // Set during render so the planner timers and actions always read current data.
+  setNightOutView(no.mocked ? mockStoreView() : apiView(no));
 
   useEffect(() => {
     let n = 0;
@@ -41,7 +44,7 @@ export function AgentMockProvider(props: { children?: ReactNode }) {
   }, []);
 
   const actions = useMemo(() => makeActions(() => meRef.current), []);
-  const demo = useMemo(() => makeDemo(), []);
+  const demo = useMemo(() => makeDemo(no.mocked), [no.mocked]);
 
   const me = no.me;
   const now = Date.now();

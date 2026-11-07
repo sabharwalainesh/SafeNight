@@ -1,15 +1,14 @@
 // MOCK until C3-A bindings: deterministic simulated planner, follow-up escalation and human actions.
 // Nothing here calls a model, SMS or voice provider. Every output is labeled simulated.
-import type { EpochMs, UserId } from '../../night-out/api';
+import type { ConsentGrant, EpochMs, SessionMember, UserId } from '../../night-out/api';
 import type { IncidentStatus } from '../../safety/api';
-import { getSnapshot as noSnap, mutate as noMutate, type MockState as NoState } from '../../night-out/mock/store';
 import { getSnapshot as safeSnap, mutate as safeMutate, type MockState as SafeState } from '../../safety/mock/store';
 import type { ActionStatus, AgentActions, DemoActions, RideOption } from '../api';
+import { EMPTY_VIEW, resetMockNightOut, setupMockGroup, type NightOutView } from './nightOutView';
 import { empty, getSnapshot, mutate, type MockState, type StoredJob } from './store';
 
 export const MODEL = 'simulated-planner';
 export const FOLLOWUP_MS = 2 * 60000;
-const MIN = 60000;
 const AGENT = 'agent';
 const AGENT_NAME = 'SafeNight agent';
 const TRIGGER_KINDS = ['possible_impaired_driving', 'help_requested'];
@@ -31,23 +30,23 @@ type SafetyWrite = {
 };
 
 type Roster = {
-  members: NoState['members'];
+  members: SessionMember[];
   organizer: UserId | null;
   driverId: UserId | null;
-  grants: NoState['grants'];
+  grants: ConsentGrant[];
 };
 
-function rosterOf(sessionId: string): Roster {
-  const no = noSnap();
-  return {
-    members: no.members.filter((m) => m.sessionId === sessionId && m.leftAt === null),
-    organizer: no.sessions.find((x) => x.id === sessionId)?.organizer ?? null,
-    driverId: no.drivers.find((d) => d.sessionId === sessionId && d.endedAt === null && d.acceptedAt !== null)?.driverId ?? null,
-    grants: no.grants.filter((g) => g.sessionId === sessionId),
-  };
+let view: NightOutView = EMPTY_VIEW;
+/** AgentMockProvider keeps this current (mock store view in mock mode, useNightOut() data in live mode). */
+export function setNightOutView(v: NightOutView) {
+  view = v;
 }
 
-const live = (g: NoState['grants'][number], now: EpochMs) => g.revokedAt === null && g.startsAt <= now + 1000 && g.expiresAt > now;
+function rosterOf(sessionId: string): Roster {
+  return { members: view.members(sessionId), organizer: view.organizer(sessionId), driverId: view.driverId(sessionId), grants: view.grants(sessionId) };
+}
+
+const live = (g: ConsentGrant, now: EpochMs) => g.revokedAt === null && g.startsAt <= now + 1000 && g.expiresAt > now;
 const nameOf = (r: Roster, u: UserId) => r.members.find((m) => m.userId === u)?.displayName ?? u;
 
 function writeSafety(writes: SafetyWrite[]) {
@@ -182,7 +181,8 @@ export function runPlanner() {
       const r = rosterOf(inc.sessionId);
       const now = Date.now();
       const others = r.members.filter((m) => m.userId !== inc.subject);
-      const pick = (key: string) => others.find((m) => m.userId.toLowerCase() === key || m.displayName.toLowerCase() === key);
+      // Prefer the demo buddies by display name; otherwise fall back to join order.
+      const pick = (key: string) => others.find((m) => m.displayName.trim().toLowerCase() === key);
       const nonReporter = others.filter((m) => m.userId !== inc.openedBy);
       const primary = pick('maya') ?? nonReporter[0] ?? others[0];
       const backup = pick('jordan') && pick('jordan') !== primary ? pick('jordan') : others.find((m) => m !== primary && m.userId !== inc.openedBy) ?? others.find((m) => m !== primary);
@@ -405,7 +405,7 @@ function guard() {
   if (import.meta.env.VITE_APP_ENV === 'production') throw new Error('Demo controls are disabled in production');
 }
 
-export function makeDemo(): DemoActions {
+export function makeDemo(mockedNightOut: boolean): DemoActions {
   return {
     fireFollowup: async (jobId) => {
       guard();
@@ -430,33 +430,12 @@ export function makeDemo(): DemoActions {
         s.dismissed = [];
         s.consumptions = [];
       });
-      noMutate((s) => {
-        s.counter = 0;
-        s.sessions = [];
-        s.members = [];
-        s.invites = [];
-        s.drivers = [];
-        s.grants = [];
-      });
+      if (mockedNightOut) resetMockNightOut(); // live mode: Night Out data lives in the module and is not touched
     },
     setupGroup: async () => {
       guard();
-      const people: [UserId, string][] = [['alex', 'Alex'], ['sam', 'Sam'], ['maya', 'Maya'], ['jordan', 'Jordan']];
-      noMutate((s, id) => {
-        const now = Date.now();
-        for (const m of s.members) if (m.leftAt === null && people.some(([u]) => u === m.userId)) m.leftAt = now;
-        for (const x of s.sessions) if (x.status === 'active' && x.organizer === 'alex') x.status = 'ended';
-        const sid = id();
-        s.sessions.push({ id: sid, organizer: 'alex', name: 'Saturday night', venueHint: 'Demo venue', startsAt: now, expiresAt: now + 8 * 60 * MIN, status: 'active', checkinIntervalMinutes: 30, createdAt: now });
-        for (const [u, n] of people)
-          s.members.push({ id: id(), sessionId: sid, userId: u, displayName: n, role: u === 'alex' ? 'organizer' : 'participant', joinedAt: now, leftAt: null, sharingScope: 'precise' });
-        s.drivers.push({ id: id(), sessionId: sid, driverId: 'sam', volunteeredAt: now, acceptedAt: now, endedAt: null, endReason: 'none' });
-        for (const [subject] of people)
-          for (const [recipient] of people)
-            if (subject !== recipient)
-              for (const scope of ['location_precise', 'checkins', 'messaging', 'concern_reports'] as const)
-                s.grants.push({ id: id(), subject, recipient, sessionId: sid, scope, startsAt: now, expiresAt: now + 300 * MIN, revokedAt: null });
-      });
+      if (!mockedNightOut) throw new Error('Group setup needs the demo reducer from the backend (live mode)');
+      setupMockGroup();
     },
   };
 }

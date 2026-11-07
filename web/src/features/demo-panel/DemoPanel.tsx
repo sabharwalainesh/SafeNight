@@ -1,6 +1,7 @@
 // MOCK until C3-A bindings: judge controls for the simulated agent.
 import { useEffect, useState } from 'react';
 import { JOB_STATUS_LABELS, useAgent } from '../agent/api';
+import { useNightOut } from '../night-out/api';
 import { useSafety } from '../safety/api';
 import './demo-panel.css';
 
@@ -10,6 +11,7 @@ const CLOSED = ['resolved', 'cancelled', 'handed_off'];
 export function DemoPanel() {
   const agent = useAgent();
   const safety = useSafety();
+  const mockedNightOut = useNightOut().mocked;
   const [now, setNow] = useState(() => Date.now());
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,9 +46,10 @@ export function DemoPanel() {
         <span className="badge sim">MOCK</span>
       </div>
       <div className="demo-row">
-        <button type="button" className="demo-btn primary" disabled={busy} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
+        <button type="button" className="demo-btn primary" disabled={busy || !mockedNightOut} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
           Set up demo group
         </button>
+        {!mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>}
         {!confirming ? (
           <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
             Reset demo
@@ -59,7 +62,10 @@ export function DemoPanel() {
               disabled={busy}
               onClick={() => {
                 setConfirming(false);
-                void run('Demo data cleared', () => agent.demo.reset());
+                void run(
+                  mockedNightOut ? 'Demo data cleared' : 'Cleared local safety, agent and report demo data only. Live Night Out data is untouched.',
+                  () => agent.demo.reset(),
+                );
               }}
             >
               Yes, erase all demo data
