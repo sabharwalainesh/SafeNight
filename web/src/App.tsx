@@ -9,7 +9,7 @@ import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
 import { DemoPanel } from './features/demo-panel';
 import { ProfileMockProvider } from './features/profile/mock';
-import { ReportsMockProvider } from './features/reports/mock';
+import { ReportsProvider } from './features/reports';
 import { SafetyProvider } from './features/safety/SafetyProvider';
 import { NoDrivingBanner, StatusBar } from './features/status';
 import { InboxScreen } from './screens/inbox';
@@ -63,7 +63,7 @@ export default function App({ persona, host, dbName }: Props) {
       <CurrentSessionProvider>
       <SafetyProvider>
       <AgentProvider>
-      <ReportsMockProvider me={persona.id}>
+      <ReportsProvider me={persona.id}>
       <ProfileMockProvider me={persona.id} displayName={persona.name}>
       <main className="content">
         <NoDrivingBanner onViewIncident={openIncident} />
@@ -94,7 +94,7 @@ export default function App({ persona, host, dbName }: Props) {
         </p>
       </main>
       </ProfileMockProvider>
-      </ReportsMockProvider>
+      </ReportsProvider>
       </AgentProvider>
       </SafetyProvider>
       </CurrentSessionProvider>

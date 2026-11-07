@@ -11,6 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_SAFETY_SOURCE?: string;
   /** `live` runs the agent panel, rides and demo timer against the SpacetimeDB module; default `mock`. */
   readonly VITE_AGENT_SOURCE?: string;
+  /** `live` runs the Reports tab against the SpacetimeDB module; default `mock`. */
+  readonly VITE_REPORTS_SOURCE?: string;
 }
 
 interface ImportMeta {
