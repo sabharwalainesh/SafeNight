@@ -157,8 +157,18 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-07 — **C1-A Night Out core complete, gate green.** Tables `user_profile`, `trusted_contact`, `night_session`, `invite` (private), `session_member` (+`active`), `driver_assignment`, `consent_grant`, `session_expiry` schedule → `expire_session`. 15 reducers with explicit driver acceptance, subject-only consent, organizer-only invites/end, self-only sharing scope. Views `my_sessions` (query-builder semijoin), `my_rosters`, `my_invites`, `my_consents`, `my_contacts`. 20/20 unit tests, automatic migration on local publish (no reset), bindings regenerated, ARCHITECTURE.md §6 marked IMPLEMENTED with deviations.
 
+- 2026-11-07 — Rebased onto B's C1-B/C2-B commits. The orchestrator's own C1-B screens were discarded in favor of B's `features/*/api.ts` contract + mock design; A touches nothing under `web/src/` except `module_bindings/`.
+
 **In progress**
-- C2-A location, status, deterministic safety engine.
+- C2-A location, status, deterministic safety engine (module only; B's `SafetyApi` expectations are the target shape).
+
+**For B: wiring `NightOutApi` to the live bindings (C1-A is live on the local server)**
+- `useTable(tables.mySessions)` → `NightSession[]` (already excludes sessions you left). Map `id`/`sessionId` bigint → `String(id)`, `Identity` → `identity.toHexString()`, `Timestamp` → `ts.toDate().getTime()`, enum tags PascalCase → snake_case (`'LocationPrecise'` → `'location_precise'`; a tiny `tagToSnake()` helper covers all enums).
+- `roster(sessionId)`: filter `useTable(tables.myRosters)` by `sessionId` (rows carry `displayName`, `avatarEmoji`, `role`, `sharingScope`, `driverStatus`, `active`), `useTable(tables.nightSession)` for the session row, `useTable(tables.driverAssignment)` filtered by `sessionId`, `useTable(tables.myInvites)` for the organizer's invites. There is no `session_roster(sessionId)` view with arguments (the TS client query builder cannot subscribe to view args).
+- `myConsents` → `useTable(tables.myConsents)` (subject or recipient; filter `revokedAt === undefined && expiresAt > now` client-side).
+- Actions map 1:1 to `reducers.*` with object args: `createInvite({ sessionId: BigInt(id), ttlMinutes, maxUses })` etc. Reducer promises reject with `SenderError` whose `message` is the human-readable text. `joinSession` resolves to void; read the new session from `mySessions` after `onApplied`. `createSession` also resolves to void; select the newest `mySessions` row.
+- `me` is `useSpacetimeDB().identity?.toHexString()`; a profile row (`reducers.setProfile`) is required before `createSession`/`joinSession` (`'Set up your profile first'`).
+- Error strings and every column are listed in `docs/ARCHITECTURE.md` §6.
 
 **Next**
 - C3-A agent workflow.
