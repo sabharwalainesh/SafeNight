@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_NIGHTOUT_SOURCE?: string;
   /** `live` runs Map/Inbox/status against the SpacetimeDB module; default `mock`. */
   readonly VITE_SAFETY_SOURCE?: string;
+  /** `live` runs the agent panel, rides and demo timer against the SpacetimeDB module; default `mock`. */
+  readonly VITE_AGENT_SOURCE?: string;
 }
 
 interface ImportMeta {

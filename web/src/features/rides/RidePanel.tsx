@@ -4,7 +4,9 @@ import './rides.css';
 
 // Ride options can come from model output, so only render links to known
 // ride providers over https (or their app schemes). Anything else is dropped.
-const SAFE_LINK_HOSTS = ['m.uber.com', 'uber.com', 'www.uber.com', 'lyft.com', 'www.lyft.com', 'ride.lyft.com', 'www.google.com'];
+const SAFE_LINK_HOSTS = ['m.uber.com', 'uber.com', 'www.uber.com', 'lyft.com', 'www.lyft.com', 'ride.lyft.com'];
+// Transit directions from the backend are Google Maps links; allow that path only.
+const SAFE_MAPS_HOST = 'www.google.com';
 const SAFE_APP_SCHEMES = ['uber:', 'lyft:'];
 
 function safeRideLink(raw: string | null): string | null {
@@ -13,6 +15,7 @@ function safeRideLink(raw: string | null): string | null {
     const u = new URL(raw);
     if (SAFE_APP_SCHEMES.includes(u.protocol)) return u.href;
     if (u.protocol === 'https:' && SAFE_LINK_HOSTS.includes(u.hostname)) return u.href;
+    if (u.protocol === 'https:' && u.hostname === SAFE_MAPS_HOST && u.pathname.startsWith('/maps/')) return u.href;
   } catch {
     // Not a parseable URL.
   }

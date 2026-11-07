@@ -6,7 +6,7 @@ import { PERSONAS, personaHref, type Persona } from './personas';
 import { relativeTime, shortIdentity } from './lib/format';
 import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
-import { AgentMockProvider } from './features/agent/mock';
+import { AgentProvider } from './features/agent/AgentProvider';
 import { DemoPanel } from './features/demo-panel';
 import { ProfileMockProvider } from './features/profile/mock';
 import { ReportsMockProvider } from './features/reports/mock';
@@ -58,11 +58,11 @@ export default function App({ persona, host, dbName }: Props) {
         </div>
       </header>
 
-      {/* Night Out and Safety can run live (VITE_NIGHTOUT_SOURCE / VITE_SAFETY_SOURCE=live); agent, reports and profile are mocks until their bindings land. */}
+      {/* Night Out, Safety and Agent can run live (VITE_NIGHTOUT_SOURCE / VITE_SAFETY_SOURCE / VITE_AGENT_SOURCE=live); reports and profile are mocks until their bindings land. */}
       <NightOutProvider persona={persona}>
       <CurrentSessionProvider>
       <SafetyProvider>
-      <AgentMockProvider>
+      <AgentProvider>
       <ReportsMockProvider me={persona.id}>
       <ProfileMockProvider me={persona.id} displayName={persona.name}>
       <main className="content">
@@ -95,7 +95,7 @@ export default function App({ persona, host, dbName }: Props) {
       </main>
       </ProfileMockProvider>
       </ReportsMockProvider>
-      </AgentMockProvider>
+      </AgentProvider>
       </SafetyProvider>
       </CurrentSessionProvider>
       </NightOutProvider>

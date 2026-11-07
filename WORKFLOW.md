@@ -214,18 +214,22 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-07 — **C2-B live adapter** `web/src/features/safety/live/` implements `SafetyApi` on the C2-A bindings per ARCHITECTURE §7 client notes (visible_locations, my_checkins, my_incidents + my_incident_participants, my_incident_events, `safety_alert` via `onInsert` only; dismissals per identity in localStorage). Switch with `VITE_SAFETY_SOURCE=live` (`features/safety/SafetyProvider.tsx`), independent of `VITE_NIGHTOUT_SOURCE`. The agent mock now reads incidents through a `SafetyView`: in live-safety mode it plans from caller-visible incidents, never writes the safety mock store, records status changes as "pending backend C3-A" receipts, and "I'm home" calls `check_in(home)`. Gate: 87 tests, typecheck, and build (all-mock and all-live) pass. **Not covered:** no run against a live server (no SpacetimeDB CLI on B's machine).
 
+- 2026-11-07 — **C3-B live adapter** `web/src/features/agent/live/` implements `AgentApi` on the C3-A bindings per ARCHITECTURE §8 client notes (`my_agent_jobs`, `my_agent_plans`, `my_agent_actions`, `my_notifications`, `my_ride_plans`; JSON columns parsed defensively; ride options chosen by `label`; human reducers 1:1; `demo_fire_followup` for the judge timer). Switch with `VITE_AGENT_SOURCE=live` (`features/agent/AgentProvider.tsx`). Live demo panel: "Advance timer" works; group setup/reset disabled until C4 `reset_demo`. Ride links additionally allow `https://www.google.com/maps/...` (the module's transit link). Gate: 93 tests, typecheck, build (all-mock and all-live) pass. **Not covered:** no live-server run from B's machine.
+
 **In progress**
 - Nothing.
 
 **Next**
 - Run the C1/C2 gates on live data: `VITE_NIGHTOUT_SOURCE=live VITE_SAFETY_SOURCE=live npm run dev -w web` against `spacetime start` + published module, four persona tabs.
-- Blocked on A: C3-A/C4-A bindings → adapters for `AgentApi`, `ReportsApi`, `ProfileApi`, then flip the remaining providers to live.
+- Blocked on A: C4-A bindings → adapters for `ReportsApi`, `ProfileApi`, then flip the remaining providers to live.
+- Run the full demo on live data: `VITE_NIGHTOUT_SOURCE=live VITE_SAFETY_SOURCE=live VITE_AGENT_SOURCE=live npm run dev -w web`.
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**
 - C3-A: the UI expects receipts with a short `resultText`, notification delivery states, `ride_plan` options parsed with `source`/`fetchedAt`, and job `followupDueAt`/`followupExpectedFrom`. Please validate ride deep links server-side against the same allowlist (https Uber/Lyft hosts or `uber:`/`lyft:`), since options come from model output. Demo reducers (`demo_fire_followup`, reset, group setup) are needed for the judge panel.
 - C4-A: the UI needs a `submit_venue_report` reducer, a `delete_my_data` reducer covering every table, and somewhere to store privacy defaults (not in the C1/C4 contract yet).
 - C2-A: the UI expects `visible_locations` rows to carry display name and an `approximate` flag, incidents to include participants with display names, and `safety_alert` event rows to be delivered to the recipient tab via `onInsert`. The UI keeps alert dismissals client-side.
+- C3-A (small): `my_agent_jobs` has no follow-up deadline/recipient, so the live UI cannot show the "follow-up in m:ss" countdown; please expose `followupDueAt` and `followupExpectedFrom` (from the open `followup_timer`). Ride option URLs are allowlisted client-side to Uber/Lyft and `www.google.com/maps/`; please keep server-side URLs within that set.
 - CI (A owns `.github/workflows/ci.yml`): please add `npm test -w web` to the workflow; the web suite needs no server.
 - C1-A (done; small follow-ups): a `leftAt` column on `my_rosters` rows, and `left_session` added to the documented `DriverEndReason` in ARCHITECTURE §6.
 
