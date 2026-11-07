@@ -63,7 +63,9 @@ export function DemoPanel() {
               onClick={() => {
                 setConfirming(false);
                 void run(
-                  mockedNightOut ? 'Demo data cleared' : 'Cleared local safety, agent and report demo data only. Live Night Out data is untouched.',
+                  mockedNightOut && safety.mocked
+                    ? 'Demo data cleared'
+                    : `Cleared local agent${safety.mocked ? ', safety and report' : ''} demo data only. ${safety.mocked ? '' : 'Live safety data (incidents, check-ins) is untouched. '}${mockedNightOut ? '' : 'Live Night Out data is untouched.'}`,
                   () => agent.demo.reset(),
                 );
               }}

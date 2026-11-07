@@ -2,9 +2,9 @@
 // Nothing here calls a model, SMS or voice provider. Every output is labeled simulated.
 import type { ConsentGrant, EpochMs, SessionMember, UserId } from '../../night-out/api';
 import type { IncidentStatus } from '../../safety/api';
-import { getSnapshot as safeSnap, mutate as safeMutate, type MockState as SafeState } from '../../safety/mock/store';
 import type { ActionStatus, AgentActions, DemoActions, RideOption } from '../api';
 import { EMPTY_VIEW, resetMockNightOut, setupMockGroup, type NightOutView } from './nightOutView';
+import { EMPTY_SAFETY_VIEW, resetMockSafety, type SafetyView } from './safetyView';
 import { empty, getSnapshot, mutate, type MockState, type StoredJob } from './store';
 
 export const MODEL = 'simulated-planner';
@@ -14,8 +14,6 @@ const AGENT_NAME = 'SafeNight agent';
 const TRIGGER_KINDS = ['possible_impaired_driving', 'help_requested'];
 const OPEN_JOB: StoredJob['status'][] = ['waiting_for_ack', 'escalated'];
 
-const LADDER: IncidentStatus[] = ['open', 'acknowledged', 'assistance_underway', 'transport_arranged', 'awaiting_home_confirmation'];
-const CLOSED: IncidentStatus[] = ['resolved', 'cancelled', 'handed_off'];
 
 type SafetyWrite = {
   incidentId: string;
@@ -36,6 +34,12 @@ type Roster = {
   grants: ConsentGrant[];
 };
 
+let safety: SafetyView = EMPTY_SAFETY_VIEW;
+/** AgentMockProvider keeps this current (mock safety store in mock mode, useSafety() data in live mode). */
+export function setSafetyView(v: SafetyView) {
+  safety = v;
+}
+
 let view: NightOutView = EMPTY_VIEW;
 /** AgentMockProvider keeps this current (mock store view in mock mode, useNightOut() data in live mode). */
 export function setNightOutView(v: NightOutView) {
@@ -50,28 +54,10 @@ const live = (g: ConsentGrant, now: EpochMs) => g.revokedAt === null && g.starts
 const nameOf = (r: Roster, u: UserId) => r.members.find((m) => m.userId === u)?.displayName ?? u;
 
 function writeSafety(writes: SafetyWrite[]) {
-  if (writes.length === 0) return;
-  safeMutate((s: SafeState, id) => {
-    for (const w of writes) {
-      const inc = s.incidents.find((i) => i.id === w.incidentId);
-      if (!inc) continue;
-      if (w.status) {
-        const cur = LADDER.indexOf(inc.status);
-        const next = LADDER.indexOf(w.status);
-        // Only upgrade along the ladder; closed incidents and downgrades are left alone.
-        if (next === -1 ? cur !== -1 || !CLOSED.includes(inc.status) : cur !== -1 && next > cur) inc.status = w.status;
-      }
-      if (w.ackBy) {
-        const p = inc.participants.find((x) => x.userId === w.ackBy);
-        if (p && p.acknowledgedAt === null) p.acknowledgedAt = Date.now();
-      }
-      if (w.resolvedBy) {
-        inc.resolvedAt = Date.now();
-        inc.resolvedBy = w.resolvedBy;
-      }
-      s.events.push({ id: id(), incidentId: w.incidentId, at: Date.now(), actor: w.actor, actorName: w.actorName, kind: w.kind, detail: w.detail, simulated: w.simulated });
-    }
-  });
+  for (const w of writes) {
+    if (w.status || w.ackBy || w.resolvedBy) safety.writeIncidentStatus(w.incidentId, w.status ?? 'open', { ackBy: w.ackBy, resolvedBy: w.resolvedBy });
+    safety.appendEvent(w.incidentId, w.kind, w.detail, w.simulated, w.actor, w.actorName);
+  }
 }
 
 const agentWrite = (incidentId: string, kind: string, detail: string, status?: IncidentStatus): SafetyWrite => ({
@@ -171,7 +157,7 @@ function escalate(s: MockState, id: () => string, job: StoredJob, lastEvent: str
 
 /** Planner: create a job, plan v1 and ride options for every open triggering incident without a job. */
 export function runPlanner() {
-  const open = safeSnap().incidents.filter((i) => TRIGGER_KINDS.includes(i.kind) && !['resolved', 'cancelled', 'handed_off'].includes(i.status));
+  const open = safety.incidents().filter((i) => TRIGGER_KINDS.includes(i.kind) && !['resolved', 'cancelled', 'handed_off'].includes(i.status));
   const pending = open.filter((i) => !getSnapshot().jobs.some((j) => j.incidentId === i.id));
   if (pending.length === 0) return;
   const writes: SafetyWrite[] = [];
@@ -209,7 +195,7 @@ export function runPlanner() {
       };
       s.jobs.push(job);
       receipt(s, id, job, 'get_group_context', 'executed', `${r.members.length} members in the session; driver is ${r.driverId ? nameOf(r, r.driverId) : 'not set'}`);
-      const checkins = safeSnap().checkins.filter((c) => c.sessionId === inc.sessionId && c.userId === inc.subject);
+      const checkins = { length: safety.checkinCount(inc.sessionId, inc.subject) };
       receipt(s, id, job, 'get_recent_checkins', 'executed', `${checkins.length} recent check-in(s) from ${inc.subjectName}`);
       const locOk = r.grants.some((g) => g.subject === inc.subject && g.recipient === tiers[0] && g.scope.startsWith('location_') && live(g, now));
       if (locOk) receipt(s, id, job, 'get_last_shared_location', 'executed', `Last shared location of ${inc.subjectName} is visible to ${job.tierNames[0]}`);
@@ -277,7 +263,7 @@ function requireRider(s: MockState, planId: string, me: UserId) {
 }
 
 export function makeActions(getMe: () => UserId): AgentActions {
-  const run = async <T,>(fn: () => T): Promise<T> => fn();
+  const run = async <T,>(fn: () => T | Promise<T>): Promise<T> => fn();
   return {
     acknowledgeAssistance: (jobId) =>
       run(() => {
@@ -374,12 +360,12 @@ export function makeActions(getMe: () => UserId): AgentActions {
         writeSafety(writes);
       }),
     confirmHome: (incidentId) =>
-      run(() => {
+      run(async () => {
         const me = getMe();
-        const inc = safeSnap().incidents.find((i) => i.id === incidentId);
+        const inc = safety.incidents().find((i) => i.id === incidentId);
         if (!inc) throw new Error('Incident not found');
         if (inc.subject !== me) throw new Error(`Only ${inc.subjectName} can confirm they are home`);
-        if (inc.status !== 'open' && !LADDER.includes(inc.status)) throw new Error('This incident is closed');
+        if (inc.status === 'resolved' || inc.status === 'cancelled' || inc.status === 'handed_off') throw new Error('This incident is closed');
         mutate((s) => {
           const job = s.jobs.find((j) => j.incidentId === incidentId);
           if (job) {
@@ -395,6 +381,7 @@ export function makeActions(getMe: () => UserId): AgentActions {
             ride.updatedAt = Date.now();
           }
         });
+        await safety.confirmHome();
         writeSafety([{ incidentId, actor: me, actorName: inc.subjectName, kind: 'resolved', detail: `${inc.subjectName} confirmed they are home`, simulated: false, status: 'resolved', resolvedBy: me }]);
       }),
   };
@@ -405,7 +392,7 @@ function guard() {
   if (import.meta.env.VITE_APP_ENV === 'production') throw new Error('Demo controls are disabled in production');
 }
 
-export function makeDemo(mockedNightOut: boolean): DemoActions {
+export function makeDemo(mockedNightOut: boolean, mockedSafety = true): DemoActions {
   return {
     fireFollowup: async (jobId) => {
       guard();
@@ -419,17 +406,7 @@ export function makeDemo(mockedNightOut: boolean): DemoActions {
     reset: async () => {
       guard();
       mutate((s) => Object.assign(s, empty()));
-      safeMutate((s) => {
-        s.counter = 0;
-        s.locations = [];
-        s.checkins = [];
-        s.incidents = [];
-        s.events = [];
-        s.alerts = [];
-        s.reports = [];
-        s.dismissed = [];
-        s.consumptions = [];
-      });
+      if (mockedSafety) resetMockSafety(); // live safety: the safety mock store is not touched
       if (mockedNightOut) resetMockNightOut(); // live mode: Night Out data lives in the module and is not touched
     },
     setupGroup: async () => {

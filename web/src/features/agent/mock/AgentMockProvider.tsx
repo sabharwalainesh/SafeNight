@@ -3,10 +3,10 @@
 import { createElement, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useNightOut } from '../../night-out/api';
 import { useSafety } from '../../safety/api';
-import { getSnapshot as safeSnap, subscribe as safeSubscribe } from '../../safety/mock/store';
 import { AgentContext, type AgentApi, type AgentNotification } from '../api';
 import { apiView, mockStoreView } from './nightOutView';
-import { checkFollowups, makeActions, makeDemo, runPlanner, setNightOutView } from './engine';
+import { checkFollowups, makeActions, makeDemo, runPlanner, setNightOutView, setSafetyView } from './engine';
+import { apiSafetyView, mockSafetyView } from './safetyView';
 import { getSnapshot, subscribe, type StoredNotification } from './store';
 
 function liveStatus(n: StoredNotification, now: number): AgentNotification['status'] {
@@ -19,18 +19,22 @@ function liveStatus(n: StoredNotification, now: number): AgentNotification['stat
 
 export function AgentMockProvider(props: { children?: ReactNode }) {
   const no = useNightOut();
-  useSafety(); // re-render when incidents change
+  const safety = useSafety(); // re-render when incidents change
   const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const [, setTick] = useState(0);
   const meRef = useRef(no.me);
   meRef.current = no.me;
   // Set during render so the planner timers and actions always read current data.
   setNightOutView(no.mocked ? mockStoreView() : apiView(no));
+  const safetyView = safety.mocked ? mockSafetyView() : apiSafetyView(safety);
+  setSafetyView(safetyView);
+  const onSafetyChange = useRef(safetyView.onChange);
+  onSafetyChange.current = safetyView.onChange;
 
   useEffect(() => {
     let n = 0;
     runPlanner();
-    const off = safeSubscribe(() => runPlanner());
+    const off = onSafetyChange.current(() => runPlanner());
     const t = window.setInterval(() => {
       n++;
       runPlanner();
@@ -44,11 +48,11 @@ export function AgentMockProvider(props: { children?: ReactNode }) {
   }, []);
 
   const actions = useMemo(() => makeActions(() => meRef.current), []);
-  const demo = useMemo(() => makeDemo(no.mocked), [no.mocked]);
+  const demo = useMemo(() => makeDemo(no.mocked, safety.mocked), [no.mocked, safety.mocked]);
 
   const me = no.me;
   const now = Date.now();
-  const incidents = safeSnap().incidents;
+  const incidents = safetyView.incidents();
   const visible = (incidentId: string) => !!incidents.find((i) => i.id === incidentId)?.participants.some((p) => p.userId === me);
   const jobOf = (jobId: string) => state.jobs.find((j) => j.id === jobId);
   const num = (a: { id: string }, b: { id: string }) => Number(a.id) - Number(b.id);
