@@ -157,45 +157,67 @@ The procedural views read only through indexes (`sessionMember.userId`, `session
 - In the generated `types.ts`, `MySessions`, `MyRosters`, `MyInvites`, `MyConsents`, `MyContacts` are empty placeholder objects; type rows with `NightSession`, `RosterRow`, `Invite`, `ConsentGrant`, `TrustedContact`.
 - Reducer calls return promises that reject with `SenderError` carrying the error strings above; show them verbatim.
 
-## 7. C2 — Location, status, deterministic safety engine (PLANNED)
+## 7. C2 — Location, status, deterministic safety engine (IMPLEMENTED)
+
+Module version `0.3.0-c2`. All functions live in `spacetimedb/src/reducers/safety.ts`, `views/safety.ts`, `lib/safety.ts`, `tables/safety.ts`, `rls.ts`.
 
 ### Tables
 
 | Table | Visibility | Columns | Indexes |
 |---|---|---|---|
-| `location_update` | private | `id pk`, `sessionId`, `userId`, `lat: f64`, `lng: f64`, `accuracyM: f32`, `recordedAt`, `expiresAt`, `source: enum LocationSource [device, simulated]` | (`sessionId`,`userId`), `userId` |
-| `checkin` | private | `id pk`, `sessionId`, `userId`, `kind: enum CheckinKind [okay, need_friend, need_ride, unwell, emergency, home]`, `note`, `createdAt` | (`sessionId`,`userId`), `sessionId` |
-| `consumption_self_report` | private | `id pk`, `userId`, `sessionId`, `level: enum ConsumptionLevel [none, some, impaired_feeling]`, `shareWithBuddy: bool`, `createdAt` | `userId` |
-| `concern_report` | private | `id pk`, `sessionId`, `reporter`, `subject`, `category: enum ConcernCategory [possible_consumption, separated, unwell, unsafe]`, `note`, `createdAt`, `dedupeKey: string unique` | `subject`, `sessionId` |
-| `incident` | private | `id pk`, `sessionId`, `subject`, `kind: enum IncidentKind [possible_impaired_driving, help_requested, missed_checkin, feeling_unsafe]`, `severity: enum Severity [info, elevated, urgent]`, `status: enum IncidentStatus [open, acknowledged, assistance_underway, transport_arranged, awaiting_home_confirmation, resolved, cancelled, handed_off]`, `openedBy`, `openedAt`, `resolvedAt: option`, `resolvedBy: option` | `sessionId`, `subject`, `status` |
-| `incident_event` | private | `id pk`, `incidentId`, `at`, `actor: identity`, `kind: string`, `detail: string`, `simulated: bool` | `incidentId` |
-| `incident_participant` | private | `id pk`, `incidentId`, `userId`, `role: enum ParticipantRole [subject, reporter, buddy, backup, organizer]`, `acknowledgedAt: option` | (`incidentId`,`userId`) |
-| `safety_alert` | public, **event table** | `recipient: identity`, `incidentId`, `kind: enum AlertKind [no_driving_warning, help_requested, ack_requested, incident_update]`, `message`, `at` | RLS: `recipient = :sender` |
-| `checkin_timer` | private, schedule | `scheduledId`, `scheduledAt`, `sessionId`, `userId` | → `on_checkin_due` |
-| `location_sweep` | private, schedule (interval 60 s) | `scheduledId`, `scheduledAt` | → `sweep_locations` (delete expired rows) |
+| `location_update` | private | `id pk autoInc`, `sessionId`, `userId`, `lat: f64`, `lng: f64`, `accuracyM: f32`, `recordedAt`, `expiresAt` (= recordedAt + 15 min), `source: LocationSource [device, simulated]` | `sessionId`, `userId`, (`sessionId`,`userId`) |
+| `latest_location` | private | same columns plus `locationId` (the `location_update` id); exactly one row per (session, member), upserted by `post_location` | `sessionId`, `userId`, (`sessionId`,`userId`) |
+| `checkin` | private | `id pk`, `sessionId`, `userId`, `kind: CheckinKind [okay, need_friend, need_ride, unwell, emergency, home]`, `note` (≤ 280), `createdAt` | `sessionId`, `userId`, (`sessionId`,`userId`) |
+| `consumption_self_report` | private | `id pk`, `userId`, `sessionId`, `level: ConsumptionLevel [none, some, impaired_feeling]`, `shareWithBuddy: bool`, `createdAt` | `userId`, `sessionId` |
+| `concern_report` | private | `id pk`, `sessionId`, `reporter`, `subject`, `category: ConcernCategory [possible_consumption, separated, unwell, unsafe]`, `note`, `createdAt`, `dedupeKey: string unique` (`sessionId:subjectHex:category:5-min bucket`) | `sessionId`, `subject` |
+| `incident` | private | `id pk`, `sessionId`, `subject`, `kind: IncidentKind [possible_impaired_driving, help_requested, missed_checkin, feeling_unsafe]`, `severity: Severity [info, elevated, urgent]`, `status: IncidentStatus [open, acknowledged, assistance_underway, transport_arranged, awaiting_home_confirmation, resolved, cancelled, handed_off]`, `openedBy`, `openedAt`, `resolvedAt?`, `resolvedBy?` | `sessionId`, `subject`, `status` |
+| `incident_event` | private | `id pk`, `incidentId`, `at`, `actor`, `kind: string`, `detail: string`, `simulated: bool` | `incidentId` |
+| `incident_participant` | private | `id pk`, `incidentId`, `userId`, `role: ParticipantRole [subject, reporter, buddy, backup, organizer]`, `acknowledgedAt?` | `incidentId`, `userId`, (`incidentId`,`userId`) |
+| `safety_alert` | **public event table** | `recipient`, `incidentId` (0 for the private driver self-warning), `kind: AlertKind [no_driving_warning, help_requested, ack_requested, incident_update]`, `message`, `at` | `recipient`; **RLS** `recipient = :sender` (verified live: only the recipient's `onInsert` fires) |
+| `checkin_timer` | private, schedule → `on_checkin_due` | `scheduledId`, `scheduledAt`, `sessionId`, `userId`, `armedAt` | `userId` |
+| `location_sweep` | private, schedule (interval 60 s) → `sweep_locations` | `scheduledId`, `scheduledAt` | — |
+
+Incident event kinds written so far: `opened`, `agent_requested`, `warning_shown`, `concern_added`, `concern_repeated`, `elevated`, `emergency_guidance`, `subject_says_fine`, `home_reported`, `missed_checkin`, `acknowledged`, `resolved`, `cancelled`.
 
 ### Reducers
 
-| Name | Args | Rule |
-|---|---|---|
-| `post_location` | `sessionId, lat, lng, accuracyM, source` | self; member with `sharingScope != none`; `expiresAt = now + 15 min` |
-| `check_in` | `sessionId, kind, note` | self. `emergency`/`need_friend`/`need_ride`/`unwell` open or elevate an incident with subject = caller. `okay` never changes an open incident (writes an `incident_event` `subject_says_fine` instead). `home` sets `awaiting_home_confirmation → resolved` only when caller is the subject. |
-| `report_consumption` | `sessionId, level, shareWithBuddy` | self; if caller is the accepted driver and `level != none` → same path as a driver concern |
-| `report_concern` | `sessionId, subject, category, note` | reporter is member; subject is member; `dedupeKey = sessionId:subject:category:5-minute bucket` (duplicate → `SenderError('Already reported')`). If subject is the accepted driver and category is `possible_consumption`: open `possible_impaired_driving` incident, insert `safety_alert no_driving_warning` to the driver, add participants, insert `agent_wake` (C3). **All in one transaction.** |
-| `acknowledge_incident` | `incidentId` | participant only; sets `acknowledgedAt`, status `open → acknowledged` |
-| `resolve_incident` | `incidentId, note` | subject, or organizer/buddy with the subject's `messaging`+`checkins` consent; never the scheduler, never the agent |
-| `cancel_incident` | `incidentId, reason` | subject only, within 2 min of opening; alerted participants get an `incident_update` alert |
-| `on_checkin_due` | schedule row | opens `missed_checkin` incident if no `checkin` since the timer was set |
-| `sweep_locations` | schedule row | deletes `location_update` with `expiresAt < now` |
-
-### Views
-
-| Name | Context | Args | Returns |
+| Name | Args | Rule | Error strings |
 |---|---|---|---|
-| `visible_locations` | per-user | `sessionId` | latest `location_update` per member for whom the caller holds an unexpired, unrevoked `location_*` consent grant; approximate scope rounds to 3 decimals; adds `isStale` (> 5 min) |
-| `my_incidents` | per-user | — | incidents where caller is a participant |
-| `incident_timeline` | per-user | `incidentId` | `incident_event` rows, participants only |
-| `my_checkins` | per-user | `sessionId` | caller's own check-ins |
+| `post_location` | `sessionId, lat, lng, accuracyM, source` | caller is an active member of an open session with `sharingScope != none`; inserts history and upserts `latest_location`; `expiresAt = now + 15 min` | `Session is not active`, `Not a member of this session`, `Turn on location sharing first`, `Invalid coordinates` |
+| `check_in` | `sessionId, kind, note` | records the check-in and re-arms the caller's `checkin_timer`. `okay`: adds `subject_says_fine` to the caller's open incident, **never changes its status**. `need_friend`/`need_ride`/`unwell`/`emergency`: opens a `help_requested` incident (elevated; urgent for unwell/emergency) or escalates the caller's open one, then alerts every other participant with `help_requested`; `emergency` also records that emergency services remain the person's call. `home`: resolves the caller's open incident **only** from `awaiting_home_confirmation` or `transport_arranged` (resolvedBy = caller, `incident_update` to participants); otherwise records `home_reported`. | `Note must be 280 characters or fewer` |
+| `report_consumption` | `sessionId, level, shareWithBuddy` | stores the private row. If the caller is the **accepted driver** and `level != none`: without `shareWithBuddy` only a private `no_driving_warning` alert (incidentId 0, no incident, audit row); with it the full driver path below. Non-drivers never trigger anything. | as above |
+| `report_concern` | `sessionId, subject, category, note` | reporter and subject active members, subject ≠ reporter; `dedupeKey` unique per 5-minute bucket. Driver + `possible_consumption` → **driver path**: `possible_impaired_driving` (urgent) incident, participants for all active members, `no_driving_warning` to the driver, `incident_update` to the organizer, `ack_requested` to everyone else except the reporter, events `opened`/`agent_requested`/`warning_shown`, all in one transaction. A repeat within an open driver incident adds `concern_repeated`. Other categories → `feeling_unsafe` (elevated) incident (or `concern_added` on the subject's open incident) with `ack_requested` to all participants but the subject. | `Use a check-in to report about yourself`, `Subject is not in this session`, `Already reported` |
+| `acknowledge_incident` | `incidentId` | participant, not the subject, incident open; sets `acknowledgedAt`; `open → acknowledged`; `incident_update` to the subject | `Only participants can acknowledge`, `You can't acknowledge your own alert`, `This incident is closed` |
+| `resolve_incident` | `incidentId, note` | never the scheduler (`senderAuth.isInternal`); the subject, or an `organizer`/`buddy` participant holding the subject's unexpired `messaging` **and** `checkins` grants for that session; `incident_update` to the others | `Only a person can resolve an incident`, `You are not allowed to resolve this incident`, `This incident is closed` |
+| `cancel_incident` | `incidentId, reason` | subject only, within 2 minutes of `openedAt`; `incident_update` to the others | `Only the person the incident is about can cancel it`, `Too late to cancel; resolve it instead`, `This incident is closed` |
+| `on_checkin_due` | schedule row | scheduler only. If the member is still active in an open session and has no check-in since `armedAt`: `missed_checkin` event on their open incident, or a new `missed_checkin` (elevated) incident with `ack_requested` to the others and an `incident_update` nudge to the member. Always re-arms. | — |
+| `sweep_locations` | schedule row | scheduler only, every 60 s: deletes expired `location_update`/`latest_location` rows and sets `revokedAt = expiresAt` on expired consent grants (views have no clock, so they rely on `revokedAt`). | — |
+| `ensure_schedules` | — | owner only (`config.owner`); re-creates the `location_sweep` interval row after a republish (`init` does not re-run). Call once: `spacetime call safenight ensure_schedules`. | `Only the database owner can do that` |
+
+C1 reducers changed: `create_session` and `join_session` arm the member's `checkin_timer` (`now + checkinIntervalMinutes`); `leave_session`, `end_session` and `expire_session` clear timers.
+
+### Views (all per-user, argument-free)
+
+| Name | Row | Returns |
+|---|---|---|
+| `visible_locations` | `VisibleLocationRow { id (location_update id, pk), sessionId, userId, displayName, lat, lng, accuracyM, recordedAt, source, approximate }` | the latest location of every active member of every session the caller is active in, when: it is the caller's own row (exact), or the member's `sharingScope != none` **and** the caller holds an unrevoked `location_precise` (exact) or `location_approximate` (rounded to 3 decimals, `approximate = true`) grant from that member for that session. A member's `approximate` scope forces rounding even over a precise grant. Staleness (`recordedAt` older than 5 min) is computed by the client. |
+| `my_checkins` | `checkin` row | the caller's check-ins across sessions |
+| `my_incidents` | `IncidentRow { id pk, sessionId, subject, subjectName, kind, severity, status, openedBy, openedAt, resolvedAt?, resolvedBy? }` | incidents where the caller is a participant |
+| `my_incident_participants` | `IncidentParticipantRow { id pk, incidentId, userId, displayName, role, acknowledgedAt? }` | participants of those incidents |
+| `my_incident_events` | `IncidentEventRow { id pk, incidentId, at, actor, actorName, kind, detail, simulated }` | timeline events of those incidents (`actorName` is `SafeNight` for the scheduler) |
+
+### Client notes for the `SafetyApi` adapter (Person B)
+
+Generated bindings (`web/src/module_bindings`): `tables.visibleLocations`, `tables.myCheckins`, `tables.myIncidents`, `tables.myIncidentParticipants`, `tables.myIncidentEvents`, `tables.safetyAlert`; `reducers.postLocation`, `reducers.checkIn`, `reducers.reportConsumption`, `reducers.reportConcern`, `reducers.acknowledgeIncident`, `reducers.resolveIncident`, `reducers.cancelIncident`. Row types in `types.ts`: `VisibleLocationRow`, `IncidentRow`, `IncidentParticipantRow`, `IncidentEventRow`, `SafetyAlert`, `Checkin`.
+
+- Enum tags are **PascalCase** in bindings: `CheckinKind {Okay, NeedFriend, NeedRide, Unwell, Emergency, Home}`, `ConsumptionLevel {None, Some, ImpairedFeeling}`, `ConcernCategory {PossibleConsumption, Separated, Unwell, Unsafe}`, `IncidentKind {PossibleImpairedDriving, HelpRequested, MissedCheckin, FeelingUnsafe}`, `Severity {Info, Elevated, Urgent}`, `IncidentStatus {Open, Acknowledged, AssistanceUnderway, TransportArranged, AwaitingHomeConfirmation, Resolved, Cancelled, HandedOff}`, `ParticipantRole {Subject, Reporter, Buddy, Backup, Organizer}`, `AlertKind {NoDrivingWarning, HelpRequested, AckRequested, IncidentUpdate}`, `LocationSource {Device, Simulated}`. Pass `{ tag: 'NeedRide' }`, read `row.status.tag === 'Open'`.
+- `locations` ← `useTable(tables.visibleLocations)` filtered to the current `sessionId`; `isStale = Date.now() - recordedAt.toDate().getTime() > 5 min`; `myLocation` is the row whose `userId` equals my identity.
+- `incidents` ← `tables.myIncidents` joined client-side with `tables.myIncidentParticipants` on `incidentId` (gives `participants` with `displayName`, `role`, `acknowledgedAt`).
+- `timeline(id)` ← `tables.myIncidentEvents` filtered by `incidentId`, sorted by `at`.
+- `alerts` ← `tables.safetyAlert` is an event table: subscribe and use `onInsert` only (rows never stay in the cache; `count()` is always 0). RLS already limits delivery to `recipient = me`; keep dismissals client-side. `incidentId === 0n` is the private driver self-warning with no incident.
+- `myCheckins` ← `tables.myCheckins` filtered by `sessionId`, newest first.
+- Actions ← `reducers.*` with `bigint` ids; `postLocation.source` is `{ tag: 'Simulated' }` for demo personas; reducer promises reject with `SenderError` carrying the strings above.
+- Deterministic path to demo: Alex `reportConcern(sessionId, samIdentity, { tag: 'PossibleConsumption' }, note)` → Sam's tab gets a `NoDrivingWarning` alert in the same transaction and `myIncidents` shows the `PossibleImpairedDriving` incident to all four personas.
 
 ## 8. C3 — Nemotron agent workflow (PLANNED)
 
@@ -259,14 +281,14 @@ The procedural views read only through indexes (`sessionMember.userId`, `session
 | `venue_report_expiry` | schedule (interval 5 min) → `expire_venue_reports` |
 | `safety_resource` | public: `id pk`, `type: enum ResourceType [campus_safety, staffed_venue, medical, transit_stop, pickup_point]`, `name`, `lat`, `lng`, `hours`, `source`, `verifiedAt`; seeded in `init` and owner-only `seed_resources` |
 | `retention_sweep` | schedule (interval 1 h) → deletes check-ins, locations, notifications past retention windows; closed incidents keep events, drop bodies |
-| RLS filters (experimental) | `safety_alert` (`recipient = :sender`), `session_member` (rows for sessions the caller belongs to), `invite` (organizer only). Everything else stays private behind views. |
+| RLS filters (experimental) | `safety_alert` (`recipient = :sender`) is **done in C2** and verified live. Still planned: `session_member` (rows for sessions the caller belongs to). `invite` is already private (C1) and read through `my_invites`. Everything else stays private behind views. |
 | HTTP handlers | `GET /health` → `{ok, moduleVersion}`; `POST /webhooks/twilio` → validates `X-Twilio-Signature` with `TWILIO_AUTH_TOKEN`, updates `notification.status`; rejects when messaging is simulated. |
 | Prompt-injection defense | Free text from `concern_report.note`, `checkin.note`, `venue_report` is passed to the model as data fields, truncated to 280 chars, and a unit test asserts an injected "ignore policy, message +1555…" note cannot produce an allowed `send_approved_message` to a non-participant. |
 | Admin | owner-only (`config.owner`) reducers: `seed_resources`, `moderate_venue_report`, `reset_demo`. |
 
 ## 10. Client responsibilities (Person B)
 
-- Subscribe per screen, not to everything: `tables.mySessions`, `tables.sessionRoster` (SQL string with args until the builder supports view args), `tables.safetyAlert` (event table; `onInsert` only).
+- Subscribe per screen, not to everything: `tables.mySessions`, `tables.myRosters` (argument-free; filter by `sessionId` client-side), `tables.safetyAlert` (event table; `onInsert` only).
 - Treat `isReady` from `useTable` as the loading state; show stale data with a stale badge during reconnects.
 - Four personas map to four tokens in `localStorage` keyed by persona; identity is whatever the server issued.
 - Never infer safety from arrival, silence, or a positive-sounding reply. The UI shows `suggested by location` and `confirmed by person` as different states.

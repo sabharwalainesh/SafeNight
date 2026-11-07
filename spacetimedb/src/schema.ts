@@ -9,6 +9,19 @@ import {
   trustedContact,
   userProfile,
 } from './tables/nightout';
+import {
+  checkin,
+  checkinTimer,
+  concernReport,
+  consumptionSelfReport,
+  incident,
+  incidentEvent,
+  incidentParticipant,
+  latestLocation,
+  locationSweep,
+  locationUpdate,
+  safetyAlert,
+} from './tables/safety';
 
 // Private: single row recording who published the database (module owner).
 export const config = table(
@@ -57,6 +70,17 @@ export const spacetimedb = schema(
     driverAssignment,
     consentGrant,
     sessionExpiry,
+    locationUpdate,
+    latestLocation,
+    checkin,
+    consumptionSelfReport,
+    concernReport,
+    incident,
+    incidentEvent,
+    incidentParticipant,
+    safetyAlert,
+    checkinTimer,
+    locationSweep,
   },
   {
     env: {

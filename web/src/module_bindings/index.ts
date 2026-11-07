@@ -35,16 +35,24 @@ import {
 
 // Import all reducer arg schemas
 import AcceptDriverRoleReducer from "./accept_driver_role_reducer";
+import AcknowledgeIncidentReducer from "./acknowledge_incident_reducer";
 import AddTrustedContactReducer from "./add_trusted_contact_reducer";
+import CancelIncidentReducer from "./cancel_incident_reducer";
+import CheckInReducer from "./check_in_reducer";
 import CreateInviteReducer from "./create_invite_reducer";
 import CreateSessionReducer from "./create_session_reducer";
 import EndDriverRoleReducer from "./end_driver_role_reducer";
 import EndSessionReducer from "./end_session_reducer";
+import EnsureSchedulesReducer from "./ensure_schedules_reducer";
 import GrantConsentReducer from "./grant_consent_reducer";
 import JoinSessionReducer from "./join_session_reducer";
 import LeaveSessionReducer from "./leave_session_reducer";
 import PingReducer from "./ping_reducer";
+import PostLocationReducer from "./post_location_reducer";
 import RemoveTrustedContactReducer from "./remove_trusted_contact_reducer";
+import ReportConcernReducer from "./report_concern_reducer";
+import ReportConsumptionReducer from "./report_consumption_reducer";
+import ResolveIncidentReducer from "./resolve_incident_reducer";
 import RevokeConsentReducer from "./revoke_consent_reducer";
 import RevokeInviteReducer from "./revoke_invite_reducer";
 import SetProfileReducer from "./set_profile_reducer";
@@ -56,16 +64,22 @@ import VolunteerDriverReducer from "./volunteer_driver_reducer";
 // Import all table schema definitions
 import ClientPresenceRow from "./client_presence_table";
 import DriverAssignmentRow from "./driver_assignment_table";
+import MyCheckinsRow from "./my_checkins_table";
 import MyConsentsRow from "./my_consents_table";
 import MyContactsRow from "./my_contacts_table";
+import MyIncidentEventsRow from "./my_incident_events_table";
+import MyIncidentParticipantsRow from "./my_incident_participants_table";
+import MyIncidentsRow from "./my_incidents_table";
 import MyInvitesRow from "./my_invites_table";
 import MyRostersRow from "./my_rosters_table";
 import MySessionsRow from "./my_sessions_table";
 import NightSessionRow from "./night_session_table";
 import OnlineMembersRow from "./online_members_table";
 import RuntimeStatusRow from "./runtime_status_table";
+import SafetyAlertRow from "./safety_alert_table";
 import SessionMemberRow from "./session_member_table";
 import UserProfileRow from "./user_profile_table";
+import VisibleLocationsRow from "./visible_locations_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -116,6 +130,17 @@ const tablesSchema = __schema({
       { name: 'night_session_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, NightSessionRow),
+  safetyAlert: __table({
+    name: 'safety_alert',
+    indexes: [
+      { accessor: 'recipient', name: 'safety_alert_recipient_idx_btree', algorithm: 'btree', columns: [
+        'recipient',
+      ] },
+    ],
+    constraints: [
+    ],
+    event: true,
+  }, SafetyAlertRow),
   sessionMember: __table({
     name: 'session_member',
     indexes: [
@@ -148,6 +173,13 @@ const tablesSchema = __schema({
       { name: 'user_profile_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, UserProfileRow),
+  myCheckins: __table({
+    name: 'my_checkins',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyCheckinsRow),
   myConsents: __table({
     name: 'my_consents',
     indexes: [
@@ -162,6 +194,27 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyContactsRow),
+  myIncidentEvents: __table({
+    name: 'my_incident_events',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyIncidentEventsRow),
+  myIncidentParticipants: __table({
+    name: 'my_incident_participants',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyIncidentParticipantsRow),
+  myIncidents: __table({
+    name: 'my_incidents',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyIncidentsRow),
   myInvites: __table({
     name: 'my_invites',
     indexes: [
@@ -197,21 +250,36 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, RuntimeStatusRow),
+  visibleLocations: __table({
+    name: 'visible_locations',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, VisibleLocationsRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("accept_driver_role", AcceptDriverRoleReducer),
+  __reducerSchema("acknowledge_incident", AcknowledgeIncidentReducer),
   __reducerSchema("add_trusted_contact", AddTrustedContactReducer),
+  __reducerSchema("cancel_incident", CancelIncidentReducer),
+  __reducerSchema("check_in", CheckInReducer),
   __reducerSchema("create_invite", CreateInviteReducer),
   __reducerSchema("create_session", CreateSessionReducer),
   __reducerSchema("end_driver_role", EndDriverRoleReducer),
   __reducerSchema("end_session", EndSessionReducer),
+  __reducerSchema("ensure_schedules", EnsureSchedulesReducer),
   __reducerSchema("grant_consent", GrantConsentReducer),
   __reducerSchema("join_session", JoinSessionReducer),
   __reducerSchema("leave_session", LeaveSessionReducer),
   __reducerSchema("ping", PingReducer),
+  __reducerSchema("post_location", PostLocationReducer),
   __reducerSchema("remove_trusted_contact", RemoveTrustedContactReducer),
+  __reducerSchema("report_concern", ReportConcernReducer),
+  __reducerSchema("report_consumption", ReportConsumptionReducer),
+  __reducerSchema("resolve_incident", ResolveIncidentReducer),
   __reducerSchema("revoke_consent", RevokeConsentReducer),
   __reducerSchema("revoke_invite", RevokeInviteReducer),
   __reducerSchema("set_profile", SetProfileReducer),

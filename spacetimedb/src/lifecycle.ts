@@ -1,4 +1,5 @@
 import { spacetimedb } from './schema';
+import { ensureSweepScheduled } from './lib/safety';
 
 export const init = spacetimedb.init(ctx => {
   ctx.db.config.insert({ id: 0, owner: ctx.sender, createdAt: ctx.timestamp });
@@ -10,6 +11,7 @@ export const init = spacetimedb.init(ctx => {
     decision: 'allow',
     at: ctx.timestamp,
   });
+  ensureSweepScheduled(ctx);
 });
 
 export const onConnect = spacetimedb.clientConnected(ctx => {

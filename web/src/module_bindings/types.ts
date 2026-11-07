@@ -10,6 +10,15 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+// The tagged union or sum type for the algebraic type `AlertKind`.
+export const AlertKind = __t.enum("AlertKind", {
+  NoDrivingWarning: __t.unit(),
+  HelpRequested: __t.unit(),
+  AckRequested: __t.unit(),
+  IncidentUpdate: __t.unit(),
+});
+export type AlertKind = __Infer<typeof AlertKind>;
+
 export const AuditEvent = __t.object("AuditEvent", {
   id: __t.u64(),
   actor: __t.identity(),
@@ -20,6 +29,38 @@ export const AuditEvent = __t.object("AuditEvent", {
 });
 export type AuditEvent = __Infer<typeof AuditEvent>;
 
+export const Checkin = __t.object("Checkin", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  get kind() {
+    return CheckinKind;
+  },
+  note: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type Checkin = __Infer<typeof Checkin>;
+
+// The tagged union or sum type for the algebraic type `CheckinKind`.
+export const CheckinKind = __t.enum("CheckinKind", {
+  Okay: __t.unit(),
+  NeedFriend: __t.unit(),
+  NeedRide: __t.unit(),
+  Unwell: __t.unit(),
+  Emergency: __t.unit(),
+  Home: __t.unit(),
+});
+export type CheckinKind = __Infer<typeof CheckinKind>;
+
+export const CheckinTimer = __t.object("CheckinTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  armedAt: __t.timestamp(),
+});
+export type CheckinTimer = __Infer<typeof CheckinTimer>;
+
 export const ClientPresence = __t.object("ClientPresence", {
   identity: __t.identity(),
   online: __t.bool(),
@@ -27,6 +68,29 @@ export const ClientPresence = __t.object("ClientPresence", {
   connectionCount: __t.u32(),
 });
 export type ClientPresence = __Infer<typeof ClientPresence>;
+
+// The tagged union or sum type for the algebraic type `ConcernCategory`.
+export const ConcernCategory = __t.enum("ConcernCategory", {
+  PossibleConsumption: __t.unit(),
+  Separated: __t.unit(),
+  Unwell: __t.unit(),
+  Unsafe: __t.unit(),
+});
+export type ConcernCategory = __Infer<typeof ConcernCategory>;
+
+export const ConcernReport = __t.object("ConcernReport", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  reporter: __t.identity(),
+  subject: __t.identity(),
+  get category() {
+    return ConcernCategory;
+  },
+  note: __t.string(),
+  createdAt: __t.timestamp(),
+  dedupeKey: __t.string(),
+});
+export type ConcernReport = __Infer<typeof ConcernReport>;
 
 export const Config = __t.object("Config", {
   id: __t.u8(),
@@ -58,6 +122,26 @@ export const ConsentScope = __t.enum("ConsentScope", {
   Messaging: __t.unit(),
 });
 export type ConsentScope = __Infer<typeof ConsentScope>;
+
+// The tagged union or sum type for the algebraic type `ConsumptionLevel`.
+export const ConsumptionLevel = __t.enum("ConsumptionLevel", {
+  None: __t.unit(),
+  Some: __t.unit(),
+  ImpairedFeeling: __t.unit(),
+});
+export type ConsumptionLevel = __Infer<typeof ConsumptionLevel>;
+
+export const ConsumptionSelfReport = __t.object("ConsumptionSelfReport", {
+  id: __t.u64(),
+  userId: __t.identity(),
+  sessionId: __t.u64(),
+  get level() {
+    return ConsumptionLevel;
+  },
+  shareWithBuddy: __t.bool(),
+  createdAt: __t.timestamp(),
+});
+export type ConsumptionSelfReport = __Infer<typeof ConsumptionSelfReport>;
 
 // The tagged union or sum type for the algebraic type `ContactRole`.
 export const ContactRole = __t.enum("ContactRole", {
@@ -98,6 +182,115 @@ export const DriverStatus = __t.enum("DriverStatus", {
 });
 export type DriverStatus = __Infer<typeof DriverStatus>;
 
+export const Incident = __t.object("Incident", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  subject: __t.identity(),
+  get kind() {
+    return IncidentKind;
+  },
+  get severity() {
+    return Severity;
+  },
+  get status() {
+    return IncidentStatus;
+  },
+  openedBy: __t.identity(),
+  openedAt: __t.timestamp(),
+  resolvedAt: __t.option(__t.timestamp()),
+  resolvedBy: __t.option(__t.identity()),
+});
+export type Incident = __Infer<typeof Incident>;
+
+export const IncidentEvent = __t.object("IncidentEvent", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  at: __t.timestamp(),
+  actor: __t.identity(),
+  kind: __t.string(),
+  detail: __t.string(),
+  simulated: __t.bool(),
+});
+export type IncidentEvent = __Infer<typeof IncidentEvent>;
+
+export const IncidentEventRow = __t.object("IncidentEventRow", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  at: __t.timestamp(),
+  actor: __t.identity(),
+  actorName: __t.string(),
+  kind: __t.string(),
+  detail: __t.string(),
+  simulated: __t.bool(),
+});
+export type IncidentEventRow = __Infer<typeof IncidentEventRow>;
+
+// The tagged union or sum type for the algebraic type `IncidentKind`.
+export const IncidentKind = __t.enum("IncidentKind", {
+  PossibleImpairedDriving: __t.unit(),
+  HelpRequested: __t.unit(),
+  MissedCheckin: __t.unit(),
+  FeelingUnsafe: __t.unit(),
+});
+export type IncidentKind = __Infer<typeof IncidentKind>;
+
+export const IncidentParticipant = __t.object("IncidentParticipant", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  userId: __t.identity(),
+  get role() {
+    return ParticipantRole;
+  },
+  acknowledgedAt: __t.option(__t.timestamp()),
+});
+export type IncidentParticipant = __Infer<typeof IncidentParticipant>;
+
+export const IncidentParticipantRow = __t.object("IncidentParticipantRow", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  userId: __t.identity(),
+  displayName: __t.string(),
+  get role() {
+    return ParticipantRole;
+  },
+  acknowledgedAt: __t.option(__t.timestamp()),
+});
+export type IncidentParticipantRow = __Infer<typeof IncidentParticipantRow>;
+
+export const IncidentRow = __t.object("IncidentRow", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  subject: __t.identity(),
+  subjectName: __t.string(),
+  get kind() {
+    return IncidentKind;
+  },
+  get severity() {
+    return Severity;
+  },
+  get status() {
+    return IncidentStatus;
+  },
+  openedBy: __t.identity(),
+  openedAt: __t.timestamp(),
+  resolvedAt: __t.option(__t.timestamp()),
+  resolvedBy: __t.option(__t.identity()),
+});
+export type IncidentRow = __Infer<typeof IncidentRow>;
+
+// The tagged union or sum type for the algebraic type `IncidentStatus`.
+export const IncidentStatus = __t.enum("IncidentStatus", {
+  Open: __t.unit(),
+  Acknowledged: __t.unit(),
+  AssistanceUnderway: __t.unit(),
+  TransportArranged: __t.unit(),
+  AwaitingHomeConfirmation: __t.unit(),
+  Resolved: __t.unit(),
+  Cancelled: __t.unit(),
+  HandedOff: __t.unit(),
+});
+export type IncidentStatus = __Infer<typeof IncidentStatus>;
+
 export const Invite = __t.object("Invite", {
   id: __t.u64(),
   sessionId: __t.u64(),
@@ -110,6 +303,50 @@ export const Invite = __t.object("Invite", {
 });
 export type Invite = __Infer<typeof Invite>;
 
+export const LatestLocation = __t.object("LatestLocation", {
+  id: __t.u64(),
+  locationId: __t.u64(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  lat: __t.f64(),
+  lng: __t.f64(),
+  accuracyM: __t.f32(),
+  recordedAt: __t.timestamp(),
+  expiresAt: __t.timestamp(),
+  get source() {
+    return LocationSource;
+  },
+});
+export type LatestLocation = __Infer<typeof LatestLocation>;
+
+// The tagged union or sum type for the algebraic type `LocationSource`.
+export const LocationSource = __t.enum("LocationSource", {
+  Device: __t.unit(),
+  Simulated: __t.unit(),
+});
+export type LocationSource = __Infer<typeof LocationSource>;
+
+export const LocationSweep = __t.object("LocationSweep", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type LocationSweep = __Infer<typeof LocationSweep>;
+
+export const LocationUpdate = __t.object("LocationUpdate", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  lat: __t.f64(),
+  lng: __t.f64(),
+  accuracyM: __t.f32(),
+  recordedAt: __t.timestamp(),
+  expiresAt: __t.timestamp(),
+  get source() {
+    return LocationSource;
+  },
+});
+export type LocationUpdate = __Infer<typeof LocationUpdate>;
+
 // The tagged union or sum type for the algebraic type `MemberRole`.
 export const MemberRole = __t.enum("MemberRole", {
   Organizer: __t.unit(),
@@ -117,11 +354,23 @@ export const MemberRole = __t.enum("MemberRole", {
 });
 export type MemberRole = __Infer<typeof MemberRole>;
 
+export const MyCheckins = __t.object("MyCheckins", {});
+export type MyCheckins = __Infer<typeof MyCheckins>;
+
 export const MyConsents = __t.object("MyConsents", {});
 export type MyConsents = __Infer<typeof MyConsents>;
 
 export const MyContacts = __t.object("MyContacts", {});
 export type MyContacts = __Infer<typeof MyContacts>;
+
+export const MyIncidentEvents = __t.object("MyIncidentEvents", {});
+export type MyIncidentEvents = __Infer<typeof MyIncidentEvents>;
+
+export const MyIncidentParticipants = __t.object("MyIncidentParticipants", {});
+export type MyIncidentParticipants = __Infer<typeof MyIncidentParticipants>;
+
+export const MyIncidents = __t.object("MyIncidents", {});
+export type MyIncidents = __Infer<typeof MyIncidents>;
 
 export const MyInvites = __t.object("MyInvites", {});
 export type MyInvites = __Infer<typeof MyInvites>;
@@ -149,6 +398,16 @@ export type NightSession = __Infer<typeof NightSession>;
 
 export const OnlineMembers = __t.object("OnlineMembers", {});
 export type OnlineMembers = __Infer<typeof OnlineMembers>;
+
+// The tagged union or sum type for the algebraic type `ParticipantRole`.
+export const ParticipantRole = __t.enum("ParticipantRole", {
+  Subject: __t.unit(),
+  Reporter: __t.unit(),
+  Buddy: __t.unit(),
+  Backup: __t.unit(),
+  Organizer: __t.unit(),
+});
+export type ParticipantRole = __Infer<typeof ParticipantRole>;
 
 export const RosterRow = __t.object("RosterRow", {
   memberId: __t.u64(),
@@ -183,6 +442,17 @@ export const RuntimeStatusRow = __t.object("RuntimeStatusRow", {
 });
 export type RuntimeStatusRow = __Infer<typeof RuntimeStatusRow>;
 
+export const SafetyAlert = __t.object("SafetyAlert", {
+  recipient: __t.identity(),
+  incidentId: __t.u64(),
+  get kind() {
+    return AlertKind;
+  },
+  message: __t.string(),
+  at: __t.timestamp(),
+});
+export type SafetyAlert = __Infer<typeof SafetyAlert>;
+
 export const SessionExpiry = __t.object("SessionExpiry", {
   scheduledId: __t.u64(),
   scheduledAt: __t.scheduleAt(),
@@ -215,6 +485,14 @@ export const SessionStatus = __t.enum("SessionStatus", {
 });
 export type SessionStatus = __Infer<typeof SessionStatus>;
 
+// The tagged union or sum type for the algebraic type `Severity`.
+export const Severity = __t.enum("Severity", {
+  Info: __t.unit(),
+  Elevated: __t.unit(),
+  Urgent: __t.unit(),
+});
+export type Severity = __Infer<typeof Severity>;
+
 // The tagged union or sum type for the algebraic type `SharingScope`.
 export const SharingScope = __t.enum("SharingScope", {
   None: __t.unit(),
@@ -244,4 +522,23 @@ export const UserProfile = __t.object("UserProfile", {
   createdAt: __t.timestamp(),
 });
 export type UserProfile = __Infer<typeof UserProfile>;
+
+export const VisibleLocationRow = __t.object("VisibleLocationRow", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  userId: __t.identity(),
+  displayName: __t.string(),
+  lat: __t.f64(),
+  lng: __t.f64(),
+  accuracyM: __t.f32(),
+  recordedAt: __t.timestamp(),
+  get source() {
+    return LocationSource;
+  },
+  approximate: __t.bool(),
+});
+export type VisibleLocationRow = __Infer<typeof VisibleLocationRow>;
+
+export const VisibleLocations = __t.object("VisibleLocations", {});
+export type VisibleLocations = __Infer<typeof VisibleLocations>;
 

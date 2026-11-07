@@ -16,6 +16,7 @@ import {
 import { INVITE_ALPHABET, INVITE_CODE_LENGTH, MAX_TTL_MINUTES } from '../lib/constants';
 import { isAtOrBefore, minutesAfter } from '../lib/time';
 import { ScheduleAt } from 'spacetimedb';
+import { armCheckinTimer, clearCheckinTimers } from '../lib/safety';
 
 type CloseStatus = 'ended' | 'expired';
 
@@ -27,6 +28,7 @@ function closeSession(ctx: Ctx, sessionId: bigint, status: CloseStatus) {
   ctx.db.nightSession.id.update({ ...session, status: { tag: status } });
   for (const m of ctx.db.sessionMember.sessionId.filter(sessionId)) {
     if (m.active) ctx.db.sessionMember.id.update({ ...m, active: false, leftAt: ctx.timestamp });
+    clearCheckinTimers(ctx, sessionId, m.userId);
   }
   for (const g of ctx.db.consentGrant.sessionId.filter(sessionId)) {
     if (g.revokedAt === undefined) ctx.db.consentGrant.id.update({ ...g, revokedAt: ctx.timestamp });
@@ -79,6 +81,7 @@ export const createSession = spacetimedb.reducer(
       scheduledAt: ScheduleAt.time(expiresAt.microsSinceUnixEpoch),
       sessionId: session.id,
     });
+    armCheckinTimer(ctx, session.id, ctx.sender);
     audit(ctx, 'create_session', `night_session:${session.id}`);
   }
 );
@@ -161,6 +164,7 @@ export const joinSession = spacetimedb.reducer({ code: t.string() }, (ctx, { cod
     });
   }
   ctx.db.invite.id.update({ ...inv, uses: inv.uses + 1 });
+  armCheckinTimer(ctx, session.id, ctx.sender);
   audit(ctx, 'join_session', `night_session:${session.id}`);
 });
 
@@ -171,6 +175,7 @@ export const leaveSession = spacetimedb.reducer({ sessionId: t.u64() }, (ctx, { 
     throw new SenderError('Organizer must end the session instead');
   }
   ctx.db.sessionMember.id.update({ ...m, active: false, leftAt: ctx.timestamp });
+  clearCheckinTimers(ctx, sessionId, ctx.sender);
   const a = openDriverAssignment(ctx, sessionId);
   if (a && a.driverId.isEqual(ctx.sender)) {
     ctx.db.driverAssignment.id.update({ ...a, endedAt: ctx.timestamp, endReason: { tag: 'left_session' } });
