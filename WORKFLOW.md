@@ -159,8 +159,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-07 — Rebased onto B's C1-B/C2-B commits. The orchestrator's own C1-B screens were discarded in favor of B's `features/*/api.ts` contract + mock design; A touches nothing under `web/src/` except `module_bindings/`.
 
+- 2026-11-07 — **C2-A safety engine complete, gate green.** `location_update` + `latest_location`, `checkin`, `consumption_self_report`, `concern_report` (5-minute dedupe key), `incident`, `incident_event`, `incident_participant`, `safety_alert` **public event table with an RLS filter** (`recipient = :sender`, verified live with three identities), `checkin_timer` and `location_sweep` schedule tables. Reducers: `post_location`, `check_in`, `report_consumption`, `report_concern`, `acknowledge_incident`, `resolve_incident`, `cancel_incident`, `ensure_schedules`; scheduled `on_checkin_due`, `sweep_locations`. Views: `visible_locations`, `my_checkins`, `my_incidents`, `my_incident_participants`, `my_incident_events` (all argument-free, per-user). 32/32 tests, automatic migration, bindings regenerated, ARCHITECTURE.md §7 IMPLEMENTED with a "Client notes for the SafetyApi adapter" list.
+
 **In progress**
-- C2-A location, status, deterministic safety engine (module only; B's `SafetyApi` expectations are the target shape).
+- C3-A Nemotron agent workflow (agent_job/plan/action, scheduled procedure `agent_step`, follow-up timers, notifications, ride plans; simulated planner until the key arrives).
 
 **For B: wiring `NightOutApi` to the live bindings (C1-A is live on the local server)**
 - `useTable(tables.mySessions)` → `NightSession[]` (already excludes sessions you left). Map `id`/`sessionId` bigint → `String(id)`, `Identity` → `identity.toHexString()`, `Timestamp` → `ts.toDate().getTime()`, enum tags PascalCase → snake_case (`'LocationPrecise'` → `'location_precise'`; a tiny `tagToSnake()` helper covers all enums).
