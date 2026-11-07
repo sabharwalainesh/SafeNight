@@ -5,6 +5,10 @@ import { reducers, tables } from './module_bindings';
 import { PERSONAS, personaHref, type Persona } from './personas';
 import { relativeTime, shortIdentity } from './lib/format';
 import { NightOutMockProvider } from './features/night-out/mock';
+import { SafetyMockProvider } from './features/safety/mock';
+import { NoDrivingBanner, StatusBar } from './features/status';
+import { InboxScreen } from './screens/inbox';
+import { MapScreen } from './screens/map';
 import { NightOutTab } from './screens/night-out';
 
 type TabId = 'night' | 'map' | 'reports' | 'inbox' | 'profile';
@@ -21,6 +25,12 @@ type Props = { persona: Persona; host: string; dbName: string };
 
 export default function App({ persona, host, dbName }: Props) {
   const [tab, setTab] = useState<TabId>('night');
+  // Incident to open when jumping to the Inbox from a warning banner; the key remounts the Inbox.
+  const [inboxTarget, setInboxTarget] = useState<{ id: string; n: number } | null>(null);
+  const openIncident = (id: string) => {
+    setInboxTarget(prev => ({ id, n: (prev?.n ?? 0) + 1 }));
+    setTab('inbox');
+  };
   const { isActive, identity, connectionError } = useSpacetimeDB();
 
   const connState: 'connected' | 'connecting' | 'disconnected' = isActive
@@ -43,15 +53,29 @@ export default function App({ persona, host, dbName }: Props) {
 
       {/* Mock data providers until C1-A/C2-A bindings land; swap for bindings adapters then. */}
       <NightOutMockProvider me={persona.id} displayName={persona.name}>
+      <SafetyMockProvider>
       <main className="content">
+        <NoDrivingBanner onViewIncident={openIncident} />
         <RuntimeStrip />
         <OnlineCard />
         <PingCard persona={persona} connected={isActive} />
-        {tab === 'night' ? <NightOutTab /> : <TabPanel tab={tab} />}
+        {tab === 'night' ? (
+          <NightOutTab />
+        ) : tab === 'map' ? (
+          <>
+            <StatusBar />
+            <MapScreen />
+          </>
+        ) : tab === 'inbox' ? (
+          <InboxScreen key={inboxTarget?.n ?? 0} initialIncidentId={inboxTarget?.id} />
+        ) : (
+          <TabPanel tab={tab} />
+        )}
         <p className="muted small">
           Server {host} · database {dbName}
         </p>
       </main>
+      </SafetyMockProvider>
       </NightOutMockProvider>
 
       <nav className="tabbar" aria-label="Primary">
