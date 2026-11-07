@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": false,
+    "useDefineForClassFields": true,
+
+    /* Required by SpacetimeDB; do not change */
+    "target": "ESNext",
+    "lib": ["ES2021", "dom"],
+    "module": "ESNext",
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

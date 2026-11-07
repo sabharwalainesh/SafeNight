@@ -1,0 +1,10 @@
+{
+  // Shared SpacetimeDB CLI config. Secrets never go here: use spacetime.local.json (git-ignored) or the shell.
+  "database": "safenight",
+  "server": "local",
+  "module-path": "./spacetimedb",
+  "generate": [
+    { "language": "typescript", "out-dir": "./web/src/module_bindings" }
+  ],
+  "dev": { "run": "npm run dev -w web" }
+}

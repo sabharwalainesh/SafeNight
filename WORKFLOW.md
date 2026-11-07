@@ -152,19 +152,25 @@ NEMOTRON_API_KEY='...' spacetime publish safenight --env-only --server local
 _Owner: Person A (Claude Max). Edit only this section._
 
 **Done**
-- 2026-11-07 — C0 in progress (see below).
+- 2026-11-07 — Plan, ownership map, and chunk list written (this file). SpacetimeDB CLI 2.14.1 installed on the planning machine.
+- 2026-11-07 — **C0 scaffold complete, gate green.** npm workspaces (`spacetimedb`, `web`), `spacetime.json`, module with `config` / `client_presence` / `audit_event`, optional env declarations, `ping` reducer, lifecycle reducers, `online_members` and `runtime_status` views, 6 vitest unit tests passing, `spacetime build` and `spacetime publish --server local` succeed, bindings generated into `web/src/module_bindings/`, `scripts/e2e.ts` passes against the live local database, CI workflow added, `docs/ARCHITECTURE.md` contract written (C0 exact, C1–C4 planned).
 
 **In progress**
-- C0 scaffold.
+- Nothing.
 
 **Next**
-- C1-A Night Out core.
+- C1-A Night Out core (sessions, invites, membership, driver acceptance, consent grants, views). Starts on go-ahead.
 
 **Blockers / needs from B**
 - None.
 
 **Needs from the user**
 - See "Open questions" at the bottom.
+
+**Gotchas recorded for later chunks**
+- The module entry (and anything it `export *`s) may only export Spacetime objects; keep constants/helpers in `src/lib/` and do not re-export them.
+- A view named `foo_bar` reserves the type name `FooBar`; custom `t.row` names must differ (e.g. `FooBarRow`).
+- `ctx.env` is undefined in the vitest harness; read it through `envOf(ctx)` in `src/lib/env.ts` so tests see simulated mode.
 
 ---
 
@@ -173,13 +179,13 @@ _Owner: Person A (Claude Max). Edit only this section._
 _Owner: Person B (Claude Pro). Edit only this section._
 
 **Done**
-- Nothing yet.
+- 2026-11-07 — C0 web shell exists (built by the orchestrator so B starts from a working app): persona switcher (`?as=sam|alex|maya|jordan`, one SpacetimeDB identity per persona), connection status, runtime-status badges, online list, ping check, five-tab shell with placeholders. Typecheck and `vite build` pass.
 
 **In progress**
-- Waiting for C0 scaffold and C1-A bindings. Can start on static UI shell and persona switcher now (no bindings needed).
+- Nothing.
 
 **Next**
-- C1-B Night Out tab.
+- C1-B Night Out tab, once C1-A bindings land. Until then: read `docs/ARCHITECTURE.md` C1 section and `web/src/App.tsx`.
 
 **Blockers / needs from A**
 - None.

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SPACETIMEDB_VERSION: 2.14.1
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install SpacetimeDB CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin" /tmp/spacetime
+          curl -sSfL -o /tmp/spacetime/spacetime.tar.gz \
+            "https://github.com/clockworklabs/SpacetimeDB/releases/download/v${SPACETIMEDB_VERSION}/spacetime-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xzf /tmp/spacetime/spacetime.tar.gz -C /tmp/spacetime
+          install -m 0755 /tmp/spacetime/spacetimedb-cli "$HOME/.local/bin/spacetime"
+          install -m 0755 /tmp/spacetime/spacetimedb-standalone "$HOME/.local/bin/spacetimedb-standalone"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: SpacetimeDB CLI version
+        run: spacetime --version
+
+      - name: Module unit tests
+        run: npm test -w spacetimedb
+
+      - name: Module typecheck
+        run: npm run typecheck -w spacetimedb
+
+      - name: Module build
+        working-directory: spacetimedb
+        run: spacetime build
+
+      - name: Web typecheck
+        run: npm run typecheck -w web
+
+      - name: Web build
+        run: npm run build -w web

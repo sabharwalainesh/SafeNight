@@ -1,0 +1,23 @@
+{
+  "name": "safenight",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["spacetimedb", "web"],
+  "scripts": {
+    "dev": "spacetime dev",
+    "test": "npm test -w spacetimedb",
+    "typecheck": "npm run typecheck -w spacetimedb && npm run typecheck -w web",
+    "build": "npm run build -w web",
+    "generate": "spacetime generate",
+    "publish:local": "spacetime publish --server local --yes",
+    "e2e": "tsx scripts/e2e.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
