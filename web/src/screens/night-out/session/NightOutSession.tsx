@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   useNightOut,
   type ConsentGrant,
@@ -38,9 +38,13 @@ function relFuture(at: EpochMs, now: number): string {
 
 type ConfirmProps = { show: boolean; busy: boolean; text: string; label: string; onYes: () => void; onCancel: () => void };
 function ConfirmStep({ show, busy, text, label, onYes, onCancel }: ConfirmProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (show) ref.current?.focus();
+  }, [show]);
   if (!show) return null;
   return (
-    <div className="nos-confirm" role="group" aria-label="Confirm">
+    <div className="nos-confirm" role="group" aria-label={`Confirm: ${label}`} tabIndex={-1} ref={ref}>
       <p>{text}</p>
       <div className="nos-actions">
         <button type="button" className="btn danger" disabled={busy} onClick={onYes}>{label}</button>
@@ -64,7 +68,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
 
   if (!roster) {
     return (
-      <section className="card nos">
+      <section className="card nos-session">
         {mockBadge}
         <p>You are not in this session</p>
         <button type="button" className="btn" onClick={onBack}>Back</button>
@@ -83,6 +87,8 @@ export function NightOutSession({ sessionId, onBack }: Props) {
   const others = active.filter(m => m.userId !== me);
 
   async function run(fn: () => Promise<unknown>, after?: () => void) {
+    // Ignore input while an action is in flight; disabling the fieldsets instead would drop keyboard focus.
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -124,7 +130,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
   const cancel = () => setConfirm(null);
 
   return (
-    <div className="nos">
+    <div className="nos-session">
       <section className="card nos-head" aria-labelledby="nos-title">
         <div><button type="button" className="btn secondary" onClick={onBack}>← Back</button></div>
         <h2 id="nos-title">{session.name}</h2>
@@ -183,12 +189,12 @@ export function NightOutSession({ sessionId, onBack }: Props) {
           </button>
           {newInvite && (
             <div>
-              <p className="nos-code" aria-label="Invite code">{newInvite.code}</p>
+              <p className="nos-code"><span className="sr-only">Invite code </span>{newInvite.code}</p>
               <p className="muted small">
                 Expires {relFuture(newInvite.expiresAt, now)} · {newInvite.uses}/{newInvite.maxUses} uses
               </p>
               <button type="button" className="btn secondary" onClick={() => void copy(newInvite.code)}>Copy code</button>
-              {copied && <p className="small" role="status">{copied}</p>}
+              <p className="small" role="status">{copied ?? ''}</p>
             </div>
           )}
           <h3>Active invites</h3>
@@ -273,7 +279,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
 
       <section className="card" aria-labelledby="nos-sharing">
         <h2 id="nos-sharing">My sharing</h2>
-        <fieldset disabled={busy || !meMember}>
+        <fieldset disabled={!meMember} aria-busy={busy}>
           <legend>What I share with this session</legend>
           {SHARING.map(s => (
             <label key={s.id} className="nos-check">
@@ -294,7 +300,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
         <p className="muted small">Each toggle grants that person access for 5 hours. Turn it off to revoke.</p>
         {others.length === 0 && <p className="muted">No other members yet.</p>}
         {others.map(m => (
-          <fieldset key={m.id} disabled={busy}>
+          <fieldset key={m.id} aria-busy={busy}>
             <legend>Share with {m.displayName}</legend>
             {SCOPES.map(sc => {
               const grant = myGrant(m.userId, sc.id);

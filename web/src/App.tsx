@@ -4,6 +4,7 @@ import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import { PERSONAS, personaHref, type Persona } from './personas';
 import { relativeTime, shortIdentity } from './lib/format';
+import { NightOutTab } from './screens/night-out';
 
 type TabId = 'night' | 'map' | 'reports' | 'inbox' | 'profile';
 
@@ -43,7 +44,7 @@ export default function App({ persona, host, dbName }: Props) {
         <RuntimeStrip />
         <OnlineCard />
         <PingCard persona={persona} connected={isActive} />
-        <TabPanel tab={tab} />
+        {tab === 'night' ? <NightOutTab persona={persona} /> : <TabPanel tab={tab} />}
         <p className="muted small">
           Server {host} · database {dbName}
         </p>

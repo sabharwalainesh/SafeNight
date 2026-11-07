@@ -1,12 +1,12 @@
-.nos { display: grid; gap: 0.8rem; min-width: 0; }
-.nos form { display: grid; gap: 0.7rem; }
-.nos label { display: grid; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
-.nos input, .nos select {
+.nos-start { display: grid; gap: 0.8rem; min-width: 0; }
+.nos-start form { display: grid; gap: 0.7rem; }
+.nos-start label { display: grid; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+.nos-start input, .nos-start select {
   width: 100%; min-width: 0; min-height: var(--tap); padding: 0 0.7rem;
   background: var(--surface-2); color: var(--text);
   border: 1px solid var(--border); border-radius: 10px; font: inherit;
 }
-.nos .code { text-transform: uppercase; letter-spacing: 0.2em; font-family: ui-monospace, Menlo, monospace; }
-.nos .sess { flex-wrap: wrap; align-items: flex-start; padding: 0.4rem 0; }
-.nos .sess-main { display: grid; gap: 0.15rem; min-width: 0; flex: 1 1 12rem; overflow-wrap: anywhere; }
-.nos .sess-side { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.nos-start .code { text-transform: uppercase; letter-spacing: 0.2em; font-family: ui-monospace, Menlo, monospace; }
+.nos-start .sess { flex-wrap: wrap; align-items: flex-start; padding: 0.4rem 0; }
+.nos-start .sess-main { display: grid; gap: 0.15rem; min-width: 0; flex: 1 1 12rem; overflow-wrap: anywhere; }
+.nos-start .sess-side { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }

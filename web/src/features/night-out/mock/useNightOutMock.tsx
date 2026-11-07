@@ -26,6 +26,12 @@ function genCode(taken: Set<string>): string {
   }
 }
 
+function requireActiveSession(s: MockState, sessionId: string): void {
+  const sess = s.sessions.find((x) => x.id === sessionId);
+  if (!sess) throw new Error('Session not found');
+  if (effective(sess, Date.now()).status !== 'active') throw new Error('Session is not active');
+}
+
 const activeMember = (s: MockState, sessionId: string, user: UserId): SessionMember | undefined =>
   s.members.find((m) => m.sessionId === sessionId && m.userId === user && m.leftAt === null);
 
@@ -164,6 +170,7 @@ function makeActions(me: UserId, displayName: string): NightOutActions {
       }),
     volunteerDriver: (sessionId) =>
       run((s, id) => {
+        requireActiveSession(s, sessionId);
         need(activeMember(s, sessionId, me), 'Not a member of this session');
         if (s.drivers.some((d) => d.sessionId === sessionId && d.endedAt === null))
           throw new Error('This session already has a driver');
@@ -202,6 +209,7 @@ function makeActions(me: UserId, displayName: string): NightOutActions {
       }),
     grantConsent: (recipient, sessionId, scope, ttlMinutes) =>
       run((s, id) => {
+        requireActiveSession(s, sessionId);
         need(activeMember(s, sessionId, me), 'Not a member of this session');
         if (!activeMember(s, sessionId, recipient)) throw new Error('Recipient is not in this session');
         if (!(ttlMinutes > 0)) throw new Error('Duration must be greater than zero');
@@ -228,6 +236,7 @@ function makeActions(me: UserId, displayName: string): NightOutActions {
       }),
     setSharingScope: (sessionId, scope) =>
       run((s) => {
+        requireActiveSession(s, sessionId);
         const m = need(activeMember(s, sessionId, me), 'Not a member of this session');
         m.sharingScope = scope;
       }),
@@ -254,7 +263,7 @@ export function useNightOutMock(me: UserId, displayName: string): NightOutApi {
       .filter((x) => x.status === 'active' || x.status === 'planned'),
     roster(sessionId) {
       const sess = state.sessions.find((x) => x.id === sessionId);
-      if (!sess || !state.members.some((m) => m.sessionId === sessionId && m.userId === me)) return null;
+      if (!sess || !activeMember(state, sessionId, me)) return null;
       return {
         session: effective(sess, Date.now()),
         members: state.members.filter((m) => m.sessionId === sessionId),

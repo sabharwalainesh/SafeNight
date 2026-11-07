@@ -1,6 +1,6 @@
-.nos { display: grid; gap: 0.8rem; min-width: 0; }
-.nos h2, .nos h3 { overflow-wrap: anywhere; }
-.nos h3 { font-size: 0.95rem; margin: 0.8rem 0 0.3rem; }
+.nos-session { display: grid; gap: 0.8rem; min-width: 0; }
+.nos-session h2, .nos-session h3 { overflow-wrap: anywhere; }
+.nos-session h3 { font-size: 0.95rem; margin: 0.8rem 0 0.3rem; }
 .nos-head { display: grid; gap: 0.4rem; }
 .nos-head h2 { font-size: 1.3rem; margin: 0; }
 .nos-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
@@ -9,12 +9,12 @@
 .nos-name { font-weight: 600; overflow-wrap: anywhere; }
 .nos-code { font-family: ui-monospace, Menlo, monospace; font-size: 2rem; letter-spacing: 0.12em; font-weight: 800; overflow-wrap: anywhere; margin: 0.4rem 0; }
 .nos-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
-.btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
-.btn.danger { background: var(--danger); color: #0b0d12; }
-.nos fieldset { border: 1px solid var(--border); border-radius: 12px; margin: 0.5rem 0 0; padding: 0.5rem 0.8rem; min-width: 0; }
-.nos legend { padding: 0 0.3rem; font-weight: 600; }
+.nos-session .btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.nos-session .btn.danger { background: var(--danger); color: #0b0d12; }
+.nos-session fieldset { border: 1px solid var(--border); border-radius: 12px; margin: 0.5rem 0 0; padding: 0.5rem 0.8rem; min-width: 0; }
+.nos-session legend { padding: 0 0.3rem; font-weight: 600; }
 .nos-check { display: flex; align-items: center; gap: 0.6rem; min-height: var(--tap); }
 .nos-check input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
 .nos-confirm { margin-top: 0.6rem; padding: 0.6rem 0.7rem; border: 1px solid var(--warn); border-radius: 10px; }
 details.nos-left summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; }
-.nos .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nos-session .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

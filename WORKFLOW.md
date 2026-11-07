@@ -181,14 +181,16 @@ _Owner: Person B (Claude Pro). Edit only this section._
 **Done**
 - 2026-11-07 — C0 web shell exists (built by the orchestrator so B starts from a working app): persona switcher (`?as=sam|alex|maya|jordan`, one SpacetimeDB identity per persona), connection status, runtime-status badges, online list, ping check, five-tab shell with placeholders. Typecheck and `vite build` pass.
 
+- 2026-11-07 — **C1-B Night Out tab built against a local mock** (C1-A bindings not landed yet). `web/src/features/night-out/api.ts` is the client contract (types mirror ARCHITECTURE §6; `useNightOut()` hook). `features/night-out/mock/` implements it with §6 rules (explicit driver acceptance, caller-only sharing, leave revokes own grants, end revokes all) and syncs persona tabs via localStorage + BroadcastChannel. Screens: `screens/night-out/start/` (my sessions, create, join by code) and `screens/night-out/session/` (roster, invites, driver volunteer/accept/stop, own sharing scope, per-recipient consent toggles, leave/end with inline confirm). Every screen shows a `MOCK DATA — C1-A pending` badge. Gate: typecheck + `vite build` pass. **Not covered:** four-tab live roster check not yet run by hand; no server-backed data.
+
 **In progress**
 - Nothing.
 
 **Next**
-- C1-B Night Out tab, once C1-A bindings land. Until then: read `docs/ARCHITECTURE.md` C1 section and `web/src/App.tsx`.
+- When C1-A bindings land: add a bindings adapter implementing `NightOutApi` and swap it for `NightOutMockProvider` in `web/src/screens/night-out/index.tsx`; screens should not change. Then run the four-tab gate against the local server.
 
 **Blockers / needs from A**
-- None.
+- C1-A bindings. The UI expects: `session_roster` rows to carry the member's display name (join with `user_profile`) and `my_sessions` to exclude sessions the caller left. Error messages from reducers are shown verbatim, so keep them human-readable.
 
 ---
 

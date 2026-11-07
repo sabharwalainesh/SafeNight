@@ -116,14 +116,14 @@ export function NightOutStart({ onOpen }: Props) {
 
   if (!api.ready) {
     return (
-      <section className="nos card" aria-busy="true">
+      <section className="nos-start card" aria-busy="true" aria-live="polite">
         <p className="muted">Loading your sessions…</p>
       </section>
     );
   }
 
   return (
-    <div className="nos">
+    <div className="nos-start">
       {api.mocked && (
         <div>
           <span className="badge sim">MOCK DATA — C1-A pending</span>
