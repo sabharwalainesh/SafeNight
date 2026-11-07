@@ -31,3 +31,22 @@ npm test                    # module unit tests (in-memory SpacetimeDB datastore
 ```
 
 Nemotron and messaging run in **simulated mode** until their env vars are supplied; every simulated plan, message, and receipt is labeled as such in the data and the UI. See [.env.example](.env.example) for the variables and the `spacetime publish --env-only` command that sets them.
+
+## Demo
+
+Follow the [judge demo script](docs/DEMO_SCRIPT.md) (~5 minutes, four tabs: `?as=alex`, `?as=sam`, `?as=maya`, `?as=jordan`). Every client feature currently runs on **local mock data** (MOCK DATA badges) with a **simulated** deterministic planner and simulated messaging; no SMS is sent and the app never books or pays for rides. Tabs: Night Out, Map, Reports, Inbox, Profile. The judge demo panel (Set up demo group, Advance timer, Reset demo) lives in Profile.
+
+## Hackathon tracks
+
+| Item | Status | Where |
+| --- | --- | --- |
+| Client UI for the full SOS flow (group, consent, map, reports, inbox, timeline) | Implemented on mock data | `web/src/features/` |
+| Deterministic no-driving warning, independent of AI | Implemented in the mock client; module version In progress (A) | `web/`, `spacetimedb/` |
+| Track 1: agent plan, tool receipts, nonresponse escalation | Simulated planner only | Mock in `web/`; real version Planned (C3-A) |
+| Track 1: real Nemotron calls from a scheduled procedure | In progress (A); needs `NEMOTRON_API_KEY` | `spacetimedb/` |
+| Track 1: real messaging and ride-info APIs | Planned; currently simulated | `spacetimedb/` |
+| Track 2: SpacetimeDB module (roles, consent, incidents, timers) | In progress (A), C1-C4 tables being built | `spacetimedb/` |
+| Track 2: client reading/writing live SpacetimeDB data | Planned; client is on mock data today | `web/src/module_bindings` |
+| Public GitHub submission | Planned | See [track requirements](docs/HACKATHON_TRACK_REQUIREMENTS.md) |
+
+No track is claimed as satisfied yet; the real-backend and real-Nemotron items are unverified until they land.
