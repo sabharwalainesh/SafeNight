@@ -5,6 +5,8 @@ import { reducers, tables } from './module_bindings';
 import { PERSONAS, personaHref, type Persona } from './personas';
 import { relativeTime, shortIdentity } from './lib/format';
 import { NightOutMockProvider } from './features/night-out/mock';
+import { AgentMockProvider } from './features/agent/mock';
+import { DemoPanel } from './features/demo-panel';
 import { SafetyMockProvider } from './features/safety/mock';
 import { NoDrivingBanner, StatusBar } from './features/status';
 import { InboxScreen } from './screens/inbox';
@@ -54,6 +56,7 @@ export default function App({ persona, host, dbName }: Props) {
       {/* Mock data providers until C1-A/C2-A bindings land; swap for bindings adapters then. */}
       <NightOutMockProvider me={persona.id} displayName={persona.name}>
       <SafetyMockProvider>
+      <AgentMockProvider>
       <main className="content">
         <NoDrivingBanner onViewIncident={openIncident} />
         <RuntimeStrip />
@@ -68,6 +71,11 @@ export default function App({ persona, host, dbName }: Props) {
           </>
         ) : tab === 'inbox' ? (
           <InboxScreen key={inboxTarget?.n ?? 0} initialIncidentId={inboxTarget?.id} />
+        ) : tab === 'profile' ? (
+          <>
+            <TabPanel tab={tab} />
+            <DemoPanel />
+          </>
         ) : (
           <TabPanel tab={tab} />
         )}
@@ -75,6 +83,7 @@ export default function App({ persona, host, dbName }: Props) {
           Server {host} · database {dbName}
         </p>
       </main>
+      </AgentMockProvider>
       </SafetyMockProvider>
       </NightOutMockProvider>
 

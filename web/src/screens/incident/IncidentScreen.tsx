@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNightOut } from '../../features/night-out/api';
 import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../features/safety/api';
+import { AgentPanel } from '../../features/agent-panel';
+import { HomeConfirm, RidePanel } from '../../features/rides';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
 
@@ -125,6 +127,8 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
         )}
       </header>
 
+      <HomeConfirm incidentId={incident.id} />
+
       <h3>Participants</h3>
       <ul className="inc-list">
         {incident.participants.map(p => (
@@ -222,6 +226,9 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
           </div>
         </form>
       )}
+
+      <AgentPanel incidentId={incident.id} />
+      <RidePanel incidentId={incident.id} />
 
       <h3>Timeline</h3>
       <div className="inc-sr" aria-live="polite" role="status">{announce}</div>

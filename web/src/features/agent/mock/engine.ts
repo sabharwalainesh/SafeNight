@@ -372,7 +372,8 @@ export function makeActions(getMe: () => UserId): AgentActions {
 }
 
 function guard() {
-  if (import.meta.env.MODE === 'production') throw new Error('Demo controls are disabled in production');
+  // Built bundles always have MODE=production, so gate on an explicit app env instead.
+  if (import.meta.env.VITE_APP_ENV === 'production') throw new Error('Demo controls are disabled in production');
 }
 
 export function makeDemo(): DemoActions {
