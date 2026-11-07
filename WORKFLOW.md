@@ -208,17 +208,20 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-07 — **C1-B live adapter** `web/src/features/night-out/live/` implements `NightOutApi` on the C1-A bindings (`my_sessions`, `my_rosters`, `night_session`, `driver_assignment`, `my_invites`, `my_consents`, `user_profile`; reducers 1:1, auto `set_profile` before create/join, waits for the new row to resolve ids). Switch with `VITE_NIGHTOUT_SOURCE=live` (`features/night-out/NightOutProvider.tsx`); default stays `mock` because the C2/C3 mocks and the demo panel read the mock Night Out store directly. Gate: typecheck + `vite build` pass in both modes. **Not covered:** not run against a live server (SpacetimeDB CLI not installed on B's machine). Mapping notes: module `DriverEndReason.LeftSession` shown as `none`; `my_rosters` has no `leftAt`, so departed members show `joinedAt` as best effort.
 
+- 2026-11-07 — **Verification and live-mode readiness.** Web test harness (`npm test -w web`: vitest + jsdom + Testing Library + axe-core), **80 tests passing**: the full `docs/DEMO_SCRIPT.md` flow driven through four persona hooks (setup → concern → instant no-driving warning → plan v1 → follow-up → backup buddy → ack → ride booked → pickup → only Sam confirms home → resolved; reset), C1–C3 safety rules (driver acceptance, consent revocation, dedupe, okay-doesn't-close, subject-only cancel, blocked messaging, no false handoff); axe-core on every screen with zero violations; accessible names on every control; keyboard hold-to-confirm; WCAG contrast ≥ 4.5:1 for all theme and chip colour pairs (57). Agent/safety mocks and demo panel no longer read the mock Night Out store directly, so they run with `VITE_NIGHTOUT_SOURCE=live` (limit: in live mode the agent only sees consents the caller can see; group setup needs a backend demo reducer). Shared current session (`features/night-out/currentSession.tsx`) so Map/Inbox follow the session opened in Night Out. Gate: tests, typecheck, and `vite build` (mock and live) pass. **Not covered:** a real-browser walk and Lighthouse score (no browser automation on B's machine; jsdom axe skips colour contrast, covered by the computed contrast test instead); no live-server run.
+
 **In progress**
 - Nothing.
 
 **Next**
-- Walk `docs/DEMO_SCRIPT.md` by hand in four tabs and run Lighthouse on the main screens.
+- Blocked on A: C2-A/C3-A/C4-A bindings → adapters for `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi`, then flip all providers to live and run every gate against the local server.
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**
 - C3-A: the UI expects receipts with a short `resultText`, notification delivery states, `ride_plan` options parsed with `source`/`fetchedAt`, and job `followupDueAt`/`followupExpectedFrom`. Please validate ride deep links server-side against the same allowlist (https Uber/Lyft hosts or `uber:`/`lyft:`), since options come from model output. Demo reducers (`demo_fire_followup`, reset, group setup) are needed for the judge panel.
 - C4-A: the UI needs a `submit_venue_report` reducer, a `delete_my_data` reducer covering every table, and somewhere to store privacy defaults (not in the C1/C4 contract yet).
 - C2-A: the UI expects `visible_locations` rows to carry display name and an `approximate` flag, incidents to include participants with display names, and `safety_alert` event rows to be delivered to the recipient tab via `onInsert`. The UI keeps alert dismissals client-side.
+- CI (A owns `.github/workflows/ci.yml`): please add `npm test -w web` to the workflow; the web suite needs no server.
 - C1-A (done; small follow-ups): a `leftAt` column on `my_rosters` rows, and `left_session` added to the documented `DriverEndReason` in ARCHITECTURE §6.
 
 ---
