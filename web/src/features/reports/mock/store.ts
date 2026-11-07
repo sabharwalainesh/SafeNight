@@ -19,7 +19,7 @@ export type MockState = {
   resources: SafetyResource[];
   reports: StoredReport[];
   /** Private submitter tracking, keyed by report id. Never exposed in client objects. */
-  mine: Record<string, true>;
+  submitters: Record<string, string[]>;
 };
 
 export const STORAGE_KEY = 'safenight.mock.reports.v1';
@@ -41,7 +41,7 @@ const seed = (): MockState => ({
     { id: 'r4', type: 'pickup_point', name: 'Plaza Pickup Zone', lat: 30.2683, lng: -97.7442, hours: 'Always open', source: SRC, verifiedAt: null },
   ],
   reports: [],
-  mine: {},
+  submitters: {},
 });
 
 let memory: MockState = seed();

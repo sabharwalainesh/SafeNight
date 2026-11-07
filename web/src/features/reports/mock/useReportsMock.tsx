@@ -15,7 +15,7 @@ export function redact(text: string): string {
     .replace(/\+?\d[\d\s().-]{6,}\d/g, '[redacted]');
 }
 
-export function ReportsMockProvider({ children }: { children: ReactNode }) {
+export function ReportsMockProvider({ children, me }: { children: ReactNode; me: string }) {
   const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -28,7 +28,7 @@ export function ReportsMockProvider({ children }: { children: ReactNode }) {
     for (const r of state.reports) {
       if (r.moderation === 'hidden' || r.expiresAt <= now) continue;
       const published = now - r.createdAt >= MODERATION_DELAY_MS;
-      if (!published && !state.mine[r.id]) continue;
+      if (!published && !state.submitters[r.id]?.includes(me)) continue;
       reports.push({ ...r, moderation: published ? 'published' : 'pending' });
     }
     reports.sort((a, b) => b.createdAt - a.createdAt);
@@ -54,8 +54,11 @@ export function ReportsMockProvider({ children }: { children: ReactNode }) {
                 t - r.createdAt <= MERGE_WINDOW_MS,
             );
             if (existing) {
+              const subs = (s.submitters[existing.id] ??= []);
+              if (subs.includes(me)) return;
+              subs.push(me);
               existing.reportCount += 1;
-              if (existing.reportCount >= 2 && existing.confidence === 'unverified') existing.confidence = 'corroborated';
+              if (subs.length >= 2 && existing.confidence === 'unverified') existing.confidence = 'corroborated';
               return;
             }
             const id = nextId();
@@ -71,12 +74,12 @@ export function ReportsMockProvider({ children }: { children: ReactNode }) {
               expiresAt: t + ttl,
               createdAt: t,
             });
-            s.mine[id] = true;
+            s.submitters[id] = [me];
           });
         },
       },
     };
-  }, [state, now]);
+  }, [state, now, me]);
 
   return createElement(ReportsContext.Provider, { value: api }, children);
 }

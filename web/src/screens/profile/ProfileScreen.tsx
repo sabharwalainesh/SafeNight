@@ -224,7 +224,7 @@ export function ProfileScreen() {
       <section className="card danger-zone" aria-labelledby="pf-data">
         <h2 id="pf-data">Your data</h2>
         <p className="muted small">
-          Deleting removes your profile, your trusted contacts and your privacy defaults from SafeNight. This cannot be undone.
+          Deleting removes your profile, your trusted contacts, other people's contacts lists that include you, and your privacy defaults. Night Out, location, incident and report data are not deleted by this demo control yet. Full deletion arrives with the backend. This cannot be undone.
         </p>
         <form onSubmit={del}>
           <label>

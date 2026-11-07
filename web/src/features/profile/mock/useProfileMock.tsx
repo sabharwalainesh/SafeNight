@@ -74,7 +74,9 @@ function makeActions(me: UserId): ProfileActions {
     deleteMyData: () =>
       run((s) => {
         s.profiles = s.profiles.filter((x) => x.userId !== me);
-        s.contacts = s.contacts.filter((x) => x.owner !== me);
+        const affected = new Set(s.contacts.filter((x) => x.contact === me && x.owner !== me).map((x) => x.owner));
+        s.contacts = s.contacts.filter((x) => x.owner !== me && x.contact !== me);
+        affected.forEach((o) => normalize(s, o));
         delete s.privacy[me];
       }),
   };

@@ -61,7 +61,7 @@ export default function App({ persona, host, dbName }: Props) {
       <NightOutMockProvider me={persona.id} displayName={persona.name}>
       <SafetyMockProvider>
       <AgentMockProvider>
-      <ReportsMockProvider>
+      <ReportsMockProvider me={persona.id}>
       <ProfileMockProvider me={persona.id} displayName={persona.name}>
       <main className="content">
         <NoDrivingBanner onViewIncident={openIncident} />

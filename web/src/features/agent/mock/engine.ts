@@ -15,6 +15,9 @@ const AGENT_NAME = 'SafeNight agent';
 const TRIGGER_KINDS = ['possible_impaired_driving', 'help_requested'];
 const OPEN_JOB: StoredJob['status'][] = ['waiting_for_ack', 'escalated'];
 
+const LADDER: IncidentStatus[] = ['open', 'acknowledged', 'assistance_underway', 'transport_arranged', 'awaiting_home_confirmation'];
+const CLOSED: IncidentStatus[] = ['resolved', 'cancelled', 'handed_off'];
+
 type SafetyWrite = {
   incidentId: string;
   actor: UserId;
@@ -53,7 +56,12 @@ function writeSafety(writes: SafetyWrite[]) {
     for (const w of writes) {
       const inc = s.incidents.find((i) => i.id === w.incidentId);
       if (!inc) continue;
-      if (w.status) inc.status = w.status;
+      if (w.status) {
+        const cur = LADDER.indexOf(inc.status);
+        const next = LADDER.indexOf(w.status);
+        // Only upgrade along the ladder; closed incidents and downgrades are left alone.
+        if (next === -1 ? cur !== -1 || !CLOSED.includes(inc.status) : cur !== -1 && next > cur) inc.status = w.status;
+      }
       if (w.ackBy) {
         const p = inc.participants.find((x) => x.userId === w.ackBy);
         if (p && p.acknowledgedAt === null) p.acknowledgedAt = Date.now();
@@ -93,7 +101,7 @@ function sendTo(s: MockState, id: () => string, job: StoredJob, tier: number, r:
   const to = job.tiers[tier];
   const name = job.tierNames[tier];
   const now = Date.now();
-  const consent = r.grants.some((g) => g.subject === to && g.scope === 'messaging' && live(g, now));
+  const consent = r.grants.some((g) => g.subject === to && g.recipient === job.subject && g.scope === 'messaging' && live(g, now));
   if (!consent) {
     receipt(s, id, job, 'send_approved_message', 'rejected', `Message to ${name} not sent`, { recipient: to, tier }, `No messaging consent from ${name}`);
     return false;
@@ -121,36 +129,45 @@ function sendTo(s: MockState, id: () => string, job: StoredJob, tier: number, r:
 }
 
 /** Send starting at `start`, escalating past tiers that refuse. Sets tier, status and follow-up. */
-function route(s: MockState, id: () => string, job: StoredJob, start: number, r: Roster, lastEvent: string) {
+function route(s: MockState, id: () => string, job: StoredJob, start: number, r: Roster, lastEvent: string): SafetyWrite[] {
   let t = start;
-  while (t <= 2 && !sendTo(s, id, job, t, r)) t++;
+  let sent = false;
+  while (t <= 2 && !(sent = sendTo(s, id, job, t, r))) t++;
   t = Math.min(t, 2);
   job.escalationTier = t;
   job.lastEvent = lastEvent;
   job.updatedAt = Date.now();
+  if (t >= 2 && !sent) {
+    job.status = 'escalated';
+    job.followupDueAt = null;
+    job.followupExpectedFrom = null;
+    receipt(s, id, job, 'handoff_to_organizer', 'rejected', 'Not handed off', { organizer: job.tiers[2] }, 'No one reachable: organizer has no messaging consent');
+    return [agentWrite(job.incidentId, 'agent_no_one_reachable', 'No one reachable: nobody has given messaging consent, so no one was asked')];
+  }
   if (t >= 2) {
     job.status = 'handed_off';
     job.followupDueAt = null;
     job.followupExpectedFrom = null;
     receipt(s, id, job, 'handoff_to_organizer', 'executed', `Handed off to organizer ${job.tierNames[2]}`, { organizer: job.tiers[2] });
-    return;
+    return [];
   }
   job.status = t === 0 ? 'waiting_for_ack' : 'escalated';
   receipt(s, id, job, 'request_human_confirmation', 'proposed', `Waiting for ${job.tierNames[t]} to confirm they can help`, { from: job.tiers[t] });
   job.followupDueAt = Date.now() + FOLLOWUP_MS;
   job.followupExpectedFrom = job.tiers[t];
   receipt(s, id, job, 'schedule_followup', 'executed', `Follow-up in 2 minutes if ${job.tierNames[t]} has not replied`, { minutes: 2 });
+  return [];
 }
 
 function escalate(s: MockState, id: () => string, job: StoredJob, lastEvent: string, why: string): SafetyWrite[] {
   const r = rosterOf(job.sessionId);
   job.planVersion += 1;
   const from = job.escalationTier;
-  route(s, id, job, from + 1, r, lastEvent);
+  const extra = route(s, id, job, from + 1, r, lastEvent);
   const to = job.tierNames[job.escalationTier];
-  const summary = `${why}. Escalated from ${job.tierNames[from]} to ${to}.`;
+  const summary = extra.length > 0 ? `${why}. No one reachable; the job stays open.` : `${why}. Escalated from ${job.tierNames[from]} to ${to}.`;
   buildPlan(s, id, job, summary);
-  return [agentWrite(job.incidentId, 'agent_escalated', summary, undefined)];
+  return [agentWrite(job.incidentId, 'agent_escalated', summary, undefined), ...extra];
 }
 
 /** Planner: create a job, plan v1 and ride options for every open triggering incident without a job. */
@@ -197,7 +214,7 @@ export function runPlanner() {
       const locOk = r.grants.some((g) => g.subject === inc.subject && g.recipient === tiers[0] && g.scope.startsWith('location_') && live(g, now));
       if (locOk) receipt(s, id, job, 'get_last_shared_location', 'executed', `Last shared location of ${inc.subjectName} is visible to ${job.tierNames[0]}`);
       else receipt(s, id, job, 'get_last_shared_location', 'rejected', 'Location not read', {}, `No location consent from ${inc.subjectName}`);
-      route(s, id, job, 0, r, 'plan_created');
+      const routeWrites = route(s, id, job, 0, r, 'plan_created');
 
       const options: RideOption[] = [
         { id: 'uber', kind: 'rideshare', label: 'Uber', url: 'https://m.uber.com/ul/', etaMinutes: null, source: 'Deep link — book in the app', fetchedAt: now, simulated: true },
@@ -217,7 +234,8 @@ export function runPlanner() {
           : `${job.tierNames[0]} could not be asked; routed to ${job.tierNames[job.escalationTier]}. Everything below is simulated.`;
       buildPlan(s, id, job, summary);
       writes.push(agentWrite(inc.id, 'agent_plan', summary));
-      writes.push(agentWrite(inc.id, job.escalationTier >= 2 ? 'agent_escalated' : 'agent_message', `Asked ${job.tierNames[job.escalationTier]} to help ${inc.subjectName}`));
+      if (routeWrites.length > 0) writes.push(...routeWrites);
+      else writes.push(agentWrite(inc.id, job.escalationTier >= 2 ? 'agent_escalated' : 'agent_message', `Asked ${job.tierNames[job.escalationTier]} to help ${inc.subjectName}`));
     }
   });
   writeSafety(writes);
@@ -294,6 +312,12 @@ export function makeActions(getMe: () => UserId): AgentActions {
           requireRecipient(job, me);
           const r = rosterOf(job.sessionId);
           writes.push({ incidentId: job.incidentId, actor: me, actorName: myName(r, me), kind: 'declined', detail: `${myName(r, me)} cannot help${reason ? `: ${reason}` : ''}`, simulated: false });
+          if (job.escalationTier >= 2) {
+            receipt(s, id, job, 'request_human_confirmation', 'rejected', `${myName(r, me)} declined`, { by: me }, reason || 'Declined');
+            job.lastEvent = 'organizer_declined';
+            job.updatedAt = Date.now();
+            return;
+          }
           writes.push(...escalate(s, id, job, 'buddy_declined', `${myName(r, me)} declined`));
         });
         writeSafety(writes);
@@ -320,6 +344,10 @@ export function makeActions(getMe: () => UserId): AgentActions {
           ride.status = 'booked_by_user';
           ride.confirmedBy = me;
           ride.updatedAt = Date.now();
+          if (job) {
+            job.followupDueAt = null;
+            job.followupExpectedFrom = null;
+          }
           const r = rosterOf(job?.sessionId ?? '');
           writes.push({ incidentId: ride.incidentId, actor: me, actorName: myName(r, me), kind: 'ride_booked', detail: `${myName(r, me)} says the ride is booked`, simulated: false, status: 'transport_arranged' });
         });
@@ -351,6 +379,7 @@ export function makeActions(getMe: () => UserId): AgentActions {
         const inc = safeSnap().incidents.find((i) => i.id === incidentId);
         if (!inc) throw new Error('Incident not found');
         if (inc.subject !== me) throw new Error(`Only ${inc.subjectName} can confirm they are home`);
+        if (inc.status !== 'open' && !LADDER.includes(inc.status)) throw new Error('This incident is closed');
         mutate((s) => {
           const job = s.jobs.find((j) => j.incidentId === incidentId);
           if (job) {

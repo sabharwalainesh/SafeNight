@@ -67,13 +67,13 @@ export function ReportsScreen() {
   return (
     <section className="reports-screen" aria-labelledby="reports-h">
       <header className="rs-head">
-        <h1 id="reports-h">Reports</h1>
+        <h2 id="reports-h">Reports</h2>
         {mocked && <span className="rs-chip rs-mock">MOCK</span>}
       </header>
       <p className="rs-intro">Venue-level observations. Never about a person. Reports expire.</p>
 
       <form className="rs-card" onSubmit={submit}>
-        <h2>Report a venue</h2>
+        <h3>Report a venue</h3>
         <label>
           Venue
           <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
@@ -104,11 +104,11 @@ export function ReportsScreen() {
         <button type="submit" className="rs-btn" disabled={busy}>{busy ? 'Submitting...' : 'Submit report'}</button>
       </form>
 
-      <h2>Venue reports</h2>
+      <h3>Venue reports</h3>
       {reports.length === 0 && <p className="rs-muted">No active reports.</p>}
       {venues.filter((v) => reports.some((r) => r.venueId === v.id)).map((v) => (
         <div className="rs-card" key={v.id}>
-          <h3>{v.name}</h3>
+          <h4>{v.name}</h4>
           <ul className="rs-list">
             {reports.filter((r) => r.venueId === v.id).map((r) => (
               <li key={r.id}>
@@ -126,7 +126,7 @@ export function ReportsScreen() {
         </div>
       ))}
 
-      <h2>Safety resources</h2>
+      <h3>Safety resources</h3>
       <ul className="rs-list rs-card">
         {resources.map((r) => (
           <li key={r.id}>
