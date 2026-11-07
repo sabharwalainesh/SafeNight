@@ -2,6 +2,8 @@
 
 Go out together. Get home together.
 
+Read the [Nemotron incident coordination design](docs/NEMOTRON_INCIDENT_COORDINATION.md) for the proposed SOS-to-resolution workflow, friend and mutual assistance reports, and AI/backend responsibilities.
+
 SafeNight is a planned consent-based nightlife safety app with temporary friend groups, help requests, transportation coordination, and explicit home check-ins.
 
 ## Required hackathon tracks

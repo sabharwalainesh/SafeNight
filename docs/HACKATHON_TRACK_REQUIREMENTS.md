@@ -17,9 +17,15 @@ The project must use Nemotron and satisfy all four supplied criteria:
 
 Nemotron must perform meaningful contextual planning and adaptation, not merely generate notification wording. Immediate warnings and authorization checks remain deterministic and independent of the model. Persist a concise structured plan and action receipts; do not require or expose private model reasoning.
 
-## Nemotron's substantive role: adaptive group return-home planning
+## Primary Nemotron workflow: SOS incident coordination
 
-Basic contact selection, message delivery, timers, and backup escalation are state-machine tasks. They are necessary infrastructure but do not by themselves justify an intelligent model. The core AI capability will be coordinating a group's journey home under changing constraints, incomplete information, and conflicting human replies.
+See [Nemotron incident coordination](NEMOTRON_INCIDENT_COORDINATION.md) for the current primary AI feature: event-triggered SOS briefings, recipient-scoped friend and mutual assistance, interpretation of partial offers, accepted responsibilities, authorized tool execution, evolving reports, replanning, and human-confirmed handoff/resolution. Immediate alerts remain independent of AI. SpacetimeDB enforces eligibility, consent, and workflow state. Institutional outreach requires a supported authorized integration; demos use test recipients and simulated help centers.
+
+This workflow supplies the primary multi-step demonstration. The transport-planning example below remains a supporting scenario, not the sole justification for Nemotron.
+
+## Supporting Nemotron capability: adaptive group return-home planning
+
+Basic contact selection, message delivery, timers, and backup escalation are state-machine tasks. They are necessary infrastructure but do not by themselves justify an intelligent model. A supporting AI capability is coordinating a group's journey home under changing constraints, incomplete information, and conflicting human replies.
 
 ### Example problem
 
