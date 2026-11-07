@@ -1,0 +1,23 @@
+.reports-screen { padding: 1rem; max-width: 40rem; margin: 0 auto; }
+.reports-screen h1 { font-size: 1.3rem; margin: 0; }
+.reports-screen h3 { font-size: 1rem; margin: 0 0 0.5rem; }
+.reports-screen .rs-head { display: flex; align-items: center; gap: 0.75rem; }
+.reports-screen .rs-intro { color: var(--muted); }
+.reports-screen .rs-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.9rem; margin: 0.75rem 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.reports-screen label { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 600; }
+.reports-screen select, .reports-screen textarea { min-height: var(--tap); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 0.7rem; font: inherit; }
+.reports-screen textarea { resize: vertical; }
+.reports-screen .rs-row { display: flex; justify-content: space-between; gap: 0.5rem; }
+.reports-screen .rs-warn { color: var(--warn); margin: 0; }
+.reports-screen .rs-count, .reports-screen .rs-muted { color: var(--muted); font-size: 0.9rem; }
+.reports-screen .rs-error { color: var(--danger); margin: 0; font-weight: 600; }
+.reports-screen .rs-ok { color: var(--ok); margin: 0; }
+.reports-screen .rs-btn { min-height: var(--tap); background: var(--accent); color: #04121f; border: 0; border-radius: 10px; font-weight: 700; padding: 0.6rem 1rem; }
+.reports-screen .rs-btn:disabled { opacity: 0.6; }
+.reports-screen .rs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8rem; }
+.reports-screen .rs-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.3rem 0; }
+.reports-screen .rs-chip { display: inline-block; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.reports-screen .rs-mock { border-color: var(--warn); color: var(--warn); }
+.reports-screen .rs-corroborated, .reports-screen .rs-verified { border-color: var(--ok); color: var(--ok); }
+.reports-screen .rs-disputed { border-color: var(--danger); color: var(--danger); }
+.reports-screen .rs-pending { border-color: var(--warn); color: var(--warn); }
