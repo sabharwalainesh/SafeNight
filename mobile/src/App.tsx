@@ -13,6 +13,7 @@ import { loadSettings, saveSettings, type Settings } from './storage';
 import { C } from './theme';
 import { DbConnection, type ErrorContext } from './web';
 import { LiveProviders } from './live/LiveProviders';
+import { IncidentLiveActivity } from './liveActivity/IncidentLiveActivity';
 
 function Connected({ settings, onSwitch }: { settings: Settings & { persona: NonNullable<Settings['persona']> }; onSwitch: () => void }) {
   const persona = personaById(settings.persona);
@@ -38,6 +39,7 @@ function Connected({ settings, onSwitch }: { settings: Settings & { persona: Non
   return (
     <SpacetimeDBProvider connectionBuilder={builder}>
       <LiveProviders persona={persona}>
+        <IncidentLiveActivity />
         <Shell persona={persona} host={settings.host} dbName={settings.db} onSwitch={onSwitch} />
       </LiveProviders>
     </SpacetimeDBProvider>
