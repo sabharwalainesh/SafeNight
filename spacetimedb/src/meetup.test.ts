@@ -115,6 +115,32 @@ describe('F1 meetups: request_company', () => {
   });
 });
 
+describe('F1 meetups: precision while on a trip', () => {
+  it('the helper and requester see each other precisely during the trip even with an approximate default', () => {
+    const { test, sam, maya, id, sessionId } = setup();
+    for (const who of [sam, maya]) {
+      test.withReducerTx(who, ctx => m.setSharingScope(ctx, { sessionId, scope: { tag: 'approximate' } }));
+      post(test, who, sessionId);
+    }
+    const samId = id(sam);
+    const mayaId = id(maya);
+    const seenBy = (who: TestAuth, target: Identity) => {
+      const rows = m.visibleLocations(test.viewContext(who));
+      return rows.find(r => r.userId.isEqual(target));
+    };
+    test.withReducerTx(sam, ctx => m.requestCompany(ctx, { sessionId, note: '' }));
+    const inc = incidents(test)[0]!;
+    expect(seenBy(maya, samId)?.approximate).toBe(true); // approximate default before the trip
+    test.withReducerTx(maya, ctx => m.offerToCome(ctx, { incidentId: inc.id }));
+    expect(seenBy(maya, samId)?.approximate).toBe(false);
+    expect(seenBy(sam, mayaId)?.approximate).toBe(false);
+    const muId = meetups(test)[0]!.id;
+    test.withReducerTx(maya, ctx => m.markArrived(ctx, { meetupId: muId }));
+    // Back to the approximate default once the trip is over.
+    expect(seenBy(maya, samId)?.approximate).toBe(true);
+  });
+});
+
 describe('F1 meetups: closing the incident closes its trips', () => {
   it('resolving the incident cancels a coming meetup, revokes its grants, and frees the helper for the next request', () => {
     const { test, sam, maya, id, sessionId } = setup();

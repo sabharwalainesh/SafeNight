@@ -61,7 +61,15 @@ export const visibleLocations = spacetimedb.view(
             if (g.scope.tag === 'location_approximate') approx = true;
           }
           if (!precise && !approx) continue;
-          approximate = !precise || m.sharingScope.tag === 'approximate';
+          // A member's "approximate" default still applies, except to the other party of a trip they are on:
+          // accepting a "Come to me" is explicit consent to be found precisely until arrival.
+          let inTrip = false;
+          for (const mu of ctx.db.meetup.sessionId.filter(mine.sessionId)) {
+            if (mu.status.tag !== 'coming') continue;
+            const pair = (mu.requester.isEqual(m.userId) && mu.helper.isEqual(ctx.sender)) || (mu.helper.isEqual(m.userId) && mu.requester.isEqual(ctx.sender));
+            if (pair) inTrip = true;
+          }
+          approximate = !precise || (m.sharingScope.tag === 'approximate' && !inTrip);
         }
         for (const loc of ctx.db.latestLocation.bySessionUser.filter([mine.sessionId, m.userId])) {
           rows.push({
