@@ -5,8 +5,10 @@ import { useSafety, type VisibleLocation } from '../safety/api';
 import { Section } from '../../ui';
 import { ago } from '../../screens/incident/time';
 import { isActiveMeetup, liveKey, useMeetups, type Meetup, type MeetupState } from './api';
-import { bearingDeg, distanceM, formatDistance, fusePoint, pairUncertaintyM, predictPosition, relativeBearing, smoothToward, type Fix, type LatLng } from './geo';
-import { primeSensors, useGeolocation, useHeading } from './useDeviceSensors';
+import { distanceM, formatDistance, fusePoint, pairUncertaintyM, predictPosition, smoothToward, type Fix, type LatLng } from './geo';
+import { directionsUrl, FinderMap, type FinderPoint } from './FinderMap';
+import { PERSONAS } from '../../personas';
+import { primeSensors, useGeolocation } from './useDeviceSensors';
 import './meetup.css';
 
 function useTick(ms: number) {
@@ -20,6 +22,10 @@ function useTick(ms: number) {
 function locOf(locations: VisibleLocation[], mine: VisibleLocation | null, userId: string): VisibleLocation | null {
   if (mine && mine.userId === userId) return mine;
   return locations.find((l) => l.userId === userId) ?? null;
+}
+
+function colorFor(name: string): string {
+  return PERSONAS.find((p) => p.name.toLowerCase() === name.trim().toLowerCase())?.accent ?? '#a3abbd';
 }
 
 /* ------------------------------------------------------------ geo status */
@@ -299,6 +305,11 @@ function PanelInner({ incidentId, mu: { me, meetups, actions }, focused }: { inc
   return <Section title="Come to me">{body}</Section>;
 }
 
+/** A party's position as a map fix (streamed partner, or my own GPS). */
+function toFix(p: PartnerFix): Fix {
+  return { lat: p.pos.lat, lng: p.pos.lng, accuracyM: p.accuracyM ?? 25, at: Date.now() - p.ageMs };
+}
+
 function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; canCancel: boolean; busy: boolean; onCancel: () => void }) {
   const mu = useMeetups();
   const safety = useSafety();
@@ -309,15 +320,22 @@ function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; can
   const requesterPos = mu?.me === meetup.requester ? mine : locOf(safety.locations, null, meetup.requester);
   const dist = helper && requesterPos ? distanceM(helper.pos, requesterPos) : null;
   const f = helper ? freshness(helper) : null;
+  const points: FinderPoint[] = [];
+  if (requesterPos) {
+    const rf: Fix = 'at' in requesterPos ? (requesterPos as Fix) : { lat: requesterPos.lat, lng: requesterPos.lng, accuracyM: (requesterPos as VisibleLocation).accuracyM, at: (requesterPos as VisibleLocation).recordedAt };
+    points.push({ id: meetup.requester, name: meetup.requesterName, fix: rf, isMe: mu?.me === meetup.requester, color: colorFor(meetup.requesterName) });
+  }
+  if (helper) points.push({ id: meetup.helper, name: meetup.helperName, fix: toFix(helper), isMe: false, color: colorFor(meetup.helperName) });
   return (
-    <div className="card meetup-card">
+    <div className="card meetup-card meetup-finder">
       <p className="headline">
         {meetup.helperName} is coming
         {dist !== null && ` · ${formatDistance(dist)} away`}
       </p>
+      <FinderMap points={points} />
       {f && (
         <p className={`footnote meetup-live meetup-live--${f.tone}`}>
-          <span className="meetup-live-dot" aria-hidden="true" /> {f.text}
+          <span className="meetup-live-dot" aria-hidden="true" /> {meetup.helperName}: {f.text}
         </p>
       )}
       {!helper && <p className="muted">Waiting for {meetup.helperName}&apos;s location…</p>}
@@ -331,7 +349,7 @@ function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; can
   );
 }
 
-/** Smooth a person's position stream (accuracy-weighted) so the arrow does not chase GPS noise. */
+/** Smooth a person's position stream (accuracy-weighted) so the finder does not chase GPS noise. */
 function useFusedFix(raw: (Fix & { id: string }) | null): Fix | null {
   const ref = useRef<{ key: string; fix: Fix | null }>({ key: '', fix: null });
   if (!raw) {
@@ -346,66 +364,44 @@ function useFusedFix(raw: (Fix & { id: string }) | null): Fix | null {
   return ref.current.fix;
 }
 
+/** The helper's finder: live map of both people, distance, and one-tap walking directions. */
 function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: boolean; onArrived: () => void; onStop: () => void }) {
-  const heading = useHeading(true);
-  const geo = useGeoStatus();
   const partner = useLivePartner(meetup, meetup.requester);
   const target = partner?.pos ?? null;
   const mine = useMyPosition();
   useTick(1000);
   const f = partner ? freshness(partner) : null;
-  const bearing = mine && target ? bearingDeg(mine, target) : null;
-  // Compass heading when the device gives one; otherwise GPS direction of travel while walking.
-  const usedHeading = heading.heading ?? geo.course;
-  const rel = bearing === null ? 0 : relativeBearing(bearing, usedHeading);
-  // Accumulate turns so 359° → 1° animates as +2°, not −358°.
-  const rotRef = useRef(0);
-  const prev = rotRef.current;
-  let delta = ((rel - (((prev % 360) + 360) % 360)) + 540) % 360 - 180;
-  if (Number.isNaN(delta)) delta = 0;
-  const rot = prev + delta;
-  rotRef.current = rot;
   const dist = mine && target ? distanceM(mine, target) : null;
   const unc = mine && partner ? pairUncertaintyM(mine, { accuracyM: partner.accuracyM ?? 25 }) : null;
-  // Closer than the GPS error can resolve: a direction would be noise, so say "you're here" instead.
-  const near = dist !== null && unc !== null && dist < Math.max(8, unc);
+  const points: FinderPoint[] = [];
+  if (partner) points.push({ id: meetup.requester, name: meetup.requesterName, fix: toFix(partner), isMe: false, color: colorFor(meetup.requesterName) });
+  if (mine) points.push({ id: 'me', name: 'You', fix: mine, isMe: true, color: '#5fb3ff' });
 
   return (
-    <div className="card meetup-card meetup-compass">
+    <div className="card meetup-card meetup-finder">
       <p className="headline">Go to {meetup.requesterName}</p>
-      <div className={`meetup-dial${near ? ' is-near' : ''}`} aria-label={bearing === null ? 'Waiting for locations' : near ? `Within ${formatDistance(dist ?? NaN)}, look around` : `Head ${Math.round(bearing)} degrees, ${formatDistance(dist ?? NaN)}`}>
-        <svg viewBox="0 0 100 100" className="meetup-arrow" style={{ transform: `rotate(${rot}deg)` }} aria-hidden="true">
-          <circle cx="50" cy="50" r="46" className="meetup-ring" />
-          {near ? <circle cx="50" cy="50" r="14" className="meetup-here" /> : <path d="M50 10 L68 62 L50 52 L32 62 Z" className="meetup-needle" />}
-        </svg>
-        <div className="meetup-dist">{dist === null ? '—' : near ? `~${formatDistance(dist)}` : formatDistance(dist)}</div>
-      </div>
+      <FinderMap points={points} />
+      <p className="meetup-distance">
+        {dist === null ? 'Waiting for locations…' : `${formatDistance(dist)} away`}
+        {unc !== null && <span className="muted footnote"> · ±{Math.round(unc)} m</span>}
+      </p>
       <p className="muted meetup-meta">
-        {!partner && 'Waiting for their location…'}
-        {target && near && `You are within GPS range of each other (±${Math.round(unc ?? 0)} m). Look around. `}
+        {!partner && `Waiting for ${meetup.requesterName}'s location…`}
         {f && (
           <span className={`meetup-live meetup-live--${f.tone}`}>
             <span className="meetup-live-dot" aria-hidden="true" /> {meetup.requesterName}: {f.text}
-            {!near && unc !== null && ` · ±${Math.round(unc)} m`}
           </span>
         )}
         {partner?.approximate && ' (approximate)'}
       </p>
-      <p className="footnote">
-        {heading.heading !== null
-          ? `Compass on · facing ${Math.round(heading.heading)}°`
-          : geo.course !== null
-            ? 'No compass sensor: arrow follows your walking direction'
-            : 'Compass off: arrow points with north up. Walk a few steps and it follows your direction.'}
-      </p>
-      {heading.heading === null && heading.supported && (
-        <button type="button" className="btn secondary block" onClick={() => void heading.requestPermission()}>
-          Enable compass
-        </button>
+      {target && (
+        <a className="btn block meetup-directions" href={directionsUrl(target, meetup.requesterName)} target="_blank" rel="noopener noreferrer">
+          Get walking directions
+        </a>
       )}
       <MyLocationStatus />
       <div className="meetup-actions">
-        <button type="button" className="btn block" disabled={busy || !target} onClick={onArrived}>
+        <button type="button" className="btn secondary block" disabled={busy || !target} onClick={onArrived}>
           I&apos;ve arrived
         </button>
         <button type="button" className="btn plain small-btn" disabled={busy} onClick={onStop}>
