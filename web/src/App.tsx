@@ -8,7 +8,7 @@ import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
 import { DemoPanel } from './features/demo-panel';
-import { ProfileMockProvider } from './features/profile/mock';
+import { ProfileProvider } from './features/profile/ProfileProvider';
 import { ReportsProvider } from './features/reports';
 import { SafetyProvider } from './features/safety/SafetyProvider';
 import { NoDrivingBanner, StatusBar } from './features/status';
@@ -58,13 +58,13 @@ export default function App({ persona, host, dbName }: Props) {
         </div>
       </header>
 
-      {/* Night Out, Safety and Agent can run live (VITE_NIGHTOUT_SOURCE / VITE_SAFETY_SOURCE / VITE_AGENT_SOURCE=live); reports and profile are mocks until their bindings land. */}
+      {/* Each provider picks mock or live data from its VITE_*_SOURCE flag; `npm run dev:live -w web` sets them all to live. */}
       <NightOutProvider persona={persona}>
       <CurrentSessionProvider>
       <SafetyProvider>
       <AgentProvider>
       <ReportsProvider me={persona.id}>
-      <ProfileMockProvider me={persona.id} displayName={persona.name}>
+      <ProfileProvider me={persona.id} displayName={persona.name}>
       <main className="content">
         <NoDrivingBanner onViewIncident={openIncident} />
         <RuntimeStrip />
@@ -93,7 +93,7 @@ export default function App({ persona, host, dbName }: Props) {
           Server {host} · database {dbName}
         </p>
       </main>
-      </ProfileMockProvider>
+      </ProfileProvider>
       </ReportsProvider>
       </AgentProvider>
       </SafetyProvider>

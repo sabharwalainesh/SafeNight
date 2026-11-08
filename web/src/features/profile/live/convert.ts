@@ -6,13 +6,16 @@ import { identityStr, snakeToTag, tagToSnake, tsMs } from '../../night-out/live/
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = any;
 
-export function toProfile(r: Row): UserProfile {
+// `user_profile` is a public table, so other users' rows reach every client.
+// Only keep a phone number for the caller's own row; never carry anyone else's.
+export function toProfile(r: Row, me?: string): UserProfile {
+  const userId = identityStr(r.identity);
   return {
-    userId: identityStr(r.identity),
+    userId,
     displayName: r.displayName,
     avatarEmoji: r.avatarEmoji,
     phoneVerified: !!r.phoneVerified,
-    phone: r.phoneE164 ?? '',
+    phone: me !== undefined && userId === me ? (r.phoneE164 ?? '') : '',
   };
 }
 

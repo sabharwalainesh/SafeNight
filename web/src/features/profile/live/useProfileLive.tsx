@@ -37,7 +37,7 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
   const rPrivacy = useReducer(reducers.setPrivacySettings);
   const rDelete = useReducer(reducers.deleteMyData);
 
-  const profiles = (profileRows as Row[]).map(toProfile);
+  const profiles = (profileRows as Row[]).map(r => toProfile(r, me));
   const nameOf = (id: string) => profiles.find((p) => p.userId === id)?.displayName;
   const contacts = sortContacts((contactRows as Row[]).map((r) => toContact(r, nameOf)));
 

@@ -226,6 +226,8 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-07 — **C3-B live adapter** `web/src/features/agent/live/` implements `AgentApi` on the C3-A bindings per ARCHITECTURE §8 client notes (`my_agent_jobs`, `my_agent_plans`, `my_agent_actions`, `my_notifications`, `my_ride_plans`; JSON columns parsed defensively; ride options chosen by `label`; human reducers 1:1; `demo_fire_followup` for the judge timer). Switch with `VITE_AGENT_SOURCE=live` (`features/agent/AgentProvider.tsx`). Live demo panel: "Advance timer" works; group setup/reset disabled until C4 `reset_demo`. Ride links additionally allow `https://www.google.com/maps/...` (the module's transit link). Gate: 93 tests, typecheck, build (all-mock and all-live) pass. **Not covered:** no live-server run from B's machine.
 
+- 2026-11-07 — **C4-B live adapters**: Reports (`features/reports/live/`: venues, published + own reports, resources, create venue, submit, corroborate/dispute votes) and Profile (`features/profile/live/`: profile, contacts ladder, privacy settings, delete my data) plus live demo reset via `reset_demo`. Every tab now has a live adapter; `npm run dev:live -w web` turns them all on. Gate: 100 tests, typecheck, build (mock and live) pass. **Not covered:** no live-server run from B's machine; README Demo/Tracks sections still describe the mock-only state and need refreshing.
+
 **In progress**
 - Nothing.
 
@@ -236,6 +238,8 @@ _Owner: Person B (Claude Pro). Edit only this section._
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**
+- **PRIVACY (urgent): `user_profile` is `public: true` and includes `phoneE164`, so every client receives every user's phone number.** Please move the phone into an owner-only table/view (e.g. `my_profile` filtered on sender). Until then the live Profile tab hides phone entry and the client drops other users' numbers.
+- C4-A (small): contact reordering is four non-atomic reducer calls (remove + re-add); an atomic `reorder_trusted_contacts` reducer would avoid a half-updated ladder.
 - C3-A: the UI expects receipts with a short `resultText`, notification delivery states, `ride_plan` options parsed with `source`/`fetchedAt`, and job `followupDueAt`/`followupExpectedFrom`. Please validate ride deep links server-side against the same allowlist (https Uber/Lyft hosts or `uber:`/`lyft:`), since options come from model output. Demo reducers (`demo_fire_followup`, reset, group setup) are needed for the judge panel.
 - C4-A: the UI needs a `submit_venue_report` reducer, a `delete_my_data` reducer covering every table, and somewhere to store privacy defaults (not in the C1/C4 contract yet).
 - C2-A: the UI expects `visible_locations` rows to carry display name and an `approximate` flag, incidents to include participants with display names, and `safety_alert` event rows to be delivered to the recipient tab via `onInsert`. The UI keeps alert dismissals client-side.
