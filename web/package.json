@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:phone": "vite --host 0.0.0.0",
+    "preview:phone": "vite preview --host 0.0.0.0",
+    "icons": "node scripts/make-icons.mjs",
     "dev:mock": "VITE_DATA_SOURCE=mock vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "build:mock": "tsc -p tsconfig.json --noEmit && VITE_DATA_SOURCE=mock vite build",

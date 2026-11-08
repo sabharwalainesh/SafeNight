@@ -28,8 +28,13 @@ export function personaById(id: PersonaId): Persona {
   return PERSONAS.find(p => p.id === id) ?? PERSONAS[0];
 }
 
-/** Persona from `?as=`, else the last one used on this device, else Sam. */
+/** Like readChosenPersona, but falls back to the default persona (Sam). For code that runs after startup. */
 export function readCurrentPersona(): Persona {
+  return readChosenPersona() ?? personaById(DEFAULT_PERSONA);
+}
+
+/** Persona from `?as=`, else the last one chosen on this device, else null (show the picker). */
+export function readChosenPersona(): Persona | null {
   const fromUrl = new URLSearchParams(window.location.search).get('as');
   if (isPersonaId(fromUrl)) {
     writeCurrentPersona(fromUrl);
@@ -41,7 +46,7 @@ export function readCurrentPersona(): Persona {
   } catch {
     stored = null;
   }
-  return personaById(isPersonaId(stored) ? stored : DEFAULT_PERSONA);
+  return isPersonaId(stored) ? personaById(stored) : null;
 }
 
 export function writeCurrentPersona(id: PersonaId): void {

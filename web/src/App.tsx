@@ -8,6 +8,7 @@ import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
 import { DemoPanel } from './features/demo-panel';
+import { InstallHint } from './features/install';
 import { DemoPersonaRegistrar } from './features/demo-live';
 import { PersonaMapProvider } from './features/coordination';
 import { ProfileProvider } from './features/profile/ProfileProvider';
@@ -59,6 +60,8 @@ export default function App({ persona, host, dbName }: Props) {
           <PersonaChip persona={persona} identityText={shortIdentity(identity)} />
         </div>
       </header>
+
+      <InstallHint />
 
       {/* Providers are live by default; `npm run dev:mock -w web` (VITE_DATA_SOURCE=mock) runs every tab on local mocks. */}
       <NightOutProvider persona={persona}>

@@ -49,3 +49,21 @@ Personas: **Alex** (organizer), **Sam** (designated driver), **Maya** (primary b
 - Profile, **Reset demo**, then **Set up demo group** again and restart from step 2.
 - If tabs stop syncing, confirm all four are in the same browser profile (not private windows) and reload.
 - If a screen misbehaves, say plainly that the client is running on mock data and walk the timeline with the remaining tabs.
+
+## Four-device demo (2 laptop tabs, 2 phones)
+
+**Casting**: Alex and Jordan in two tabs on the laptop; Sam and Maya on the two phones.
+
+**Must be live data.** Mock mode syncs only within one browser, so phones cannot share it.
+
+1. **Backend reachable from the phones.** Either Maincloud (`spacetime login`, then `spacetime publish`) and use its `wss://` URL, or a laptop server reachable on the same Wi-Fi (`ws://<laptop-ip>:3000`). Never `localhost`.
+2. **Serve the app on the LAN**: `VITE_SPACETIMEDB_HOST=<url> npm run dev:phone -w web`. It prints LAN URLs with `?as=sam` and `?as=maya`. (`npm run preview:phone -w web` after a build works too.)
+3. **Phones**: open the printed URL, then Add to Home Screen (iOS: Share, Add to Home Screen; Android: the Install app button). Launch from the icon and pick the persona once ("Who is this phone?"); it is remembered on that device.
+4. **Laptop**: open `?as=alex` and `?as=jordan` in two tabs. Run **Set up demo group** from Profile once all four personas show a check mark.
+5. **Bridge (optional, real messages)**: run the bridge on the laptop, fed by Alex's tab, with `VITE_BRIDGE_URL=http://127.0.0.1:8787` set only for the laptop's dev server (not the phone one). Real iMessage and calls then land on the phones.
+6. Follow the walkthrough above.
+
+**Troubleshooting**
+- Phone cannot connect: the SpacetimeDB host is not reachable from the phone. Check the URL, firewall, and that phone and laptop share Wi-Fi.
+- Service worker needs https. On a plain-http LAN the app still works but will not cache or work offline.
+- Wrong persona on a phone: use the persona chip menu, or open the URL with `?as=<name>`.
