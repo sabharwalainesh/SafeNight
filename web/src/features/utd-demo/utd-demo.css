@@ -120,3 +120,15 @@
 @media (min-width: 720px) {
   .utd-content { max-width: 720px; margin: 0 auto; width: 100%; }
 }
+
+/* Live card: the in-app stand-in for the lock-screen Live Activity */
+.utd-live { margin: 0.2rem 1rem 0.4rem; display: grid; grid-template-columns: 12px 1fr auto; gap: 0.6rem; align-items: center; padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.utd-live--danger { border-color: rgba(255, 105, 97, 0.5); }
+.utd-live-dot { width: 10px; height: 10px; border-radius: 50%; }
+.utd-live-dot--ok { background: var(--ok); }
+.utd-live-dot--danger { background: var(--danger); animation: utd-pulse 1.2s ease-out infinite; }
+.utd-live-body { display: grid; min-width: 0; }
+.utd-live-body strong { font-size: 0.95rem; }
+.utd-live-actions { display: flex; gap: 0.4rem; }
+.utd-live-actions .btn { min-height: 36px; padding: 0 0.7rem; font-size: 0.85rem; white-space: nowrap; }
+@media (max-width: 380px) { .utd-live { grid-template-columns: 12px 1fr; } .utd-live-actions { grid-column: 1 / -1; } }

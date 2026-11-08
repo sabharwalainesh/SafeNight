@@ -12,6 +12,43 @@ import type { DemoCtx } from './UtdDemo';
 
 const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
+/* ------------------------------------------------------------- Live card */
+
+/**
+ * The in-app twin of the iOS Live Activity: always visible, one glance at tonight's status and
+ * two taps that matter. (The real lock-screen widget lives in the native `mobile/` dev build.)
+ */
+export function LiveCard({ ctx }: { ctx: DemoCtx }) {
+  const { s, now } = ctx;
+  const mayaOpen = s.done.includes('alert') && s.phase !== 'resolved';
+  const title = s.myHelpAt !== null ? 'Help is on the way to you' : s.phase === 'resolved' ? 'Everyone is home' : mayaOpen ? 'Maya needs help' : GROUP_NAME;
+  const sub = s.myHelpAt !== null
+    ? 'Jordan is coming · group alerted'
+    : s.phase === 'resolved'
+      ? 'Incident resolved by Maya'
+      : mayaOpen
+        ? s.phase === 'arrived' ? 'You are with Maya' : s.phase === 'responding' ? 'You are on the way' : 'Open Help for the plan'
+        : s.myLastCheckin
+          ? `Checked in ${freshness(s.myLastCheckin, now)}`
+          : 'Next check-in due · tap I\'m okay';
+  const tone = s.myHelpAt !== null || mayaOpen ? 'danger' : 'ok';
+  return (
+    <section className={`utd-live utd-live--${tone}`} aria-label="Tonight status">
+      <span className={`utd-live-dot utd-live-dot--${tone}`} aria-hidden="true" />
+      <div className="utd-live-body">
+        <strong>{title}</strong>
+        <span className="footnote">{sub}</span>
+      </div>
+      <div className="utd-live-actions">
+        <button type="button" className="btn secondary small-btn" onClick={() => ctx.dispatch({ type: 'me_ok', now: Date.now() })}>I&apos;m okay</button>
+        <button type="button" className="btn danger small-btn" disabled={s.myHelpAt !== null} onClick={() => ctx.dispatch({ type: 'me_help', now: Date.now() })}>
+          {s.myHelpAt !== null ? 'Help sent' : 'Need help'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 /* ----------------------------------------------------------------- Group */
 
 export function GroupTab({ ctx }: { ctx: DemoCtx }) {

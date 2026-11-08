@@ -63,4 +63,16 @@ describe('UTD demo state machine', () => {
     expect(s.feed[s.feed.length - 1]?.text).toMatch(/never reaches 911/);
     expect(reduce(s, { type: 'restart' })).toEqual(initialState());
   });
+
+  it("the live card's I'm okay and Need help act on the story", () => {
+    let s = reduce(initialState(), { type: 'me_ok', now: 7 });
+    expect(s.myLastCheckin).toBe(7);
+    expect(s.feed[s.feed.length - 1]?.text).toBe("You: I'm okay ✓");
+    expect(s.unread.group).toBe(0); // my own message is not unread
+    s = reduce(s, { type: 'me_help', now: 8 });
+    expect(s.myHelpAt).toBe(8);
+    expect(s.alertSeq).toBe(1);
+    expect(s.messages.filter((m) => m.thread === 'group').length).toBe(4);
+    expect(reduce(s, { type: 'me_help', now: 9 })).toBe(s);
+  });
 });

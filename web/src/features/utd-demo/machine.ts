@@ -34,6 +34,9 @@ export type DemoState = {
   thinkAt: number | null;
   /** Increments on every new alert so the shell can show a toast once. */
   alertSeq: number;
+  /** Your own quick status from the live card: last check-in and whether you asked for help. */
+  myLastCheckin: number | null;
+  myHelpAt: number | null;
   seq: number;
 };
 
@@ -43,6 +46,8 @@ export type DemoAction =
   | { type: 'arrive'; now: number }
   | { type: 'send'; thread: ThreadId; text: string; now: number }
   | { type: 'read'; thread: ThreadId }
+  | { type: 'me_ok'; now: number }
+  | { type: 'me_help'; now: number }
   | { type: 'restart' };
 
 export const initialState = (): DemoState => ({
@@ -57,6 +62,8 @@ export const initialState = (): DemoState => ({
   resolvedAt: null,
   thinkAt: null,
   alertSeq: 0,
+  myLastCheckin: null,
+  myHelpAt: null,
   seq: 0,
 });
 
@@ -106,6 +113,23 @@ export function reduce(s: DemoState, a: DemoAction): DemoState {
   if (a.type === 'read') return s.unread[a.thread] === 0 ? s : { ...s, unread: { ...s.unread, [a.thread]: 0 } };
   const d: Draft = { ...s };
   const now = a.now;
+
+  if (a.type === 'me_ok') {
+    d.myLastCheckin = now;
+    feed(d, now, 'checkin', "You: I'm okay ✓");
+    msg(d, now, 'group', 'me', "I'm okay ✓");
+    return d;
+  }
+  if (a.type === 'me_help') {
+    if (s.myHelpAt !== null) return s;
+    d.myHelpAt = now;
+    d.alertSeq += 1;
+    feed(d, now, 'alert', 'You tapped Need help. Your group is alerted; your precise location is shared with them for this incident.');
+    msg(d, now, 'group', 'agent', '🚨 Alex tapped Need help. Jordan, you are closest: can you reach Alex?', 'SafeNight');
+    msg(d, now, 'group', 'jordan', "On my way to you Alex. 2 min.");
+    msg(d, now, 'group', 'sam', "Car's ready if you need a ride home.");
+    return d;
+  }
 
   if (a.type === 'send') {
     const text = a.text.trim().slice(0, 500);

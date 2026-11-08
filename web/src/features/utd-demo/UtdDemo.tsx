@@ -6,7 +6,7 @@ import { initialState, nextAuto, nextManual, reduce, type DemoAction, type DemoS
 import { fetchWalkingRoute, pointAlong, routeLength, type Route } from './routing';
 import { ARRIVE_WITHIN_M, PEOPLE, REASONING, type PersonId } from './scenario';
 import { useLivePeople, useMyGps, useNow, type LivePos, type MyGps } from './live';
-import { GroupTab, HelpTab, MapTab, MessagesTab } from './tabs';
+import { GroupTab, HelpTab, LiveCard, MapTab, MessagesTab } from './tabs';
 import './utd-demo.css';
 
 export type TabId = 'group' | 'map' | 'messages' | 'help';
@@ -145,7 +145,7 @@ export function UtdDemo({ onExit }: { onExit: () => void }) {
   useEffect(() => {
     if (s.alertSeq > lastAlert.current) {
       lastAlert.current = s.alertSeq;
-      setToast('Maya needs help near the Residence Hall West lot');
+      setToast(s.myHelpAt !== null && (s.myHelpAt >= (s.openedAt ?? 0)) ? 'Your group has been alerted. Jordan is on the way.' : 'Maya needs help near the Residence Hall West lot');
       try {
         navigator.vibrate?.([220, 120, 220]);
       } catch {
@@ -218,6 +218,8 @@ export function UtdDemo({ onExit }: { onExit: () => void }) {
           DEMO · simulated people · UT Dallas
         </span>
       </header>
+
+      <LiveCard ctx={ctx} />
 
       {toast && (
         <button
