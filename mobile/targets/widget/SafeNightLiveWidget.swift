@@ -68,13 +68,13 @@ private struct LockScreenView: View {
             }
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(state.statusLabel).font(.headline).foregroundStyle(.white)
-                    Text("\(state.kindLabel) · \(state.subjectName)").font(.subheadline).foregroundStyle(.secondary)
+                    Text(state.statusLabel).font(.headline).foregroundStyle(.white).privacySensitive()
+                    Text("\(state.kindLabel) · \(state.subjectName)").font(.subheadline).foregroundStyle(.secondary).privacySensitive()
                 }
                 Spacer(minLength: 8)
                 if state.helperName != nil || state.etaMinutes != nil {
                     VStack(alignment: .trailing, spacing: 2) {
-                        if let h = state.helperName { Text(h).font(.subheadline.weight(.semibold)).foregroundStyle(.white) }
+                        if let h = state.helperName { Text(h).font(.subheadline.weight(.semibold)).foregroundStyle(.white).privacySensitive() }
                         if let e = state.etaMinutes { Text("\(e) min").font(.title3.bold()).foregroundStyle(state.accent) }
                     }
                 }
@@ -106,6 +106,7 @@ struct SafeNightLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("\(context.state.kindLabel) · \(context.state.subjectName)")
+                            .privacySensitive()
                             .font(.subheadline).foregroundStyle(.secondary)
                         ProgressBar(state: context.state)
                         if !context.state.isHome { ActionButtons() }

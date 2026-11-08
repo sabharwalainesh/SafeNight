@@ -1,3 +1,6 @@
+// Lock-screen actions without unlock are intentional: "I'm good" only records a
+// check-in and can never close an open alert (only "I'm home" in the app resolves),
+// and "Need help" must stay one tap, like an emergency shortcut.
 import AppIntents
 import Foundation
 

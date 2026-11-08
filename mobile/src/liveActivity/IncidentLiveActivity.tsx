@@ -4,11 +4,13 @@ import { useAgent, useSafety, type Incident } from '../web';
 import * as Live from '../../modules/safenight-live-activity';
 import type { LiveState } from '../../modules/safenight-live-activity';
 
+// The card is visible on a locked phone, so keep the wording neutral: no
+// sensitive incident kinds (e.g. impaired driving) on the lock screen.
 const KIND_LABELS: Record<Incident['kind'], string> = {
-  possible_impaired_driving: 'Possible impaired driving',
-  help_requested: 'Help requested',
+  possible_impaired_driving: 'Safety check',
+  help_requested: 'Safety check',
   missed_checkin: 'Missed check-in',
-  feeling_unsafe: 'Feeling unsafe',
+  feeling_unsafe: 'Safety check',
 };
 
 const CLOSED = new Set<Incident['status']>(['resolved', 'cancelled', 'handed_off']);
