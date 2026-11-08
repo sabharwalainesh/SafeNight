@@ -327,7 +327,7 @@ export function MessagesTab({ ctx }: { ctx: DemoCtx }) {
             {m.from !== 'me' && (
               <span className="utd-bubble-meta footnote muted">
                 {nameOf(m.from)}
-                {m.via ? ` · ${m.via}` : ''} · {clock(m.at)}
+                {m.via && m.via !== nameOf(m.from) ? ` · ${m.via}` : ''} · {clock(m.at)}
               </span>
             )}
             <div className={`utd-bubble ${m.from === 'me' ? 'utd-bubble--me' : m.from === 'agent' ? 'utd-bubble--agent' : ''}`}>{m.text}</div>
