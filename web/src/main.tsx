@@ -6,15 +6,29 @@ import { DbConnection, type ErrorContext } from './module_bindings';
 import { readChosenPersona, type Persona } from './personas';
 import { PersonaPicker, registerServiceWorker } from './features/install';
 import App from './App';
+import { UtdDemo } from './features/utd-demo/UtdDemo';
 import './index.css';
 
 const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'ws://localhost:3000';
 const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'safenight';
 
 const root = createRoot(document.getElementById('root')!);
-const chosen = readChosenPersona();
+const demoMode = new URLSearchParams(window.location.search).get('demo');
+const chosen = demoMode ? null : readChosenPersona();
 
-if (!chosen) {
+if (demoMode === 'utd') {
+  // Scripted UT Dallas demo: simulated people, no SpacetimeDB connection, no persona needed.
+  const exit = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('demo');
+    window.location.assign(url.toString());
+  };
+  root.render(
+    <StrictMode>
+      <UtdDemo onExit={exit} />
+    </StrictMode>
+  );
+} else if (!chosen) {
   // Nothing chosen yet: ask before connecting, so no identity is created for the wrong persona.
   root.render(
     <StrictMode>

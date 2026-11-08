@@ -1,0 +1,122 @@
+/* UT Dallas demo mode. Uses the iOS tokens from index.css; phone-width first, no horizontal scroll. */
+.utd { min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); color: var(--text); font-family: var(--font); }
+.utd-top { padding: max(0.6rem, env(safe-area-inset-top)) 1rem 0.5rem; display: grid; gap: 0.4rem; }
+.utd-top-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 0.75rem; }
+.utd-title { margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+.utd-pill { justify-self: start; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.2rem 0.6rem; border-radius: 999px; background: rgba(255, 159, 10, 0.18); color: var(--warn); border: 1px solid rgba(255, 159, 10, 0.4); }
+.utd-content { flex: 1; padding: 0.5rem 1rem calc(5.2rem + env(safe-area-inset-bottom)); overflow-x: hidden; }
+.utd-stack { display: grid; gap: 0.8rem; }
+.utd-card { padding: 0.9rem 1rem; display: grid; gap: 0.6rem; }
+.utd-card .headline { margin: 0; }
+.utd-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; flex-wrap: wrap; }
+.utd-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.utd-controls .block { flex: 1 1 100%; }
+
+.utd-tone-ok { color: var(--ok); }
+.utd-tone-warn { color: var(--warn); }
+.utd-tone-danger { color: var(--danger); }
+.utd-tone-muted { color: var(--muted); }
+.sn-pill.utd-tone-ok { background: rgba(48, 209, 88, 0.16); }
+.sn-pill.utd-tone-danger { background: rgba(255, 105, 97, 0.16); }
+.sn-pill.utd-tone-warn { background: rgba(255, 159, 10, 0.16); }
+.utd-inline-pill { margin-left: 0.4rem; font-size: 0.65rem; }
+
+/* People */
+.utd-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.1rem; }
+.utd-person { display: grid; grid-template-columns: 36px 1fr auto; gap: 0.6rem; align-items: center; padding: 0.45rem 0; border-top: 1px solid var(--border); }
+.utd-person:first-child { border-top: 0; }
+.utd-person-body { display: grid; min-width: 0; }
+.utd-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem; background: var(--surface-2); }
+.utd-avatar--me { background: var(--accent); color: var(--on-accent); font-size: 0.8rem; }
+
+/* Feed */
+.utd-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+.utd-feed-item { display: grid; grid-template-columns: 4.2rem 1fr; gap: 0.5rem; align-items: baseline; font-size: 0.95rem; }
+.utd-feed-alert span { color: var(--danger); font-weight: 600; }
+.utd-feed-resolved span, .utd-feed-arrived span { color: var(--ok); font-weight: 600; }
+.utd-feed-agent span { color: var(--accent); }
+
+/* Showcase */
+.utd-showcase { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.utd-show { padding: 0.8rem; display: grid; gap: 0.25rem; }
+.utd-show-emoji { font-size: 1.4rem; }
+.utd-show p { margin: 0; }
+.utd-summary-list { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.3rem; font-size: 0.95rem; }
+
+/* Toast + tab bar */
+.utd-toast { position: sticky; top: 0.4rem; z-index: 20; margin: 0.2rem 1rem 0.4rem; width: calc(100% - 2rem); display: flex; gap: 0.7rem; align-items: center; text-align: left; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); background: var(--danger); color: #fff; border: 0; box-shadow: var(--shadow); font: inherit; }
+.utd-toast strong { display: block; }
+.utd-toast-sub { font-size: 0.8rem; opacity: 0.9; }
+.utd-toast-icon { font-size: 1.4rem; }
+.utd-tabbar { position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0.35rem 0.4rem calc(0.4rem + env(safe-area-inset-bottom)); background: rgba(16, 18, 20, 0.86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-top: 1px solid var(--border); }
+.utd-tab { background: transparent; border: 0; color: var(--muted); display: grid; justify-items: center; gap: 0.1rem; padding: 0.3rem 0; font: inherit; font-size: 0.7rem; min-height: var(--tap); }
+.utd-tab.active { color: var(--accent); }
+.utd-tab-icon { position: relative; font-size: 1.35rem; line-height: 1; }
+.utd-badge { position: absolute; top: -4px; right: -10px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 0.65rem; font-weight: 700; display: grid; place-items: center; }
+.utd-badge--dot { min-width: 9px; height: 9px; padding: 0; right: -4px; top: -2px; }
+.utd-seg .utd-badge { position: static; display: inline-grid; margin-left: 0.4rem; }
+
+/* Map */
+.utd-map-wrap { position: relative; }
+.utd-map { height: clamp(260px, 44vh, 440px); border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); isolation: isolate; background: var(--surface-2); }
+.utd-map-fit { position: absolute; right: 0.6rem; top: 0.6rem; z-index: 500; width: var(--tap); height: var(--tap); border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 1.1rem; }
+.utd-pin-wrap { background: transparent; border: 0; }
+.utd-pin { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 1rem; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); box-sizing: border-box; color: #111; }
+.utd-pin--me { outline: 3px solid #2f7bff; outline-offset: 2px; color: #fff; }
+.utd-pin--alert { animation: utd-pulse 1.2s ease-out infinite; }
+.utd-pin-name { position: absolute; top: 38px; left: 17px; transform: translateX(-50%); white-space: nowrap; padding: 3px 7px; border-radius: 6px; background: #191c20; color: #f5f6f7; border: 1px solid #363c43; font: 600 12px/16px var(--font); }
+@keyframes utd-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.7); } 100% { box-shadow: 0 0 0 14px rgba(255, 69, 58, 0); } }
+.utd-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--fill); border-radius: 10px; padding: 3px; }
+.utd-seg button { border: 0; background: transparent; color: var(--text); font: inherit; font-weight: 600; padding: 0.45rem; border-radius: 8px; min-height: 38px; }
+.utd-seg button.active { background: var(--surface); box-shadow: var(--shadow); }
+.utd-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; font-size: 0.95rem; }
+.utd-steps li { display: flex; justify-content: space-between; gap: 0.6rem; }
+.utd-alertcard { border: 1px solid rgba(255, 105, 97, 0.45); }
+
+/* Compass */
+.utd-compass { justify-items: center; text-align: center; }
+.utd-dial { position: relative; width: 220px; height: 220px; display: grid; place-items: center; }
+.utd-arrow { width: 220px; height: 220px; transition: transform 0.2s linear; }
+.utd-ring { fill: var(--surface-2); stroke: var(--border); stroke-width: 2; }
+.utd-needle { fill: var(--accent); }
+.utd-here { fill: var(--ok); animation: utd-here 1.6s ease-in-out infinite; transform-origin: 50px 50px; }
+@keyframes utd-here { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.3); opacity: 0.5; } }
+.utd-dist { position: absolute; bottom: -4px; font-size: 30px; font-weight: 700; background: var(--surface-2); padding: 0 0.5rem; border-radius: 999px; }
+
+/* Messages */
+.utd-messages { min-height: 60vh; grid-template-rows: auto 1fr auto; }
+.utd-thread { display: grid; gap: 0.5rem; align-content: start; padding: 0.3rem 0; max-height: 58vh; overflow-y: auto; }
+.utd-empty { text-align: center; padding: 2rem 0; }
+.utd-bubble-row { display: grid; gap: 0.15rem; justify-items: start; max-width: 85%; }
+.utd-bubble-row.is-me { justify-self: end; justify-items: end; }
+.utd-bubble { padding: 0.55rem 0.8rem; border-radius: 18px; background: var(--surface-2); line-height: 1.3; word-wrap: break-word; }
+.utd-bubble--me { background: var(--accent); color: var(--on-accent); }
+.utd-bubble--agent { border: 1px solid rgba(140, 191, 255, 0.45); }
+.utd-bubble-meta { padding-left: 0.5rem; }
+.utd-compose { display: flex; gap: 0.5rem; padding-top: 0.4rem; }
+.utd-compose input { flex: 1; min-height: var(--tap); border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 0 1rem; font: inherit; }
+
+/* Nemotron panel */
+.utd-reasoning { margin: 0; white-space: pre-wrap; line-height: 1.45; font-size: 0.95rem; }
+.utd-cursor { color: var(--accent); animation: utd-blink 1s steps(2) infinite; }
+@keyframes utd-blink { 50% { opacity: 0; } }
+.utd-options { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.utd-option { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; display: grid; gap: 0.5rem; background: var(--surface-2); }
+.utd-option.is-rec { border-color: rgba(48, 209, 88, 0.6); }
+.utd-option.is-caution { opacity: 0.85; }
+.utd-option-head { display: grid; grid-template-columns: 28px 1fr; gap: 0.6rem; align-items: start; }
+.utd-option-body { display: grid; gap: 0.15rem; }
+.utd-rank { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); font-weight: 700; font-size: 0.9rem; }
+.utd-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; font-size: 0.75rem; }
+.utd-checks li { padding: 0.15rem 0.5rem; border-radius: 999px; background: var(--fill); }
+.utd-checks li.ok { color: var(--ok); }
+.utd-checks li.no { color: var(--danger); }
+.utd-foot { margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .utd-pin--alert, .utd-here, .utd-cursor { animation: none; }
+  .utd-arrow { transition: none; }
+}
+@media (min-width: 720px) {
+  .utd-content { max-width: 720px; margin: 0 auto; width: 100%; }
+}

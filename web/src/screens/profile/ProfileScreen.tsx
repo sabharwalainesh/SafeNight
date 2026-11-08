@@ -320,6 +320,12 @@ export function ProfileScreen({ onOpenPrivacy }: { onOpenPrivacy?: () => void })
         </form>
       </Section>
 
+      <Section title="Demo" footer="A scripted walkthrough with simulated people at UT Dallas. No real friends or server data needed; runs on this phone alone.">
+        <a className="btn secondary block" href="?demo=utd">
+          Demo mode (UT Dallas)
+        </a>
+      </Section>
+
       <Section
         title="Data"
         footer={
