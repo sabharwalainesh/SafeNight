@@ -244,7 +244,7 @@ export class Engine {
       if (r.spaceId !== m.spaceId) return false;
       const rp = normalizePhone(r.phone);
       // Match the inbound sender against this registration, never the registration against itself.
-      return phone ? rp === phone : !!rp && (normalizePhone(m.senderId) === rp || m.senderId === r.senderId);
+      return phone ? rp === phone : !!r.senderId && m.senderId === r.senderId;
     });
   }
 

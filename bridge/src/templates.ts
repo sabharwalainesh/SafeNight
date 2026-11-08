@@ -10,7 +10,8 @@ export function safeField(v: unknown, n = 80): string {
     .replace(/(https?:\/\/|www\.)\S*/gi, ' ')
     .replace(/\S+\.\S+/g, ' ')
     .replace(/[^\p{L}\p{N}\s',&()-]/gu, ' ')
-    .replace(/\+?\d[\d\s()-]{5,}\d/g, ' ')
+    // Any 4+ digit run, whatever script or separators, so no phone number can be assembled.
+    .replace(/\+?\p{N}[\p{N}\s()',&-]{2,}\p{N}/gu, ' ')
     .replace(/[\p{Cc}\p{Zl}\p{Zp}]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
