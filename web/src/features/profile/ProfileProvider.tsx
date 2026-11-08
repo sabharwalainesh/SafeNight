@@ -1,9 +1,10 @@
+import { dataSource } from '../../lib/dataSource';
 import type { ReactNode } from 'react';
 import { ProfileLiveProvider } from './live';
 import { ProfileMockProvider } from './mock';
 
 export const PROFILE_SOURCE: 'live' | 'mock' =
-  (import.meta.env as Record<string, string | undefined>).VITE_PROFILE_SOURCE === 'live' ? 'live' : 'mock';
+  dataSource('VITE_PROFILE_SOURCE');
 
 export function ProfileProvider(props: { me: string; displayName: string; children?: ReactNode }) {
   return PROFILE_SOURCE === 'live' ? (

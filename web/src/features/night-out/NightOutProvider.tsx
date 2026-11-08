@@ -1,14 +1,13 @@
+import { dataSource } from '../../lib/dataSource';
 import type { ReactNode } from 'react';
 import type { Persona } from '../../personas';
 import { NightOutLiveProvider } from './live';
 import { NightOutMockProvider } from './mock';
 
-// Mock by default: the C2/C3 mocks and the judge demo panel still read and
-// write the mock Night Out store directly, so the full demo only works on mock
-// data until their live adapters exist. Set VITE_NIGHTOUT_SOURCE=live to run
-// the Night Out tab against the SpacetimeDB module (C1-A).
+// Live by default (see lib/dataSource.ts); VITE_DATA_SOURCE=mock or
+// VITE_NIGHTOUT_SOURCE=mock runs the Night Out tab on the local mock instead.
 export const NIGHT_OUT_SOURCE: 'live' | 'mock' =
-  import.meta.env.VITE_NIGHTOUT_SOURCE === 'live' ? 'live' : 'mock';
+  dataSource('VITE_NIGHTOUT_SOURCE');
 
 const AVATARS: Record<string, string> = { sam: '🚗', alex: '🎉', maya: '🌿', jordan: '🌙' };
 

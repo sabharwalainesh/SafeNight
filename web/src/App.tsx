@@ -58,7 +58,7 @@ export default function App({ persona, host, dbName }: Props) {
         </div>
       </header>
 
-      {/* Each provider picks mock or live data from its VITE_*_SOURCE flag; `npm run dev:live -w web` sets them all to live. */}
+      {/* Providers are live by default; `npm run dev:mock -w web` (VITE_DATA_SOURCE=mock) runs every tab on local mocks. */}
       <NightOutProvider persona={persona}>
       <CurrentSessionProvider>
       <SafetyProvider>
