@@ -26,7 +26,7 @@ Each phone loads the app code from its owner's laptop; data goes straight to Mai
 
 ```bash
 cd mobile && npm install
-npx expo start --tunnel      # answer "y" to install @expo/ngrok the first time
+npx expo start --tunnel ngrok   # answer "y" to install @expo/ngrok the first time
 ```
 
 Scan the QR with the iPhone Camera app (or enter the `exp://...` URL in Expo Go). In the app: pick the persona (Sam on phone 1, Maya on phone 2), leave the server at `wss://maincloud.spacetimedb.com`, tap **Test connection**, Continue. If the tunnel is slow, `npx expo start` works when the phone and laptop are on the same hotspot; the server field then still points at Maincloud.

@@ -21,7 +21,7 @@
     "check:rls": "tsx scripts/check_rls.mts",
     "postpublish:local": "spacetime call safenight ensure_schedules && spacetime call safenight seed_resources",
     "mobile": "cd mobile && npx expo start",
-    "mobile:tunnel": "cd mobile && npx expo start --tunnel"
+    "mobile:tunnel": "cd mobile && npx expo start --tunnel ngrok"
   },
   "devDependencies": {
     "tsx": "^4.20.0",
