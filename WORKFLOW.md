@@ -255,12 +255,14 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 **Also done (2026-11-08):** Apple-style pass on every remaining screen (Alerts grouped Needs you / Active / Earlier; incident screen ordered home-confirm → what's happening → agent → ride → coordination → people → one primary action, long lists behind "Show all"; agent receipts as status pills; You with Edit-mode contact reordering; Reports with a Nearby/Resources segmented control and an "Add report" sheet; tidy judge demo panel). A hardcoded Live Activity mock-up was built for a local preview only and is not kept in the repository.
 
+**Done (2026-11-08, user decision):** real data-driven Live Activity for the Expo app as a development build (builds for the iOS Simulator: `BUILD SUCCEEDED`, not yet run): widget extension `mobile/targets/widget/` (lock screen + Dynamic Island + Check in / I'm good / Need help as iOS 17 interactive buttons), native Expo module `mobile/modules/safenight-live-activity/` (no-op in Expo Go), and `mobile/src/liveActivity/IncidentLiveActivity.tsx` driving it from the shared live adapters (incident status → card step; buttons → real `check_in` reducers). The earlier hardcoded mock-up was removed from the repository at the user's request.
+
 **Planned / remaining:**
 - Walk the four-device demo on live data (2 laptop tabs + 2 phones) once the module is on Maincloud; record results here.
 - Rehearse with `SIMULATE_ALL=1`; real calls only for final checks (ElevenLabs Starter ≈ 45 call-minutes; plan set to cancel Dec 8).
 - Fill `bridge/.env` demo phones (`PHONE_MAYA`, `PHONE_JORDAN`, `DEMO_DISPATCH_NUMBER`), optional dispatch agent; enable voicemail detection on the ElevenLabs agents.
 - Real-browser check of the redesigned UI and the Times Square map (dark tile filter, sheets) on desktop and phone.
-- In progress (agreed with the user, touches A's `mobile/` additively): Expo development build in the iOS Simulator with a real, data-driven Live Activity (lock screen + Dynamic Island, Check in / I'm good / Need help buttons calling real reducers); see `mobile/LIVE_ACTIVITY.md` once merged.
+- Run the real Live Activity in the iPhone 17 Pro simulator against a live backend and record it (see `mobile/LIVE_ACTIVITY.md`); verify the lock-screen buttons fire (risk: intents compiled in the module pod may need to move into the app target).
 - Stretch: SMS texting via the Photon 2.0 beta API once a 10DLC campaign is approved.
 
 **Done**
@@ -300,6 +302,8 @@ _Owner: Person B (Claude Pro). Edit only this section._
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**
+
+- **Heads-up, `mobile/` (A's folder), changed additively with the user's go-ahead:** `app.json` (plugins `expo-dev-client`, `@bacons/apple-targets`; `NSSupportsLiveActivities*`), `package.json`/lock (2 deps, scripts `prebuild:ios`, `ios:sim`), `src/App.tsx` (mounts `<IncidentLiveActivity />`). New folders `mobile/modules/safenight-live-activity/`, `mobile/targets/widget/`, `mobile/src/liveActivity/`, doc `mobile/LIVE_ACTIVITY.md`. Expo Go keeps working (module no-ops). Please review; device builds need `ios.appleTeamId`. Server-driven updates while the app is suspended would need APNs pushes from the module/bridge.
 
 Open:
 - **Hosting (blocks the four-device demo):** publish the module to Maincloud (`spacetime login` + `spacetime publish safenight`) or agree on a laptop server reachable on Wi-Fi. Phones and laptop tabs must share one live database; mock data only syncs inside one browser.
