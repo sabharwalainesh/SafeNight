@@ -28,10 +28,17 @@ const ev = (detail: string): IncidentEvent => ({
 });
 
 describe('buildSnapshot', () => {
-  const base = { incident, roster: null, locations: [], myCheckins: [], me: 'u-maya' };
-  it('maps personas, truncates details, uses myLocation for the subject', () => {
+  const base = { incident, roster: null, locations: [], myCheckins: [], me: 'u-maya', personaOf: { 'u-maya': 'maya' } };
+  const sharingRoster = {
+    session: { id: 's1', organizer: 'u-x', name: 'Night', venueHint: 'Hall', startsAt: 0, expiresAt: 9e12, status: 'active', checkinIntervalMinutes: 30, createdAt: 0 },
+    members: [{ id: 'm1', sessionId: 's1', userId: 'u-maya', displayName: 'Maya', role: 'participant', joinedAt: 0, leftAt: null, sharingScope: 'approximate' }],
+    drivers: [],
+    invites: [],
+  } as const;
+  it('maps personas from the registry, truncates details, uses own location only while sharing', () => {
     const s = buildSnapshot({
       ...base,
+      roster: sharingRoster as never,
       timeline: [ev('x'.repeat(500))],
       myLocation: { userId: 'u-maya', displayName: 'Maya', lat: 1, lng: 2, accuracyM: 5, recordedAt: 3000, source: 'device', approximate: true, isStale: false },
     }).incident;
@@ -40,6 +47,15 @@ describe('buildSnapshot', () => {
     expect(s.participants[1].acknowledged).toBe(true);
     expect(s.events[0].detail).toHaveLength(280);
     expect(s.lastLocation).toMatchObject({ lat: 1, lng: 2, approximate: true });
+  });
+  it('ignores display names that look like personas', () => {
+    const spoof = { ...incident, participants: [{ userId: 'u-evil', displayName: 'Jordan', role: 'buddy' as const, acknowledgedAt: null }] };
+    expect(buildSnapshot({ ...base, incident: spoof, timeline: [], myLocation: null }).incident.participants[0].personaId).toBe('u-evil');
+  });
+  it('does not send the subject\'s own location when they are not sharing', () => {
+    const own = { userId: 'u-maya', displayName: 'Maya', lat: 1.23456, lng: 2.34567, accuracyM: 5, recordedAt: 3000, source: 'device' as const, approximate: false, isStale: false };
+    expect(buildSnapshot({ ...base, timeline: [], myLocation: own }).incident.lastLocation).toBeNull();
+    expect(buildSnapshot({ ...base, roster: sharingRoster as never, timeline: [], myLocation: own }).incident.lastLocation).toMatchObject({ lat: 1.235, lng: 2.346, approximate: true });
   });
   it('has no location when none is visible', () => {
     expect(buildSnapshot({ ...base, timeline: [], myLocation: null, me: 'u-other' }).incident.lastLocation).toBeNull();

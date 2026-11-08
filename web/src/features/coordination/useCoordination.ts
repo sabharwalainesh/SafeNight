@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { NightOutContext } from '../night-out/api';
 import { SafetyContext } from '../safety/api';
 import { bridgeUrl, fetchPlan, syncIncident } from './client';
+import { PersonaMapContext } from './PersonaMap';
 import { buildSnapshot } from './snapshot';
 import type { Decision, Dispatch } from './types';
 
@@ -20,6 +21,7 @@ export function useCoordination(incidentId: string): Coordination {
   const base = bridgeUrl();
   const safety = useContext(SafetyContext);
   const nightOut = useContext(NightOutContext);
+  const personaOf = useContext(PersonaMapContext);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [dispatch, setDispatch] = useState<Dispatch | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export function useCoordination(incidentId: string): Coordination {
         myLocation: safety.myLocation,
         myCheckins: safety.myCheckins,
         me: safety.me,
+        personaOf,
       }),
     );
   })();

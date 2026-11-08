@@ -9,6 +9,7 @@ import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
 import { DemoPanel } from './features/demo-panel';
 import { DemoPersonaRegistrar } from './features/demo-live';
+import { PersonaMapProvider } from './features/coordination';
 import { ProfileProvider } from './features/profile/ProfileProvider';
 import { ReportsProvider } from './features/reports';
 import { SafetyProvider } from './features/safety/SafetyProvider';
@@ -62,6 +63,7 @@ export default function App({ persona, host, dbName }: Props) {
       {/* Providers are live by default; `npm run dev:mock -w web` (VITE_DATA_SOURCE=mock) runs every tab on local mocks. */}
       <NightOutProvider persona={persona}>
       <CurrentSessionProvider>
+      <PersonaMapProvider>
       <SafetyProvider>
       <AgentProvider>
       <ReportsProvider me={persona.id}>
@@ -99,6 +101,7 @@ export default function App({ persona, host, dbName }: Props) {
       </ReportsProvider>
       </AgentProvider>
       </SafetyProvider>
+      </PersonaMapProvider>
       </CurrentSessionProvider>
       </NightOutProvider>
 
