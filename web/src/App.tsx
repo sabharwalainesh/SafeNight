@@ -8,6 +8,7 @@ import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
 import { DemoPanel } from './features/demo-panel';
+import { DemoPersonaRegistrar } from './features/demo-live';
 import { ProfileProvider } from './features/profile/ProfileProvider';
 import { ReportsProvider } from './features/reports';
 import { SafetyProvider } from './features/safety/SafetyProvider';
@@ -66,6 +67,7 @@ export default function App({ persona, host, dbName }: Props) {
       <ReportsProvider me={persona.id}>
       <ProfileProvider me={persona.id} displayName={persona.name}>
       <main className="content">
+        <DemoPersonaRegistrar />
         <NoDrivingBanner onViewIncident={openIncident} />
         <RuntimeStrip />
         <OnlineCard />

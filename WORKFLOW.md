@@ -230,13 +230,14 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-07 — **C4-B live adapters**: Reports (`features/reports/live/`: venues, published + own reports, resources, create venue, submit, corroborate/dispute votes) and Profile (`features/profile/live/`: profile, contacts ladder, privacy settings, delete my data) plus live demo reset via `reset_demo`. Every tab now has a live adapter; `npm run dev:live -w web` turns them all on. Gate: 100 tests, typecheck, build (mock and live) pass. **Not covered:** no live-server run from B's machine; README Demo/Tracks sections and `docs/DEMO_SCRIPT.md` updated for live mode.
 
+- 2026-11-07 — **C5-B client integration.** Live data is now the default (`npm run dev -w web`); `npm run dev:mock -w web` / `VITE_DATA_SOURCE=mock` runs on local mocks, per-tab flags override. Uses A's C5 additions: roster `leftAt`, receipt `resultText`, follow-up countdown fields, and the demo reducers (`features/demo-live/`: each persona tab auto-registers via `demo_register_persona`; Profile demo panel shows registered personas, "Set up demo group" → `demo_setup_group`, "Reset demo group" → `demo_reset_group`, "Wipe all demo data" → `reset_demo`). README and demo script updated. Gate: 101 tests, typecheck, build (live and mock) pass. **Not covered:** the live four-tab walk in a real browser (C5 "B verifies").
+
 **In progress**
 - Nothing.
 
 **Next**
 - Run the C1/C2 gates on live data: `VITE_NIGHTOUT_SOURCE=live VITE_SAFETY_SOURCE=live npm run dev -w web` against `spacetime start` + published module, four persona tabs.
-- Blocked on A: C4-A bindings → adapters for `ReportsApi`, `ProfileApi`, then flip the remaining providers to live.
-- Run the full demo on live data: `VITE_NIGHTOUT_SOURCE=live VITE_SAFETY_SOURCE=live VITE_AGENT_SOURCE=live npm run dev -w web`.
+- C5 verify: walk `docs/DEMO_SCRIPT.md` on live data (`npm run dev -w web` against a running server) in four real browser tabs; record results here.
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**

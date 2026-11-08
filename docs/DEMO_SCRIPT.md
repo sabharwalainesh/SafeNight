@@ -11,7 +11,7 @@ Personas: **Alex** (organizer), **Sam** (designated driver), **Maya** (primary b
 
 ## Setup
 
-1. `npm install` at the repo root, then `npm run dev -w web`.
+1. `npm install` at the repo root, then `npm run dev:mock -w web` for mock data (or see the live section below).
 2. Open four tabs in one browser: `?as=alex`, `?as=sam`, `?as=maya`, `?as=jordan`. Arrange them side by side.
 3. In any tab, go to **Profile** and tap **Set up demo group** (creates a session with all four, Sam as accepted driver, consents granted). Check the **Night Out** tab: roster shows four people and Sam's accepted driver role.
 
@@ -38,10 +38,11 @@ Personas: **Alex** (organizer), **Sam** (designated driver), **Maya** (primary b
 
 ## Running the same script on live SpacetimeDB data
 
-1. Start the server and publish the module (README, "Backend and local development"), then `npm run dev:live -w web`.
-2. Open the four persona tabs. There is no one-click group setup on live data: as **Alex**, create the session in **Night Out** and create an invite; join with the code from the Sam, Maya and Jordan tabs. As **Sam**, volunteer and accept the driver role. Each person turns on sharing and the consent toggles they want.
-3. Continue from walkthrough step 1. "Advance timer" and "Reset demo" in the Profile demo panel call the module's demo reducers. Plans show SIMULATED unless the module has `NEMOTRON_API_KEY` set.
-4. Phone entry is hidden on live data until the module stores phone numbers privately.
+1. Start the server and publish the module (README, "Backend and local development"), then `npm run dev -w web` (live is the default; `npm run dev:mock -w web` runs on local mocks).
+2. Open the four persona tabs. Each tab registers its persona with the server; the Profile demo panel shows a check mark for each.
+3. When all four show ✓, tap **Set up demo group** in Profile. The server creates the session with Alex as organizer, Sam as accepted driver, Maya and Jordan as buddies, and the demo consents.
+4. Continue from walkthrough step 1. "Advance timer" fires the server's follow-up timer. "Reset demo group" ends the demo session and cancels its incidents; "Wipe all demo data" clears every demo row. Plans show SIMULATED unless the module has `NEMOTRON_API_KEY` set.
+5. Phone entry is hidden on live data until the module stores phone numbers privately.
 
 ## Backup if something breaks
 

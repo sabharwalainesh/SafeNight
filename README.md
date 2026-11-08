@@ -62,10 +62,10 @@ Two ways to run the client:
 
 | Mode | Command | Data |
 | --- | --- | --- |
-| Mock | `npm run dev -w web` | Local mock data shared between tabs (MOCK DATA badges) and a deterministic simulated planner. No server needed. "Set up demo group" builds the whole demo group in one click. |
-| Live | `npm run dev:live -w web` | Every tab reads and writes the SpacetimeDB module (needs `spacetime start` and the module published; see above). Create the session in Night Out and join from each persona tab. "Advance timer" and "Reset demo" call the module's demo reducers. |
+| Live (default) | `npm run dev -w web` | Every tab reads and writes the SpacetimeDB module (needs `spacetime start` and the module published; see above). Each persona tab registers itself; once all four are open, "Set up demo group" in Profile creates the session, Sam's accepted driver role and the demo consents on the server. "Advance timer", "Reset demo group" and "Wipe all demo data" call the module's demo reducers. |
+| Mock | `npm run dev:mock -w web` | Local mock data shared between tabs (MOCK DATA badges) and a deterministic simulated planner. No server needed. |
 
-Each tab can also be switched on its own with `VITE_NIGHTOUT_SOURCE`, `VITE_SAFETY_SOURCE`, `VITE_AGENT_SOURCE`, `VITE_REPORTS_SOURCE` or `VITE_PROFILE_SOURCE` set to `live`.
+`VITE_DATA_SOURCE=mock` switches every tab to mocks; a per-tab flag (`VITE_NIGHTOUT_SOURCE`, `VITE_SAFETY_SOURCE`, `VITE_AGENT_SOURCE`, `VITE_REPORTS_SOURCE`, `VITE_PROFILE_SOURCE` = `mock` or `live`) overrides it for one tab.
 
 In both modes no SMS is sent unless Twilio is configured on the module, and the app never books or pays for rides: ride options are deep links the person opens and confirms. Real Nemotron planning runs only when `NEMOTRON_API_KEY` is set on the module; otherwise plans and receipts are labeled SIMULATED.
 
