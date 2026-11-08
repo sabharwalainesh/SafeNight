@@ -171,6 +171,16 @@ export const streamMeetupPosition = spacetimedb.reducer(
   (ctx, { meetupId, lat, lng, accuracyM, headingDeg, speedMps }) => {
     const mu = requireMeetupParty(ctx, meetupId);
     if (mu.status.tag !== 'coming' || isAtOrBefore(mu.expiresAt, ctx.timestamp)) throw new SenderError('This meetup is not in progress');
+    // Same gates as post_location: open session, active membership, sharing not turned off.
+    if (!sessionIsOpen(getSession(ctx, mu.sessionId))) throw new SenderError('Session is not active');
+    const member = requireActiveMember(ctx, mu.sessionId);
+    if (member.sharingScope.tag === 'none') {
+      for (const p of [...ctx.db.meetupPosition.meetupId.filter(meetupId)]) {
+        if (p.userId.isEqual(ctx.sender)) ctx.db.meetupPosition.id.delete(p.id);
+      }
+      return; // dropped (not thrown, so the stale row deletion commits); the view hides it anyway
+
+    }
     if (!(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) throw new SenderError('Invalid coordinates');
     if (!(accuracyM >= 0 && accuracyM <= 10_000)) throw new SenderError('Invalid accuracy');
     const heading = headingDeg !== undefined && headingDeg >= 0 && headingDeg < 360 ? headingDeg : undefined;

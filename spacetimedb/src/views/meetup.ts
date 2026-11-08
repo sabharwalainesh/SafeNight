@@ -60,6 +60,17 @@ export const myMeetupPositions = spacetimedb.view(
     for (const mu of mine) {
       if (mu.status.tag !== 'coming') continue;
       const partner = mu.requester.isEqual(ctx.sender) ? mu.helper : mu.requester;
+      // Same gates as visible_locations: open session, both parties active, partner sharing not off.
+      const session = ctx.db.nightSession.id.find(mu.sessionId);
+      if (!session || session.status.tag !== 'active') continue;
+      let meActive = false;
+      let partnerOk = false;
+      for (const m of ctx.db.sessionMember.sessionId.filter(mu.sessionId)) {
+        if (!m.active) continue;
+        if (m.userId.isEqual(ctx.sender)) meActive = true;
+        if (m.userId.isEqual(partner) && m.sharingScope.tag !== 'none') partnerOk = true;
+      }
+      if (!meActive || !partnerOk) continue;
       const granted = [...ctx.db.consentGrant.bySubjectRecipient.filter([partner, ctx.sender])].some(
         g => g.sessionId === mu.sessionId && g.scope.tag === 'location_precise' && g.revokedAt === undefined
       );

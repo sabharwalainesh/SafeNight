@@ -309,6 +309,8 @@ describe('live compass stream: stream_meetup_position', () => {
     const s = setup();
     request(s.test, s.sam, s.sessionId);
     offer(s.test, s.alex, incidents(s.test)[0]!.id);
+    share(s.test, s.alex, s.sessionId);
+    share(s.test, s.sam, s.sessionId);
     return { ...s, meetupId: meetups(s.test)[0]!.id };
   };
   const positions = (test: Harness) => [...test.db.meetupPosition.iter()];
@@ -373,5 +375,16 @@ describe('live compass stream: stream_meetup_position', () => {
     advance(t2.test, 61);
     runExpiry(t2.test);
     expect(positions(t2.test)).toHaveLength(0);
+  });
+
+  it('honours sharing off and leaving the group, like visible_locations', () => {
+    const { test, alex, sam, sessionId, meetupId } = trip();
+    stream(test, alex, meetupId);
+    expect(m.myMeetupPositions(test.viewContext(sam))).toHaveLength(1);
+    test.withReducerTx(alex, ctx => m.setSharingScope(ctx, { sessionId, scope: { tag: 'none' } }));
+    expect(m.myMeetupPositions(test.viewContext(sam))).toHaveLength(0);
+    tick(test, 300);
+    stream(test, alex, meetupId); // dropped, and clears the stale row
+    expect(positions(test).filter(p => p.userId.isEqual(test.viewContext(alex).sender))).toHaveLength(0);
   });
 });
