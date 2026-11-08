@@ -393,11 +393,11 @@ describe('C4 agent additions', () => {
 
   it('runtime_status reads the module_meta row (so republishing refreshes it) and ensure_schedules upserts it', () => {
     const s = setup();
-    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.8.0-sec');
+    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.8.1');
     s.test.db.moduleMeta.id.update({ id: 0, moduleVersion: '9.9.9-test', publishedAt: NOW });
     expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('9.9.9-test');
     s.test.withReducerTx(s.alex, ctx => m.ensureSchedules(ctx, {}));
-    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.8.0-sec');
+    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.8.1');
     expect(s.test.db.venueReportExpiry.count()).toBe(1n);
     expect(s.test.db.retentionSweep.count()).toBe(1n);
   });

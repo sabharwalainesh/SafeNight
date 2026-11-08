@@ -47,7 +47,7 @@ What runs where:
 | Sessions, invites, roles, explicit driver acceptance, consent grants and revocation, sharing scope | SpacetimeDB reducers and views | live |
 | Consent-scoped locations, check-ins, concern reports, incidents, immediate no-driving warning (event table with row-level security), human-only resolution | SpacetimeDB reducers, views, schedule tables | live |
 | Agent jobs, versioned plans, validated tool execution, receipts, follow-up timers, buddy nonresponse escalation, ride plans | SpacetimeDB scheduled procedures and reducers | live; planner **simulated** until `NEMOTRON_API_KEY` is set |
-| Nemotron inference | scheduled procedure `agent_step` → NVIDIA NIM chat completions with tool calling | waiting on the API key; falls back to the simulated planner |
+| Nemotron inference | scheduled procedure `agent_step` → NVIDIA NIM chat completions with tool calling (default model `nvidia/nemotron-3.5-super-vl-120b-a12b`) | live when `NEMOTRON_API_KEY` is set; falls back to the labeled simulated planner on failure |
 | Messaging | scheduled procedure `deliver_notification` → Twilio | **simulated** until `TWILIO_*` are set |
 | Transport lookup | procedure → Nominatim and OSRM, no key | live; OSRM is blocked by TLS on some hosts and is then recorded as a failed receipt |
 | Venue reports, moderation, votes, expiry, safety resources, retention, data deletion, privacy settings | SpacetimeDB reducers, views, schedule tables, HTTP handlers | live |

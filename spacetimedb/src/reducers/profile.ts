@@ -1,5 +1,6 @@
 import { SenderError, t } from 'spacetimedb/server';
 import { spacetimedb } from '../schema';
+import { audit } from '../lib/auth';
 import { ContactRole } from '../tables/nightout';
 
 export const setProfile = spacetimedb.reducer(
@@ -75,4 +76,23 @@ export const removeTrustedContact = spacetimedb.reducer({ id: t.u64() }, (ctx, {
   // Do not reveal whether someone else's contact row exists.
   if (!row || !row.owner.isEqual(ctx.sender)) throw new SenderError('Contact not found');
   ctx.db.trustedContact.id.delete(id);
+});
+
+// Self-only, atomic: `contactIds` must be exactly the caller's current contact ids (same set, no
+// duplicates). Priorities become 1..n in the given order within one transaction, so the backup
+// ladder is never half-updated.
+export const reorderTrustedContacts = spacetimedb.reducer({ contactIds: t.array(t.u64()) }, (ctx, { contactIds }) => {
+  const mine = [...ctx.db.trustedContact.owner.filter(ctx.sender)];
+  const mineIds = new Set(mine.map(c => c.id));
+  const given = new Set(contactIds);
+  const matches =
+    contactIds.length === mine.length &&
+    given.size === contactIds.length &&
+    contactIds.every(id => mineIds.has(id));
+  if (!matches) throw new SenderError('Contact list does not match');
+  contactIds.forEach((id, index) => {
+    const row = ctx.db.trustedContact.id.find(id)!;
+    ctx.db.trustedContact.id.update({ ...row, priority: index + 1 });
+  });
+  audit(ctx, 'reorder_trusted_contacts', `count=${contactIds.length}`);
 });

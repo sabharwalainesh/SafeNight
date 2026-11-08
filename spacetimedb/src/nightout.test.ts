@@ -315,3 +315,54 @@ describe('C1 views', () => {
     expect(m.myContacts(test.viewContext(maya))).toHaveLength(0);
   });
 });
+
+describe('reorder_trusted_contacts', () => {
+  function contactsOf(test: Harness, owner: Identity) {
+    return [...test.db.trustedContact.owner.filter(owner)].sort((a, b) => a.priority - b.priority);
+  }
+  function setupContacts() {
+    const s = setup();
+    const jordan = principal('jordan');
+    s.test.withReducerTx(jordan, ctx => m.setProfile(ctx, { displayName: 'Jordan', avatarEmoji: '🙂' }));
+    s.test.withReducerTx(s.sam, ctx => {
+      m.addTrustedContact(ctx, { contact: s.id(s.maya), role: { tag: 'buddy' }, messagingConsent: true, priority: 1 });
+      m.addTrustedContact(ctx, { contact: s.id(jordan), role: { tag: 'backup_buddy' }, messagingConsent: true, priority: 2 });
+      m.addTrustedContact(ctx, { contact: s.id(s.alex), role: { tag: 'emergency' }, messagingConsent: false, priority: 3 });
+    });
+    return { ...s, jordan };
+  }
+
+  it('reassigns priorities 1..n atomically in the given order', () => {
+    const s = setupContacts();
+    const before = contactsOf(s.test, s.id(s.sam));
+    expect(before.map(c => c.priority)).toEqual([1, 2, 3]);
+    const reversed = [...before].reverse().map(c => c.id);
+    s.test.withReducerTx(s.sam, ctx => m.reorderTrustedContacts(ctx, { contactIds: reversed }));
+    const after = contactsOf(s.test, s.id(s.sam));
+    expect(after.map(c => c.id)).toEqual(reversed);
+    expect(after.map(c => c.priority)).toEqual([1, 2, 3]);
+    expect([...s.test.db.auditEvent.iter()].some(a => a.action === 'reorder_trusted_contacts')).toBe(true);
+  });
+
+  it('rejects a list that is not exactly the caller\'s contacts', () => {
+    const s = setupContacts();
+    const ids = contactsOf(s.test, s.id(s.sam)).map(c => c.id);
+    expect(() =>
+      s.test.withReducerTx(s.sam, ctx => m.reorderTrustedContacts(ctx, { contactIds: ids.slice(1) }))
+    ).toThrow('Contact list does not match');
+    expect(() =>
+      s.test.withReducerTx(s.sam, ctx => m.reorderTrustedContacts(ctx, { contactIds: [ids[0]!, ids[0]!, ids[1]!] }))
+    ).toThrow('Contact list does not match');
+    expect(contactsOf(s.test, s.id(s.sam)).map(c => c.priority)).toEqual([1, 2, 3]);
+  });
+
+  it('rejects another user\'s contact ids', () => {
+    const s = setupContacts();
+    const samIds = contactsOf(s.test, s.id(s.sam)).map(c => c.id);
+    // Alex has no contacts; Sam's ids must not be reorderable by Alex.
+    expect(() =>
+      s.test.withReducerTx(s.alex, ctx => m.reorderTrustedContacts(ctx, { contactIds: samIds }))
+    ).toThrow('Contact list does not match');
+    expect(contactsOf(s.test, s.id(s.sam)).map(c => c.priority)).toEqual([1, 2, 3]);
+  });
+});

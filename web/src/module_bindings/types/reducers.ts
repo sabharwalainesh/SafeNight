@@ -36,6 +36,7 @@ import ModerateVenueReportReducer from "../moderate_venue_report_reducer";
 import PingReducer from "../ping_reducer";
 import PostLocationReducer from "../post_location_reducer";
 import RemoveTrustedContactReducer from "../remove_trusted_contact_reducer";
+import ReorderTrustedContactsReducer from "../reorder_trusted_contacts_reducer";
 import ReportConcernReducer from "../report_concern_reducer";
 import ReportConsumptionReducer from "../report_consumption_reducer";
 import ResetDemoReducer from "../reset_demo_reducer";
@@ -82,6 +83,7 @@ export type ModerateVenueReportParams = __Infer<typeof ModerateVenueReportReduce
 export type PingParams = __Infer<typeof PingReducer>;
 export type PostLocationParams = __Infer<typeof PostLocationReducer>;
 export type RemoveTrustedContactParams = __Infer<typeof RemoveTrustedContactReducer>;
+export type ReorderTrustedContactsParams = __Infer<typeof ReorderTrustedContactsReducer>;
 export type ReportConcernParams = __Infer<typeof ReportConcernReducer>;
 export type ReportConsumptionParams = __Infer<typeof ReportConsumptionReducer>;
 export type ResetDemoParams = __Infer<typeof ResetDemoReducer>;

@@ -35,7 +35,7 @@ _Owner: Person A (Claude Max). Edit only this section._
 | Area | Decision | Why |
 |---|---|---|
 | Backend | **SpacetimeDB 2.14.1 TypeScript module** in `spacetimedb/`. No separate API server. | Track 2 requires the majority of the backend on Spacetime. TypeScript modules support procedures with HTTP (stable), views, scheduled reducers and procedures, event tables, env vars, HTTP handlers, and in-process unit tests. One language across module and client. |
-| Agent | **Nemotron via NVIDIA NIM** (`https://integrate.api.nvidia.com/v1/chat/completions`, OpenAI-compatible tool calling) called from a **scheduled SpacetimeDB procedure**. Model is configurable through the `NEMOTRON_MODEL` env var (default `nvidia/nemotron-3-super-120b-a12b`). | Track 1 requires Nemotron with event-driven, multi-step, tool-using behavior. A procedure keeps the call inside Spacetime; tool validation, consent, state, timers stay in reducers. |
+| Agent | **Nemotron via NVIDIA NIM** (`https://integrate.api.nvidia.com/v1/chat/completions`, OpenAI-compatible tool calling) called from a **scheduled SpacetimeDB procedure**. Model is configurable through the `NEMOTRON_MODEL` env var (default `nvidia/nemotron-3.5-super-vl-120b-a12b`; the older `nemotron-3-super` id returns 404 on the team's NIM key). | Track 1 requires Nemotron with event-driven, multi-step, tool-using behavior. A procedure keeps the call inside Spacetime; tool validation, consent, state, timers stay in reducers. |
 | Key handling | `NEMOTRON_API_KEY` is an **optional** module env var. Absent key = **simulated planner** (deterministic, every receipt labeled `SIMULATED`). Present key = real Nemotron. Nothing else changes. | The key arrives later. The whole flow must be testable now. |
 | Client | **React 19 + Vite + TypeScript** in `web/`, using `spacetimedb/react` hooks and generated bindings. Four demo personas in four browser tabs. | Fastest path to a judge-ready demo. Mobile-first responsive layout, dark theme. |
 | iOS / watchOS | **Deferred.** No official Swift SDK for SpacetimeDB; no iOS simulator runtime is installed on the build machine. Revisit after the web demo is solid. | Not required by either track. |
@@ -63,6 +63,10 @@ SafeNight/
 ├── web/                        React client                                              [B]
 │   ├── src/module_bindings/    GENERATED. Only A regenerates and commits this.           [A]
 │   └── src/...                 everything else in web/                                   [B]
+├── mobile/                     Expo (React Native) app for Expo Go; reuses web/src/features/*/live  [A]
+├── bridge/                     standalone coordination bridge (Photon texting, ElevenLabs calls)    [B]
+├── video/                      Remotion video project                                                [B]
+├── docs/video/                 Playwright-recorded demo video sources, captions, narration           [A]
 ├── scripts/                    demo seeding, e2e driver, test runners                    [A]
 ├── docs/ARCHITECTURE.md        the contract: tables, reducers, views, procedures         [A writes, B reads]
 ├── docs/DEMO_SCRIPT.md         judge demo walkthrough                                    [B]
@@ -175,8 +179,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-07 — **Demo video delivered.** `docs/video/` holds the slides, the four-phone stage, the Playwright recorder, captions, `SafeNight-demo.srt`, and `VIDEO_SCRIPT.md` (timestamped narration). Output `~/Downloads/SafeNight-demo.mp4` (4:12, 1080p, burned-in captions, no audio; the user records the voiceover). The live-demo section was captured against the real module with real Nemotron plans; messaging labeled SIMULATED; transport shows the provider-link fallback.
 
+- 2026-11-08 — **Follow-ups for B shipped (module 0.8.1):** default Nemotron model is now `nvidia/nemotron-3.5-super-vl-120b-a12b` (old id 404s on this account), atomic `reorder_trusted_contacts`, phone privacy confirmed fixed (`user_profile.phoneE164` always empty; use `my_phone`/`set_phone`). 99/99 tests. B's bridge-feed proposal (module → bridge server-side) is open for agreement; `bridge/` stays B-owned.
+
 **In progress**
-- Nothing. A-track complete. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
+- `mobile/`: Expo app for Expo Go (two phones + two laptops at judging), reusing B's live adapters and the generated bindings; standalone package like `bridge/`. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
 
 **Previously in progress (done)**
 - C3-A.2 live tuning: multi-round tool loop inside `agent_step` (tool results fed back to the model, max 3 rounds), labeled deterministic policy receipts (`source: policy`) that guarantee the transport stage ends in a proposed ride plan, geocodable demo venue, pickup coordinates in ride deep links.

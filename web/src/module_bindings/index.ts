@@ -64,6 +64,7 @@ import ModerateVenueReportReducer from "./moderate_venue_report_reducer";
 import PingReducer from "./ping_reducer";
 import PostLocationReducer from "./post_location_reducer";
 import RemoveTrustedContactReducer from "./remove_trusted_contact_reducer";
+import ReorderTrustedContactsReducer from "./reorder_trusted_contacts_reducer";
 import ReportConcernReducer from "./report_concern_reducer";
 import ReportConsumptionReducer from "./report_consumption_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
@@ -428,6 +429,7 @@ const reducersSchema = __reducers(
   __reducerSchema("ping", PingReducer),
   __reducerSchema("post_location", PostLocationReducer),
   __reducerSchema("remove_trusted_contact", RemoveTrustedContactReducer),
+  __reducerSchema("reorder_trusted_contacts", ReorderTrustedContactsReducer),
   __reducerSchema("report_concern", ReportConcernReducer),
   __reducerSchema("report_consumption", ReportConsumptionReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
