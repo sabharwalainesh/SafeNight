@@ -64,11 +64,11 @@ cd bridge && PHONE_JORDAN="$(node --env-file=.env -e 'process.stdout.write(proce
 ```
 This uses the ElevenLabs agent "SafeNight Buddy".
 
-**Call Alex directly:** use the ElevenLabs agent "SafeNight Check-in", `agent_8501m6xc1yhkfbqvjcp5ckss1tag`, created this session. Send it the dynamic variables `person_name`, `friends`, `minutes_since` and `location_text`.
+**Call Alex directly:** use the ElevenLabs agent "SafeNight Check-in" (its ID is `ELEVENLABS_CHECKIN_AGENT_ID` in the local `bridge/.env`). Send it the dynamic variables `person_name`, `friends`, `minutes_since` and `location_text`.
 
-**Text the user's phone:** send an iMessage through Photon, project `pho_prj_01m6wvkm66eh78gczbsptzazp7`:
-- sender `pho_usr_1zj8c1fqe8g19tq8xa99n9y8my` (shared line +1 628-316-6196);
-- space `pho_spc_0cvazwjjzphb0v4yyr5z6zw4nr`;
+**Text the user's phone:** send an iMessage through Photon, using the project in `PHOTON_PROJECT_ID`:
+- sender `PHOTON_IMESSAGE_SENDER_ID` (the shared iMessage line);
+- space `PHOTON_IMESSAGE_SPACE_ID`;
 - this works today with the Photon MCP `sendMessage`.
 
 Plain SMS stays blocked until a 10DLC campaign is assigned (`SMS_CAMPAIGN_NOT_ASSIGNED`).
