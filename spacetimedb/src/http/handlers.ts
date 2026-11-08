@@ -3,6 +3,7 @@ import { spacetimedb } from '../schema';
 import { DEFAULT_NEMOTRON_MODEL, MODULE_VERSION } from '../lib/constants';
 import { envOf } from '../lib/env';
 import { timingSafeEqual, twilioSignature } from '../lib/hmac';
+import { MAX_WEBHOOK_BODY_BYTES, parseForm } from '../lib/http';
 
 const json = (body: unknown, status = 200) =>
   new SyncResponse(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -21,18 +22,6 @@ export const health = spacetimedb.httpHandler((ctx, _req) => {
   });
 });
 
-function parseForm(body: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const pair of body.split('&')) {
-    if (!pair) continue;
-    const idx = pair.indexOf('=');
-    const k = decodeURIComponent((idx === -1 ? pair : pair.slice(0, idx)).replace(/\+/g, ' '));
-    const v = idx === -1 ? '' : decodeURIComponent(pair.slice(idx + 1).replace(/\+/g, ' '));
-    out[k] = v;
-  }
-  return out;
-}
-
 /**
  * POST /webhooks/twilio: Twilio message status callbacks. Only meaningful when messaging is live.
  * Validates `X-Twilio-Signature` (HMAC-SHA1 of the public URL + sorted form params, keyed by the auth
@@ -44,7 +33,9 @@ export const twilioWebhook = spacetimedb.httpHandler((ctx, req) => {
   const live = Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM_NUMBER);
   if (!live || !env.TWILIO_AUTH_TOKEN) return json({ error: 'messaging not configured' }, 404);
   const body = req.text();
+  if (body.length > MAX_WEBHOOK_BODY_BYTES) return json({ error: 'payload too large' }, 413);
   const params = parseForm(body);
+  if (!params) return json({ error: 'malformed body' }, 400);
   const signature = req.headers.get('x-twilio-signature') ?? '';
   const expected = twilioSignature(env.TWILIO_AUTH_TOKEN, req.url, params);
   if (!signature || !timingSafeEqual(signature, expected)) return json({ error: 'invalid signature' }, 403);

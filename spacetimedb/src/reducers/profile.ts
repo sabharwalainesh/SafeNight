@@ -10,7 +10,11 @@ export const setProfile = spacetimedb.reducer(
     if (name.length > 40) throw new SenderError('Display name too long');
     const existing = ctx.db.userProfile.identity.find(ctx.sender);
     if (existing) {
-      ctx.db.userProfile.identity.update({ ...existing, displayName: name, avatarEmoji });
+      // Migrate a number stored on the public row before the security review into the private table.
+      if (existing.phoneE164 !== '' && !ctx.db.userPhone.identity.find(ctx.sender)) {
+        ctx.db.userPhone.insert({ identity: ctx.sender, phoneE164: existing.phoneE164, updatedAt: ctx.timestamp });
+      }
+      ctx.db.userProfile.identity.update({ ...existing, displayName: name, avatarEmoji, phoneE164: '' });
     } else {
       ctx.db.userProfile.insert({
         identity: ctx.sender,
@@ -25,6 +29,7 @@ export const setProfile = spacetimedb.reducer(
 );
 
 // Self-only: E.164 phone number used for consented SMS when Twilio is configured. Empty clears it.
+// Stored in the private `user_phone` table; the public profile row never carries it.
 export const setPhone = spacetimedb.reducer({ phoneE164: t.string() }, (ctx, { phoneE164 }) => {
   const value = phoneE164.trim();
   if (value.length > 0 && !/^\+[1-9]\d{6,14}$/.test(value)) {
@@ -32,7 +37,15 @@ export const setPhone = spacetimedb.reducer({ phoneE164: t.string() }, (ctx, { p
   }
   const existing = ctx.db.userProfile.identity.find(ctx.sender);
   if (!existing) throw new SenderError('Set up your profile first');
-  ctx.db.userProfile.identity.update({ ...existing, phoneE164: value });
+  if (existing.phoneE164 !== '') ctx.db.userProfile.identity.update({ ...existing, phoneE164: '' });
+  const current = ctx.db.userPhone.identity.find(ctx.sender);
+  if (value.length === 0) {
+    if (current) ctx.db.userPhone.identity.delete(ctx.sender);
+    return;
+  }
+  const row = { identity: ctx.sender, phoneE164: value, updatedAt: ctx.timestamp };
+  if (current) ctx.db.userPhone.identity.update(row);
+  else ctx.db.userPhone.insert(row);
 });
 
 export const addTrustedContact = spacetimedb.reducer(

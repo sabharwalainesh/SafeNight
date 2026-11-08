@@ -5,7 +5,7 @@ import { addEvent, isOpenStatus, sendAlert, handoffRecipients } from '../safety'
 import { minutesAfter } from '../time';
 import { isTerminalJob } from './jobs';
 import { recipientAllowed } from './context';
-import { isTemplateName, renderTemplate } from './templates';
+import { isModelTemplate, renderTemplate } from './templates';
 import { isToolName, MAX_OPEN_FOLLOWUPS, validateArgs, type ToolCall } from './tools';
 import type { TransportInput, TransportResult } from './transport';
 import { twilioConfig } from './twilio';
@@ -14,6 +14,8 @@ import { sanitizeOptions } from './links';
 export type SegmentInput = {
   jobId: bigint;
   planVersion: number;
+  /** The wake event this plan answers; hand_off is only valid for the contact-seeking events. */
+  event: string;
   calls: ToolCall[];
   startIndex: number;
   simulated: boolean;
@@ -44,7 +46,48 @@ export type SegmentOutcome = {
 type Job = NonNullable<ReturnType<Ctx['db']['agentJob']['id']['find']>>;
 type Incident = NonNullable<ReturnType<Ctx['db']['incident']['id']['find']>>;
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
+/** Display name of the most recently messaged participant (other than `exclude`) who has NOT acknowledged. */
+function previousContactName(ctx: Ctx, jobId: bigint, incidentId: bigint, exclude: Identity): string | undefined {
+  let best: { id: bigint; who: Identity } | undefined;
+  for (const n of ctx.db.notification.jobId.filter(jobId)) {
+    if (n.recipient.isEqual(exclude)) continue;
+    let acknowledged = false;
+    for (const p of ctx.db.incidentParticipant.byIncidentUser.filter([incidentId, n.recipient])) acknowledged = p.acknowledgedAt !== undefined;
+    if (acknowledged) continue;
+    if (!best || n.id > best.id) best = { id: n.id, who: n.recipient };
+  }
+  return best ? ctx.db.userProfile.identity.find(best.who)?.displayName : undefined;
+}
+
+/**
+ * Every template slot is filled from the database. Model-supplied vars are never used: all
+ * placeholders in TEMPLATES are server-known, so there is nothing safe for the model to add.
+ */
+function templateVars(ctx: Ctx, job: { id: bigint }, incident: { id: bigint; sessionId: bigint; subject: Identity }, target: Identity): Record<string, string> {
+  const name = (who: Identity | undefined) => (who ? ctx.db.userProfile.identity.find(who)?.displayName : undefined) ?? 'a friend';
+  const session = ctx.db.nightSession.id.find(incident.sessionId);
+  const previous = previousContactName(ctx, job.id, incident.id, target) ?? 'a friend';
+  return {
+    subjectName: name(incident.subject),
+    helperName: name(target),
+    previousContactName: previous,
+    primaryName: previous,
+    organizerName: name(session?.organizer),
+  };
+}
+
+const HANDOFF_EVENTS = new Set(['incident_opened', 'buddy_nonresponse', 'buddy_declined']);
+
+/** True when some participant other than the subject can still be messaged and has not been contacted for this job. */
+function hasEligibleContact(ctx: Ctx, job: { id: bigint }, incident: Incident): boolean {
+  const contacted = new Set<string>();
+  for (const n of ctx.db.notification.jobId.filter(job.id)) contacted.add(n.recipient.toHexString());
+  for (const p of ctx.db.incidentParticipant.incidentId.filter(incident.id)) {
+    if (p.userId.isEqual(incident.subject) || contacted.has(p.userId.toHexString())) continue;
+    if (recipientAllowed(ctx, incident, p.userId)) return true;
+  }
+  return false;
+}
 
 export function receipt(
   ctx: Ctx,
@@ -201,15 +244,13 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           rec(i, call.name, args, 'rejected', {}, 'only the incident subject\'s location age is readable');
           break;
         }
+        // Age and accuracy only. Coordinates never enter receipts (every participant can read them) or the model context.
         let result: unknown = { available: false };
         for (const loc of ctx.db.latestLocation.bySessionUser.filter([incident.sessionId, incident.subject])) {
           result = {
             available: true,
             ageMinutes: Number((ctx.timestamp.microsSinceUnixEpoch - loc.recordedAt.microsSinceUnixEpoch) / 60_000_000n),
-            lat: round2(loc.lat),
-            lng: round2(loc.lng),
             accuracyM: loc.accuracyM,
-            approximate: true,
           };
         }
         const loc = result as { available: boolean; ageMinutes?: number };
@@ -245,15 +286,15 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           break;
         }
         const template = call.name === 'send_approved_message' ? (args.template as string) : 'ack_request';
-        if (!isTemplateName(template)) {
-          rec(i, call.name, args, 'rejected', {}, 'unknown_template');
+        if (!isModelTemplate(template)) {
+          rec(i, call.name, args, 'rejected', {}, 'template_not_allowed');
           break;
         }
-        const vars = { ...((args.vars as Record<string, string> | undefined) ?? {}), subjectName };
-        const body = renderTemplate(template, vars);
+        // Every slot is filled from the database; nothing the planner wrote reaches a message body.
+        const body = renderTemplate(template, templateVars(ctx, job, incident, target));
         const env = envOf(ctx);
         const twilio = twilioConfig(env);
-        const phone = ctx.db.userProfile.identity.find(target)?.phoneE164 ?? '';
+        const phone = ctx.db.userPhone.identity.find(target)?.phoneE164 ?? '';
         const channel = call.name === 'send_approved_message' && twilio && phone.length > 0 ? 'sms' : 'in_app';
         const n = ctx.db.notification.insert({
           id: 0n,
@@ -388,7 +429,17 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           `Ride plan #${planId} proposed${dropped ? `; ${dropped} link(s) dropped by the allowlist` : ''}`);
         break;
       }
+      case 'no_action': {
+        rec(i, call.name, args, 'executed', { reason: (args.reason as string) || '' }, '', 'No action needed');
+        break;
+      }
       case 'hand_off': {
+        // A hand-off ends automated coordination, so it is only valid while the agent is still looking
+        // for a helper and nobody eligible is left. A ride in progress is never a reason to hand off.
+        if (!HANDOFF_EVENTS.has(input.event) || hasEligibleContact(ctx, job, incident)) {
+          rec(i, call.name, args, 'rejected', {}, 'hand_off_not_applicable');
+          break;
+        }
         ctx.db.agentJob.id.update({ ...job, status: { tag: 'handed_off' }, lastEvent: 'handed_off', updatedAt: ctx.timestamp });
         for (const t of ctx.db.followupTimer.jobId.filter(job.id)) ctx.db.followupTimer.scheduledId.delete(t.scheduledId);
         const reason = (args.reason as string) || 'no eligible contact remains';
@@ -398,7 +449,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           sendAlert(ctx, who, incident.id, 'incident_update', `SafeNight could not reach a helper for ${subjectName}. Please take over coordination.`);
         }
         out.handedOff = true;
-        rec(i, call.name, args, 'executed', { reason }, '', `Handed off to the organizer: ${reason}`);
+        rec(i, call.name, args, 'executed', { reason, recipients: takers.length }, '', `Handed off to a human participant: ${reason}`);
         out.stopped = true;
         out.nextIndex = input.calls.length;
         return out;

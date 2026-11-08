@@ -86,6 +86,7 @@ import VoteVenueReportReducer from "./vote_venue_report_reducer";
 import ClientPresenceRow from "./client_presence_table";
 import DemoPersonasRow from "./demo_personas_table";
 import DriverAssignmentRow from "./driver_assignment_table";
+import KnownPeopleRow from "./known_people_table";
 import MyAgentActionsRow from "./my_agent_actions_table";
 import MyAgentJobsRow from "./my_agent_jobs_table";
 import MyAgentPlansRow from "./my_agent_plans_table";
@@ -97,6 +98,7 @@ import MyIncidentParticipantsRow from "./my_incident_participants_table";
 import MyIncidentsRow from "./my_incidents_table";
 import MyInvitesRow from "./my_invites_table";
 import MyNotificationsRow from "./my_notifications_table";
+import MyPhoneRow from "./my_phone_table";
 import MyPrivacySettingsRow from "./my_privacy_settings_table";
 import MyRidePlansRow from "./my_ride_plans_table";
 import MyRostersRow from "./my_rosters_table";
@@ -238,6 +240,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, DemoPersonasRow),
+  knownPeople: __table({
+    name: 'known_people',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, KnownPeopleRow),
   myAgentActions: __table({
     name: 'my_agent_actions',
     indexes: [
@@ -315,6 +324,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyNotificationsRow),
+  myPhone: __table({
+    name: 'my_phone',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyPhoneRow),
   myPrivacySettings: __table({
     name: 'my_privacy_settings',
     indexes: [

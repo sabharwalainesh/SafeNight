@@ -1,4 +1,5 @@
 import { t, type Infer } from 'spacetimedb/server';
+import { Identity } from 'spacetimedb';
 import { spacetimedb } from '../schema';
 import {
   checkin,
@@ -10,6 +11,16 @@ import {
 } from '../tables/safety';
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+/**
+ * The person an incident is about must not learn who reported them (no public accusations, no
+ * retaliation). When the caller is the subject and did not open the incident themselves, the
+ * reporter's identity is masked in every per-user incident view.
+ */
+function maskReporterFor(viewer: Identity, inc: { subject: Identity; openedBy: Identity }): boolean {
+  return inc.subject.isEqual(viewer) && !inc.openedBy.isEqual(viewer);
+}
+const MASKED_NAME = 'A group member';
 
 const visibleLocationRow = t.row('VisibleLocationRow', {
   id: t.u64().primaryKey(),
@@ -113,7 +124,7 @@ export const myIncidents = spacetimedb.view(
         kind: inc.kind,
         severity: inc.severity,
         status: inc.status,
-        openedBy: inc.openedBy,
+        openedBy: maskReporterFor(ctx.sender, inc) ? Identity.zero() : inc.openedBy,
         openedAt: inc.openedAt,
         resolvedAt: inc.resolvedAt,
         resolvedBy: inc.resolvedBy,
@@ -143,13 +154,16 @@ export const myIncidentParticipants = spacetimedb.view(
     for (const mine of ctx.db.incidentParticipant.userId.filter(ctx.sender)) {
       if (seen.has(mine.incidentId)) continue;
       seen.add(mine.incidentId);
+      const inc = ctx.db.incident.id.find(mine.incidentId);
+      const mask = inc ? maskReporterFor(ctx.sender, inc) : false;
       for (const p of ctx.db.incidentParticipant.incidentId.filter(mine.incidentId)) {
         rows.push({
           id: p.id,
           incidentId: p.incidentId,
           userId: p.userId,
           displayName: ctx.db.userProfile.identity.find(p.userId)?.displayName ?? 'Unknown',
-          role: p.role,
+          // The subject sees the reporter as an ordinary buddy.
+          role: mask && p.role.tag === 'reporter' ? { tag: 'buddy' } : p.role,
           acknowledgedAt: p.acknowledgedAt,
         });
       }
@@ -180,15 +194,21 @@ export const myIncidentEvents = spacetimedb.view(
     for (const mine of ctx.db.incidentParticipant.userId.filter(ctx.sender)) {
       if (seen.has(mine.incidentId)) continue;
       seen.add(mine.incidentId);
+      const inc = ctx.db.incident.id.find(mine.incidentId);
+      const mask = inc ? maskReporterFor(ctx.sender, inc) : false;
       for (const e of ctx.db.incidentEvent.incidentId.filter(mine.incidentId)) {
+        // Events written by the reporter (opening, repeated concerns) are attributed to "a group member" for the subject.
+        const hideActor = mask && inc != null && e.actor.isEqual(inc.openedBy);
         rows.push({
           id: e.id,
           incidentId: e.incidentId,
           at: e.at,
-          actor: e.actor,
-          actorName: e.actor.isEqual(ctx.sender)
-            ? (ctx.db.userProfile.identity.find(e.actor)?.displayName ?? 'You')
-            : (ctx.db.userProfile.identity.find(e.actor)?.displayName ?? 'SafeNight'),
+          actor: hideActor ? Identity.zero() : e.actor,
+          actorName: hideActor
+            ? MASKED_NAME
+            : e.actor.isEqual(ctx.sender)
+              ? (ctx.db.userProfile.identity.find(e.actor)?.displayName ?? 'You')
+              : (ctx.db.userProfile.identity.find(e.actor)?.displayName ?? 'SafeNight'),
           kind: e.kind,
           detail: e.detail,
           simulated: e.simulated,

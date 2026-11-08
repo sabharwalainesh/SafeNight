@@ -15,6 +15,17 @@ export const TEMPLATES = {
 
 export type TemplateName = keyof typeof TEMPLATES;
 export const TEMPLATE_NAMES = Object.keys(TEMPLATES) as TemplateName[];
+
+/**
+ * Templates the planner (Nemotron or the simulated planner) may select. `incident_update` and
+ * `organizer_handoff` carry free-text slots and are reserved for module code, so no model text can
+ * ever reach a message body. Every variable is filled server-side; model-supplied vars are ignored.
+ */
+export const MODEL_TEMPLATE_NAMES = ['buddy_alert', 'backup_alert', 'ack_request', 'ride_booked', 'ride_options_ready'] as const;
+export type ModelTemplateName = (typeof MODEL_TEMPLATE_NAMES)[number];
+export function isModelTemplate(name: string): name is ModelTemplateName {
+  return (MODEL_TEMPLATE_NAMES as readonly string[]).includes(name);
+}
 const MAX_VAR_LENGTH = 120;
 
 export function isTemplateName(name: string): name is TemplateName {
@@ -24,7 +35,8 @@ export function isTemplateName(name: string): name is TemplateName {
 export function renderTemplate(name: TemplateName, vars: Record<string, string>): string {
   return TEMPLATES[name].replace(/\{(\w+)\}/g, (_m, key: string) => {
     const v = vars[key];
-    if (v === undefined) return '…';
+    // A slot the server could not fill reads as a person, never as a stray placeholder.
+    if (v === undefined || v.trim().length === 0) return 'a friend';
     return v.length > MAX_VAR_LENGTH ? v.slice(0, MAX_VAR_LENGTH) + '…' : v;
   });
 }

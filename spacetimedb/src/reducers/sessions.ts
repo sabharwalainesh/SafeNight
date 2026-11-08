@@ -15,6 +15,7 @@ import {
 } from '../lib/auth';
 import { INVITE_ALPHABET, INVITE_CODE_LENGTH, MAX_TTL_MINUTES } from '../lib/constants';
 import { isAtOrBefore, minutesAfter } from '../lib/time';
+import { enforceLimit, LIMITS } from '../lib/limits';
 import { ScheduleAt } from 'spacetimedb';
 import { armCheckinTimer, clearCheckinTimers } from '../lib/safety';
 import { clearSessionExpiry, closeSession } from '../lib/nightout';
@@ -86,6 +87,11 @@ export const createInvite = spacetimedb.reducer(
       throw new SenderError('ttlMinutes must be between 1 and 1440');
     }
     if (maxUses < 1) throw new SenderError('maxUses must be at least 1');
+    let open = 0;
+    for (const inv of ctx.db.invite.sessionId.filter(sessionId)) {
+      if (inv.revokedAt === undefined && !isAtOrBefore(inv.expiresAt, ctx.timestamp) && inv.uses < inv.maxUses) open++;
+    }
+    enforceLimit(open, LIMITS.openInvitesPerSession, 'Too many open invites; revoke one first');
     ctx.db.invite.insert({
       id: 0n,
       sessionId,

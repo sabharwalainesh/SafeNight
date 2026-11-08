@@ -471,6 +471,9 @@ export const Invite = __t.object("Invite", {
 });
 export type Invite = __Infer<typeof Invite>;
 
+export const KnownPeople = __t.object("KnownPeople", {});
+export type KnownPeople = __Infer<typeof KnownPeople>;
+
 export const LatestLocation = __t.object("LatestLocation", {
   id: __t.u64(),
   locationId: __t.u64(),
@@ -569,6 +572,9 @@ export type MyInvites = __Infer<typeof MyInvites>;
 
 export const MyNotifications = __t.object("MyNotifications", {});
 export type MyNotifications = __Infer<typeof MyNotifications>;
+
+export const MyPhone = __t.object("MyPhone", {});
+export type MyPhone = __Infer<typeof MyPhone>;
 
 export const MyPrivacySettings = __t.object("MyPrivacySettings", {});
 export type MyPrivacySettings = __Infer<typeof MyPrivacySettings>;
@@ -806,6 +812,13 @@ export const TrustedContact = __t.object("TrustedContact", {
   createdAt: __t.timestamp(),
 });
 export type TrustedContact = __Infer<typeof TrustedContact>;
+
+export const UserPhone = __t.object("UserPhone", {
+  identity: __t.identity(),
+  phoneE164: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type UserPhone = __Infer<typeof UserPhone>;
 
 export const UserPrivacySettings = __t.object("UserPrivacySettings", {
   identity: __t.identity(),

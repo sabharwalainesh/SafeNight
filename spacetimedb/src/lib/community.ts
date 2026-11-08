@@ -55,15 +55,15 @@ export function requireDemoAllowed(ctx: Ctx) {
   if (envOf(ctx).APP_ENV === 'production') throw new SenderError('Demo controls are disabled in production');
 }
 
-// Clearly labeled demo resources around one fictional campus neighborhood (lat/lng are plausible, not real places).
+// Clearly labeled demo resources around the demo venue (Deep Ellum, Dallas). Coordinates are plausible, not real places.
 export const DEMO_RESOURCES: { type: string; name: string; lat: number; lng: number; hours: string }[] = [
-  { type: 'campus_safety', name: 'Campus Safety Office (demo)', lat: 40.7291, lng: -73.9965, hours: '24/7' },
-  { type: 'staffed_venue', name: 'Student Union front desk (demo)', lat: 40.7302, lng: -73.9971, hours: '7:00–02:00' },
-  { type: 'medical', name: 'Urgent care clinic (demo)', lat: 40.7315, lng: -73.9939, hours: '08:00–00:00' },
-  { type: 'transit_stop', name: 'Night bus stop N1 (demo)', lat: 40.7284, lng: -73.9958, hours: 'every 20 min until 04:00' },
-  { type: 'transit_stop', name: 'Subway entrance, west side (demo)', lat: 40.7308, lng: -73.9986, hours: '24/7' },
-  { type: 'pickup_point', name: 'Lit rideshare pickup, library plaza (demo)', lat: 40.7296, lng: -73.9950, hours: 'always' },
-  { type: 'staffed_venue', name: 'Late-night diner with staff (demo)', lat: 40.7277, lng: -73.9979, hours: '18:00–05:00' },
+  { type: 'campus_safety', name: 'Campus Safety Office (demo)', lat: 32.7849, lng: -96.7858, hours: '24/7' },
+  { type: 'staffed_venue', name: 'Student Union front desk (demo)', lat: 32.7861, lng: -96.7847, hours: '7:00–02:00' },
+  { type: 'medical', name: 'Urgent care clinic (demo)', lat: 32.7872, lng: -96.7821, hours: '08:00–00:00' },
+  { type: 'transit_stop', name: 'Night bus stop N1 (demo)', lat: 32.7838, lng: -96.7866, hours: 'every 20 min until 04:00' },
+  { type: 'transit_stop', name: 'Rail station, west side (demo)', lat: 32.7831, lng: -96.7803, hours: '24/7' },
+  { type: 'pickup_point', name: 'Lit rideshare pickup, main plaza (demo)', lat: 32.7846, lng: -96.7833, hours: 'always' },
+  { type: 'staffed_venue', name: 'Late-night diner with staff (demo)', lat: 32.7825, lng: -96.7849, hours: '18:00–05:00' },
 ];
 
 /** Idempotent: inserts missing demo resources, updates existing ones by name. */

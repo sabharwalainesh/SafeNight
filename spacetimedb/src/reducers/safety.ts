@@ -30,6 +30,7 @@ import {
   sendAlert,
 } from '../lib/safety';
 import { isAtOrBefore, isBefore } from '../lib/time';
+import { countRecent, enforceLimit, HOUR_MICROS, LIMITS, MINUTE_MICROS } from '../lib/limits';
 import { closeJobForIncident, completeRidePlans } from '../lib/agent/jobs';
 import { ensureCommunitySchedules } from '../lib/community';
 import { MODULE_VERSION } from '../lib/constants';
@@ -41,6 +42,11 @@ export const postLocation = spacetimedb.reducer(
     if (!sessionIsOpen(session)) throw new SenderError('Session is not active');
     const m = requireActiveMember(ctx, sessionId);
     if (m.sharingScope.tag === 'none') throw new SenderError('Turn on location sharing first');
+    enforceLimit(
+      countRecent(ctx.db.locationUpdate.bySessionUser.filter([sessionId, ctx.sender]), r => r.recordedAt, ctx.timestamp, MINUTE_MICROS),
+      LIMITS.locationsPerMinute,
+      'Too many location updates; slow down'
+    );
     recordLocation(ctx, sessionId, ctx.sender, lat, lng, accuracyM, source);
   }
 );
@@ -52,6 +58,11 @@ export const checkIn = spacetimedb.reducer(
     if (!sessionIsOpen(session)) throw new SenderError('Session is not active');
     requireActiveMember(ctx, sessionId);
     const clean = requireNote(note);
+    enforceLimit(
+      countRecent(ctx.db.checkin.bySessionUser.filter([sessionId, ctx.sender]), c => c.createdAt, ctx.timestamp, MINUTE_MICROS),
+      LIMITS.checkinsPerMinute,
+      'Too many check-ins in a minute; take a breath'
+    );
     ctx.db.checkin.insert({ id: 0n, sessionId, userId: ctx.sender, kind, note: clean, createdAt: ctx.timestamp });
     armCheckinTimer(ctx, sessionId, ctx.sender);
 
@@ -141,6 +152,11 @@ export const reportConcern = spacetimedb.reducer(
     for (const sm of subjectMember) subjectActive = sm.active;
     if (!subjectActive) throw new SenderError('Subject is not in this session');
     const clean = requireNote(note);
+    let mine = 0;
+    for (const r of ctx.db.concernReport.sessionId.filter(sessionId)) {
+      if (r.reporter.isEqual(ctx.sender) && ctx.timestamp.microsSinceUnixEpoch - r.createdAt.microsSinceUnixEpoch <= HOUR_MICROS) mine++;
+    }
+    enforceLimit(mine, LIMITS.concernsPerHour, 'You have reported several concerns this hour; please talk to the organizer directly');
     const bucket = ctx.timestamp.microsSinceUnixEpoch / DEDUPE_BUCKET_MICROS;
     const dedupeKey = `${sessionId}:${subject.toHexString()}:${category.tag}:${bucket}`;
     if (ctx.db.concernReport.dedupeKey.find(dedupeKey)) throw new SenderError('Already reported');

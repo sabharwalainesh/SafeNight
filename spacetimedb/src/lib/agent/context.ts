@@ -65,7 +65,7 @@ export function nextStepHintsFor(event: string): string[] {
       return ['send_approved_message(ride_booked) to the acknowledged helper', 'schedule_followup(5)'];
     case 'pickup_confirmed':
     case 'transport_options_ready':
-      return ['no action unless something is missing; the person confirms home themselves'];
+      return ['call no_action unless something is missing; the person confirms home themselves; never hand_off here'];
     default:
       return ['no automated action is expected for this event'];
   }

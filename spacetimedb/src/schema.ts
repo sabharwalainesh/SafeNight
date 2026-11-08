@@ -7,6 +7,7 @@ import {
   sessionExpiry,
   sessionMember,
   trustedContact,
+  userPhone,
   userProfile,
 } from './tables/nightout';
 import {
@@ -97,6 +98,7 @@ export const spacetimedb = schema(
     clientPresence,
     auditEvent,
     userProfile,
+    userPhone,
     trustedContact,
     nightSession,
     invite,

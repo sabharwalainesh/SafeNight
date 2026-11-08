@@ -122,7 +122,9 @@ export function fetchTransportOptions(ctx: PCtx, input: TransportInput): Transpo
       ],
     };
   } catch (e) {
-    return fail(e instanceof Error ? e.message : String(e));
+    // Only a code reaches receipts: a raw error would echo the request URL, which carries the pickup coordinates.
+    const msg = e instanceof Error ? e.message : String(e);
+    return fail(msg.includes('nominatim') ? 'nominatim_request_failed' : msg.includes('osrm') ? 'osrm_request_failed' : 'transport_request_failed');
   }
 }
 

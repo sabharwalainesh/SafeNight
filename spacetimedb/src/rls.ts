@@ -7,9 +7,9 @@ export const safetyAlertFilter = spacetimedb.clientVisibilityFilter.sql(
   'SELECT * FROM safety_alert WHERE safety_alert.recipient = :sender'
 );
 
-// Members see rows of the sessions they belong to (active or departed). Owners bypass RLS.
+// Active members see rows of the sessions they belong to; someone who left stops receiving them. Owners bypass RLS.
 export const sessionMemberFilter = spacetimedb.clientVisibilityFilter.sql(
-  'SELECT m.* FROM session_member m JOIN session_member me ON m.session_id = me.session_id WHERE me.user_id = :sender'
+  'SELECT m.* FROM session_member m JOIN session_member me ON m.session_id = me.session_id WHERE me.user_id = :sender AND me.active = true'
 );
 // NOTE: equivalent filters on `night_session` (JOIN session_member me ON s.id = me.session_id) and
 // `driver_assignment` (JOIN session_member me ON d.session_id = me.session_id) publish fine but break

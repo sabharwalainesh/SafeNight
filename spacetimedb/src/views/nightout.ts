@@ -9,6 +9,8 @@ import {
   nightSession,
   SharingScope,
   trustedContact,
+  userPhone,
+  userProfile,
 } from '../tables/nightout';
 
 // Sessions where the caller is an active member. Query-builder semijoin: filters on the
@@ -108,6 +110,42 @@ export const myConsents = spacetimedb.view(
       if (!seen.has(g.id)) {
         seen.add(g.id);
         rows.push(g);
+      }
+    }
+    return rows;
+  }
+);
+
+// The caller's own phone number (private table), if set.
+export const myPhone = spacetimedb.view(
+  { name: 'my_phone', public: true },
+  t.option(userPhone.rowType),
+  ctx => ctx.db.userPhone.identity.find(ctx.sender) ?? undefined
+);
+
+// People who share an active session with the caller (plus the caller). Lets a contact picker avoid
+// listing every profile in the database; `user_profile` itself stays public for B's existing reads.
+export const knownPeople = spacetimedb.view(
+  { name: 'known_people', public: true },
+  t.array(userProfile.rowType),
+  ctx => {
+    const seen = new Set<string>();
+    const rows = [];
+    const me = ctx.db.userProfile.identity.find(ctx.sender);
+    if (me) {
+      seen.add(ctx.sender.toHexString());
+      rows.push(me);
+    }
+    for (const mine of ctx.db.sessionMember.userId.filter(ctx.sender)) {
+      if (!mine.active) continue;
+      for (const m of ctx.db.sessionMember.sessionId.filter(mine.sessionId)) {
+        const hex = m.userId.toHexString();
+        if (!m.active || seen.has(hex)) continue;
+        const profile = ctx.db.userProfile.identity.find(m.userId);
+        if (profile) {
+          seen.add(hex);
+          rows.push(profile);
+        }
       }
     }
     return rows;

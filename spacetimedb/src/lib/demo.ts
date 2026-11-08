@@ -14,12 +14,12 @@ export const DEMO_SESSION_HOURS = 6;
 export const DEMO_CHECKIN_MINUTES = 60;
 export const DEMO_GRANT_TTL_MINUTES = 180;
 
-// Simulated starting positions near the seeded demo resources (fictional campus neighborhood).
+// Simulated starting positions near the demo venue (Deep Ellum, Dallas) and the seeded demo resources.
 export const DEMO_LOCATIONS: Record<PersonaId, { lat: number; lng: number }> = {
-  alex: { lat: 40.7293, lng: -73.9962 },
-  sam: { lat: 40.7298, lng: -73.9955 },
-  maya: { lat: 40.7289, lng: -73.997 },
-  jordan: { lat: 40.7305, lng: -73.9948 },
+  alex: { lat: 32.7843, lng: -96.7839 },
+  sam: { lat: 32.7851, lng: -96.7826 },
+  maya: { lat: 32.7836, lng: -96.7852 },
+  jordan: { lat: 32.7858, lng: -96.7815 },
 };
 
 export function isPersonaId(value: string): value is PersonaId {

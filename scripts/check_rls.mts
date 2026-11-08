@@ -20,7 +20,7 @@ function connect(name: string): Promise<{ conn: DbConnection; hex: string; alert
         ctx.subscriptionBuilder()
           .onError((_c, e) => reject(e))
           .onApplied(() => resolve(client))
-          .subscribe([tables.sessionMember, tables.nightSession, tables.driverAssignment, tables.safetyAlert, tables.mySessions, tables.myRosters]);
+          .subscribe([tables.sessionMember, tables.nightSession, tables.driverAssignment, tables.safetyAlert, tables.mySessions, tables.myRosters, tables.myInvites]);
       })
       .build();
     void name;
@@ -42,8 +42,23 @@ await alex.conn.reducers.createSession({
 await alex.conn.reducers.volunteerDriver({ sessionId: [...alex.conn.db.mySessions.iter()].find(s => s.name === name)!.id });
 await sleep(1500);
 
+// A member who leaves must stop receiving the roster (RLS filter requires me.active = true).
+const leaver = await connect('leaver');
+await leaver.conn.reducers.setProfile({ displayName: 'RLS Leaver', avatarEmoji: '🚪' });
+const sessionForInvite = [...alex.conn.db.mySessions.iter()].find(s => s.name === name)!;
+await alex.conn.reducers.createInvite({ sessionId: sessionForInvite.id, ttlMinutes: 30, maxUses: 2 });
+await sleep(800);
+const code = [...alex.conn.db.myInvites.iter()].find(i => i.sessionId === sessionForInvite.id)!.code;
+await leaver.conn.reducers.joinSession({ code });
+await sleep(1000);
+const leaverSeesWhileMember = [...leaver.conn.db.sessionMember.iter()].filter(m => m.sessionId === sessionForInvite.id).length;
+await leaver.conn.reducers.leaveSession({ sessionId: sessionForInvite.id });
+await sleep(1500);
+const leaverSeesAfterLeaving = [...leaver.conn.db.sessionMember.iter()].filter(m => m.sessionId === sessionForInvite.id).length;
+console.log(`leaver sees: while member=${leaverSeesWhileMember} after leaving=${leaverSeesAfterLeaving}`);
+
 const session = [...alex.conn.db.nightSession.iter()].find(s => s.name === name);
-const alexMembers = [...alex.conn.db.sessionMember.iter()].filter(m => session && m.sessionId === session.id).length;
+const alexMembers = [...alex.conn.db.sessionMember.iter()].filter(m => session && m.sessionId === session.id).length; // alex + the departed leaver
 const alexDrivers = [...alex.conn.db.driverAssignment.iter()].filter(d => session && d.sessionId === session.id).length;
 const outSessions = [...outsider.conn.db.nightSession.iter()].length;
 const outMembers = [...outsider.conn.db.sessionMember.iter()].length;
@@ -51,8 +66,12 @@ const outDrivers = [...outsider.conn.db.driverAssignment.iter()].length;
 console.log(`member sees: session=${session ? 1 : 0} members=${alexMembers} drivers=${alexDrivers}`);
 console.log(`outsider sees: members=${outMembers} (filtered) sessions=${outSessions} drivers=${outDrivers} (unfiltered by design, see rls.ts)`);
 // night_session and driver_assignment have no RLS filter on 2.14.1 (see spacetimedb/src/rls.ts); only session_member is row-filtered.
-const ok = !!session && alexMembers === 1 && alexDrivers === 1 && outMembers === 0;
+// Known limitation (verified live on 2.14.1): under the self-join filter, rows other members insert later are
+// not pushed incrementally to existing subscribers (a fresh subscription sees them). Live rosters come from
+// `my_rosters`, which does update. So `alexMembers` is only required to be >= 1 here.
+const ok = !!session && alexMembers >= 1 && alexDrivers === 1 && outMembers === 0 && leaverSeesWhileMember === 2 && leaverSeesAfterLeaving === 0;
 console.log(ok ? 'RLS: PASS' : 'RLS: FAIL');
 alex.conn.disconnect();
 outsider.conn.disconnect();
+leaver.conn.disconnect();
 process.exit(ok ? 0 : 1);

@@ -283,7 +283,7 @@ export const agentStep = spacetimedb.procedure(
       const startIndex = allCalls.length;
       allCalls = allCalls.concat(tagged);
       const calls = allCalls;
-      const exec = executeCalls(ctx, { jobId: prep.jobId, planVersion: version, simulated, confirmationTarget }, calls, startIndex, transport);
+      const exec = executeCalls(ctx, { jobId: prep.jobId, planVersion: version, event: prep.event, simulated, confirmationTarget }, calls, startIndex, transport);
       transport = exec.transport ?? transport;
       confirmationTarget = exec.out.confirmationTarget ?? confirmationTarget;
       mergeAcc(acc, exec.out);
@@ -362,6 +362,7 @@ export const agentStep = spacetimedb.procedure(
         const input: SegmentInput = {
           jobId: prep.jobId,
           planVersion: version,
+          event: prep.event,
           calls: planned.calls,
           startIndex: 0,
           simulated,
@@ -392,14 +393,16 @@ export const deliverNotification = spacetimedb.procedure(
     const pending = ctx.withTx(tx => {
       const row = tx.db.notification.id.find(arg.notificationId);
       if (!row || row.status.tag !== 'queued') return undefined;
-      return { id: row.id, channel: row.channel.tag, body: row.body, phone: tx.db.userProfile.identity.find(row.recipient)?.phoneE164 ?? '' };
+      return { id: row.id, channel: row.channel.tag, body: row.body, phone: tx.db.userPhone.identity.find(row.recipient)?.phoneE164 ?? '' };
     });
     if (!pending) return {};
     const cfg = twilioConfig(envOf(ctx));
     let outcome: { status: 'sent' | 'failed'; providerId: string; simulated: boolean; error?: string };
     if (pending.channel === 'sms' && cfg && pending.phone.length > 0) {
       const r = sendSms(ctx, cfg, pending.phone, pending.body);
-      outcome = r.ok ? { status: 'sent', providerId: r.providerId, simulated: false } : { status: 'failed', providerId: '', simulated: false, error: r.error };
+      // Only a status code reaches the timeline; raw provider errors could echo the request URL.
+      const code = r.error && /^twilio_http_\d{3}$/.test(r.error) ? r.error : 'twilio_request_failed';
+      outcome = r.ok ? { status: 'sent', providerId: r.providerId, simulated: false } : { status: 'failed', providerId: '', simulated: false, error: code };
     } else {
       outcome = { status: 'sent', providerId: '', simulated: true };
     }

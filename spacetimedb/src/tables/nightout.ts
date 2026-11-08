@@ -32,8 +32,20 @@ export const userProfile = table(
     avatarEmoji: t.string(),
     phoneVerified: t.bool(),
     createdAt: t.timestamp(),
-    // E.164 number for consented SMS; empty means in-app only. Added in C3 with a default.
+    // DEPRECATED (security review): always ''. Phone numbers live in the private `user_phone` table.
+    // The column stays because removing a column is not an automatic migration.
     phoneE164: t.string().default(''),
+  }
+);
+
+// Private: a person's own E.164 number for consented SMS. Never in a public table or another
+// person's view; the owner reads it through `my_phone`.
+export const userPhone = table(
+  { name: 'user_phone' },
+  {
+    identity: t.identity().primaryKey(),
+    phoneE164: t.string(),
+    updatedAt: t.timestamp(),
   }
 );
 

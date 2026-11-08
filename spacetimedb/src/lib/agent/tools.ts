@@ -1,4 +1,4 @@
-import { TEMPLATE_NAMES } from './templates';
+import { MODEL_TEMPLATE_NAMES } from './templates';
 
 /** A tool call in the shape produced by both Nemotron (OpenAI tool_calls) and the simulated planner. */
 export type ToolCall = { name: string; args: Record<string, unknown> };
@@ -23,6 +23,7 @@ export const TOOL_NAMES = [
   'update_incident_state',
   'propose_ride_plan',
   'hand_off',
+  'no_action',
 ] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
@@ -44,6 +45,7 @@ export function validateArgs(name: ToolName, args: Record<string, unknown>): { o
   switch (name) {
     case 'get_group_context':
     case 'hand_off':
+    case 'no_action':
       return { ok: true, args: { reason: str(args.reason, 280) ?? '' } };
     case 'get_recent_checkins': {
       const userId = hex64(args.userId);
@@ -63,14 +65,9 @@ export function validateArgs(name: ToolName, args: Record<string, unknown>): { o
       const recipient = hex64(args.recipient);
       const template = str(args.template, 40);
       if (!recipient) return bad('recipient must be a 64-hex identity');
-      if (!template || !(TEMPLATE_NAMES as readonly string[]).includes(template)) return bad(`template must be one of ${TEMPLATE_NAMES.join(', ')}`);
-      const vars: Record<string, string> = {};
-      if (args.vars && typeof args.vars === 'object') {
-        for (const [k, v] of Object.entries(args.vars as Record<string, unknown>)) {
-          if (typeof v === 'string' && /^\w{1,32}$/.test(k)) vars[k] = v.slice(0, 120);
-        }
-      }
-      return { ok: true, args: { recipient, template, vars } };
+      if (!template || !(MODEL_TEMPLATE_NAMES as readonly string[]).includes(template)) return bad(`template must be one of ${MODEL_TEMPLATE_NAMES.join(', ')}`);
+      // Model-supplied vars are discarded: every slot is filled from the database by the executor.
+      return { ok: true, args: { recipient, template } };
     }
     case 'request_human_confirmation': {
       const userId = hex64(args.userId);
@@ -119,10 +116,9 @@ export const TOOL_DEFINITIONS = [
   tool('get_transport_options', 'Look up rideshare links and, where possible, a route estimate from the venue to the subject. Read-only; never books.', {
     pickupArea: { type: 'string', description: 'free-text hint; the server uses the consented last location' },
   }),
-  tool('send_approved_message', 'Send a fixed-template message to ONE participant who has messaging consent from the subject. Templates: ' + TEMPLATE_NAMES.join(', ') + '.', {
+  tool('send_approved_message', 'Send a fixed-template message to ONE participant who has messaging consent from the subject. The server fills in every name. Templates: ' + MODEL_TEMPLATE_NAMES.join(', ') + '.', {
     recipient: { type: 'string', description: '64-hex identity from the participants list with canMessage=true' },
-    template: { type: 'string', enum: [...TEMPLATE_NAMES] },
-    vars: { type: 'object', additionalProperties: { type: 'string' } },
+    template: { type: 'string', enum: [...MODEL_TEMPLATE_NAMES] },
   }, ['recipient', 'template']),
   tool('request_human_confirmation', 'Ask one participant (canMessage=true) to acknowledge they are helping.', {
     userId: { type: 'string' },
@@ -138,7 +134,10 @@ export const TOOL_DEFINITIONS = [
     riderId: { type: 'string' },
     options: { description: 'array of {kind,label,url} or the string "from_transport_lookup"' },
   }, ['riderId', 'options']),
-  tool('hand_off', 'Stop automated coordination and hand the incident to the organizer when no eligible contact remains.', {
+  tool('hand_off', 'Stop automated coordination and hand the incident to a human when NO eligible contact remains after incident_opened, buddy_nonresponse or buddy_declined. Rejected for any other event or while someone can still be asked.', {
+    reason: { type: 'string', maxLength: 280 },
+  }),
+  tool('no_action', 'Record that nothing is missing right now (for ride_booked, pickup_confirmed, transport_options_ready). Never ends the job.', {
     reason: { type: 'string', maxLength: 280 },
   }),
 ];

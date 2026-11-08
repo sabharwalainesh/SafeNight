@@ -25,6 +25,7 @@ import {
   SENSITIVE_CATEGORIES,
 } from '../lib/community';
 import { isAtOrBefore, minutesAfter } from '../lib/time';
+import { countRecent, enforceLimit, HOUR_MICROS, LIMITS } from '../lib/limits';
 import { addEvent, clearCheckinTimers, isOpenStatus, participantsOf, sendAlert } from '../lib/safety';
 import { closeJobForIncident } from '../lib/agent/jobs';
 
@@ -40,6 +41,12 @@ export const createVenue = spacetimedb.reducer(
     if (!(approxLat >= -90 && approxLat <= 90 && approxLng >= -180 && approxLng <= 180)) throw new SenderError('Invalid coordinates');
     const lat = round3(approxLat);
     const lng = round3(approxLng);
+    // Venues carry no author column (public table), so the audit trail is the per-caller counter.
+    let created = 0;
+    for (const a of ctx.db.auditEvent.actor.filter(ctx.sender)) {
+      if (a.action === 'create_venue' && ctx.timestamp.microsSinceUnixEpoch - a.at.microsSinceUnixEpoch <= HOUR_MICROS) created++;
+    }
+    enforceLimit(created, LIMITS.venuesPerHour, 'You created several venues this hour; try again later');
     for (const v of ctx.db.venue.iter()) {
       if (v.name.toLowerCase() === clean.toLowerCase() && Math.abs(v.approxLat - lat) <= 0.002 && Math.abs(v.approxLng - lng) <= 0.002) {
         return; // idempotent: the venue exists
@@ -69,6 +76,11 @@ export const submitVenueReport = spacetimedb.reducer(
     requireProfile(ctx);
     if (!ctx.db.venue.id.find(venueId)) throw new SenderError('Venue not found');
     const textRedacted = requireReportText(text);
+    enforceLimit(
+      countRecent(ctx.db.venueReportAuthor.author.filter(ctx.sender), a => a.createdAt, ctx.timestamp, HOUR_MICROS),
+      LIMITS.venueReportsPerHour,
+      'You filed several reports this hour; please wait before filing more'
+    );
     const existing = recentOpenReport(ctx, venueId, category.tag);
     if (existing) {
       for (const a of ctx.db.venueReportAuthor.byReportAuthor.filter([existing.id, ctx.sender])) {
@@ -263,6 +275,9 @@ export const deleteMyData = spacetimedb.reducer(ctx => {
   for (const row of ctx.db.checkinTimer.userId.filter(me)) ctx.db.checkinTimer.scheduledId.delete(row.scheduledId);
   if (ctx.db.appRole.identity.find(me)) ctx.db.appRole.identity.delete(me);
   if (ctx.db.userPrivacySettings.identity.find(me)) ctx.db.userPrivacySettings.identity.delete(me);
+  if (ctx.db.userPhone.identity.find(me)) ctx.db.userPhone.identity.delete(me);
+  const persona = ctx.db.demoPersona.identity.find(me);
+  if (persona) ctx.db.demoPersona.personaId.delete(persona.personaId);
   if (ctx.db.userProfile.identity.find(me)) ctx.db.userProfile.identity.delete(me);
   audit(ctx, 'delete_my_data', 'self');
 });
@@ -292,6 +307,7 @@ export const resetDemo = spacetimedb.reducer(ctx => {
   for (const r of d.demoSession.iter()) d.demoSession.sessionId.delete(r.sessionId); // personas stay registered
   clear(d.venueReportVote); clear(d.venueReportAuthor); clear(d.venueReport);
   for (const r of d.userPrivacySettings.iter()) d.userPrivacySettings.identity.delete(r.identity);
+  for (const r of d.userPhone.iter()) d.userPhone.identity.delete(r.identity);
   for (const r of d.userProfile.iter()) d.userProfile.identity.delete(r.identity);
   ensureCommunitySchedules(ctx);
   audit(ctx, 'reset_demo', 'all');

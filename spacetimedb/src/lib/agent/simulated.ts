@@ -31,7 +31,7 @@ export function simulatedPlan(context: AgentContext): PlanProposal {
         summary: `Ask ${first.displayName} (${first.contactRole ?? first.role}) to check on ${subjectName}, request acknowledgment, follow up in ${DEFAULT_FOLLOWUP_MINUTES} min.`,
         calls: [
           { name: 'get_group_context', args: {} },
-          { name: 'send_approved_message', args: { recipient: first.userId, template: 'buddy_alert', vars: { subjectName } } },
+          { name: 'send_approved_message', args: { recipient: first.userId, template: 'buddy_alert' } },
           { name: 'request_human_confirmation', args: { userId: first.userId, question: `Can you check on ${subjectName}?` } },
           { name: 'update_incident_state', args: { state: 'assistance_underway' } },
           { name: 'schedule_followup', args: { delayMinutes: DEFAULT_FOLLOWUP_MINUTES } },
@@ -51,7 +51,7 @@ export function simulatedPlan(context: AgentContext): PlanProposal {
       return {
         summary: `${primaryName} did not respond; escalate to ${next.displayName} and follow up in ${DEFAULT_FOLLOWUP_MINUTES} min.`,
         calls: [
-          { name: 'send_approved_message', args: { recipient: next.userId, template: 'backup_alert', vars: { subjectName, primaryName } } },
+          { name: 'send_approved_message', args: { recipient: next.userId, template: 'backup_alert' } },
           { name: 'request_human_confirmation', args: { userId: next.userId, question: `Can you step in for ${subjectName}?` } },
           { name: 'schedule_followup', args: { delayMinutes: DEFAULT_FOLLOWUP_MINUTES } },
         ],
@@ -69,11 +69,14 @@ export function simulatedPlan(context: AgentContext): PlanProposal {
     case 'ride_booked': {
       const helper = contacts.find(c => c.acknowledged) ?? contacted[0];
       const calls: ToolCall[] = [{ name: 'schedule_followup', args: { delayMinutes: 5 } }];
-      if (helper) calls.unshift({ name: 'send_approved_message', args: { recipient: helper.userId, template: 'ride_booked', vars: { subjectName } } });
+      if (helper) calls.unshift({ name: 'send_approved_message', args: { recipient: helper.userId, template: 'ride_booked' } });
       return { summary: `Ride booked for ${subjectName}; keep the helper informed and wait for the home confirmation.`, calls };
     }
     case 'pickup_confirmed':
-      return { summary: `${subjectName} confirmed pickup. Waiting for the home confirmation; no action needed.`, calls: [] };
+      return {
+        summary: `${subjectName} confirmed pickup. Waiting for the home confirmation; no action needed.`,
+        calls: [{ name: 'no_action', args: { reason: 'pickup confirmed; waiting for the home confirmation' } }],
+      };
     default:
       return { summary: `No automated action for event "${context.event}".`, calls: [] };
   }

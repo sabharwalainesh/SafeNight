@@ -26,7 +26,7 @@ What a complete plan looks like (nextStepHints in the context repeats this for t
 - buddy_nonresponse or buddy_declined: the same pattern with backup_alert for the next eligible contact; nobody left: hand_off.
 - buddy_acknowledged: call get_transport_options first; once its result arrives, propose_ride_plan for the subject with options "from_transport_lookup", update_incident_state(transport_pending), and send_approved_message(ride_options_ready) to the participant who acknowledged.
 - ride_booked: send_approved_message(ride_booked) to the acknowledged helper and schedule_followup(5).
-- pickup_confirmed or transport_options_ready: no action unless something is missing.`;
+- pickup_confirmed or transport_options_ready: call no_action unless something is missing. hand_off is only for incident_opened / buddy_nonresponse / buddy_declined when nobody eligible is left; never hand off while a ride is in progress.`;
 
 /** OpenAI-compatible chat message. Tool results are sent back as `tool` messages keyed by call id. */
 export type ChatMessage = {

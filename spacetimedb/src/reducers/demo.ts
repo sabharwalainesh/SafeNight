@@ -1,7 +1,7 @@
 import { SenderError, t } from 'spacetimedb/server';
 import { spacetimedb } from '../schema';
 import { audit } from '../lib/auth';
-import { requireDemoAllowed } from '../lib/community';
+import { isOwner, requireDemoAllowed } from '../lib/community';
 import { isPersonaId, resetDemoGroup, setupDemoGroup } from '../lib/demo';
 
 /**
@@ -38,9 +38,16 @@ export const demoRegisterPersona = spacetimedb.reducer(
   }
 );
 
+/** Only someone who is themselves one of the four demo personas (or the owner) may build or reset the group. */
+function requireDemoParticipant(ctx: Parameters<typeof requireDemoAllowed>[0]) {
+  if (isOwner(ctx)) return;
+  if (!ctx.db.demoPersona.identity.find(ctx.sender)) throw new SenderError('Register as a demo persona first');
+}
+
 /** Judge demo: create (or reuse) the four-person group with roles, consents, and simulated locations. */
 export const demoSetupGroup = spacetimedb.reducer({ name: t.string() }, (ctx, { name }) => {
   requireDemoAllowed(ctx);
+  requireDemoParticipant(ctx);
   const sessionId = setupDemoGroup(ctx, name);
   audit(ctx, 'demo_setup_group', `night_session:${sessionId}`);
 });
@@ -48,6 +55,7 @@ export const demoSetupGroup = spacetimedb.reducer({ name: t.string() }, (ctx, { 
 /** Judge demo: end the demo group's session(s) and cancel their open incidents; personas stay registered. */
 export const demoResetGroup = spacetimedb.reducer(ctx => {
   requireDemoAllowed(ctx);
+  requireDemoParticipant(ctx);
   const ended = resetDemoGroup(ctx);
   audit(ctx, 'demo_reset_group', `ended:${ended}`);
 });
