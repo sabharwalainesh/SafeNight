@@ -6,6 +6,8 @@ import { headingFromEvent, stepToward, type LatLng } from './geo';
 
 export type GeoState = {
   position: (LatLng & { accuracyM: number; at: number }) | null;
+  /** Direction of travel from GPS (degrees from north) while moving; a heading fallback when there is no compass. */
+  course: number | null;
   error: string | null;
   /** 'granted' once a fix arrived; 'denied' when the browser refused; 'unavailable' without the API. */
   permission: 'prompt' | 'granted' | 'denied' | 'unavailable';
@@ -23,9 +25,10 @@ export function useGeolocation(
   post: Poster,
   intervalMs = 2000,
   simulate?: { from: LatLng | null; target: LatLng | null },
-): GeoState & { simulated: boolean } {
+): GeoState & { simulated: boolean; requestLocation: () => void } {
   const [state, setState] = useState<GeoState>({
     position: null,
+    course: null,
     error: null,
     permission: typeof navigator !== 'undefined' && 'geolocation' in navigator ? 'prompt' : 'unavailable',
   });
@@ -36,6 +39,22 @@ export function useGeolocation(
   simRef.current = simulate;
   const postRef = useRef(post);
   postRef.current = post;
+  const [attempt, setAttempt] = useState(0);
+  // From a user gesture: ask for one fix (this is what makes iOS show the permission prompt in some
+  // home-screen web apps) and re-arm the watch.
+  const requestLocation = useCallback(() => {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      () => setAttempt((n) => n + 1),
+      (err) =>
+        setState((st) => ({
+          ...st,
+          error: err.code === err.PERMISSION_DENIED ? 'Location permission denied' : err.message,
+          permission: err.code === err.PERMISSION_DENIED ? 'denied' : st.permission,
+        })),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  }, []);
 
   useEffect(() => {
     if (!active) return;
@@ -75,8 +94,14 @@ export function useGeolocation(
             timer = null;
             setSimulated(false);
           }
-          const { latitude, longitude, accuracy } = pos.coords;
-          setState({ position: { lat: latitude, lng: longitude, accuracyM: accuracy, at: pos.timestamp }, error: null, permission: 'granted' });
+          const { latitude, longitude, accuracy, heading: course, speed } = pos.coords;
+          const moving = typeof speed === 'number' && speed > 0.7 && typeof course === 'number' && !Number.isNaN(course);
+          setState((st) => ({
+            position: { lat: latitude, lng: longitude, accuracyM: accuracy, at: pos.timestamp },
+            course: moving ? course : st.course,
+            error: null,
+            permission: 'granted',
+          }));
           const now = Date.now();
           if (now - lastPost.current >= intervalMs) {
             lastPost.current = now;
@@ -102,9 +127,9 @@ export function useGeolocation(
       if (timer !== null) window.clearInterval(timer);
       setSimulated(false);
     };
-  }, [active, intervalMs]);
+  }, [active, intervalMs, attempt]);
 
-  return { ...state, simulated };
+  return { ...state, simulated, requestLocation };
 }
 
 export type HeadingState = {

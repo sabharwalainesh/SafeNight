@@ -1,6 +1,6 @@
 // "Come to me" UI: the helper's compass card, the requester's "X is coming" card, and the
 // one-time tracker that posts GPS while a meetup is in progress.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useSafety, type VisibleLocation } from '../safety/api';
 import { TIMES_SQUARE, jitter } from '../safety/mock/spots';
 import { Pill, Section } from '../../ui';
@@ -23,6 +23,51 @@ function locOf(locations: VisibleLocation[], mine: VisibleLocation | null, userI
   return locations.find((l) => l.userId === userId) ?? null;
 }
 
+/* ------------------------------------------------------------ geo status */
+
+type GeoStatus = { permission: 'prompt' | 'granted' | 'denied' | 'unavailable'; accuracyM: number | null; course: number | null; error: string | null; simulated: boolean; requestLocation: () => void };
+const geoStore = {
+  state: { permission: 'prompt', accuracyM: null, course: null, error: null, simulated: false, requestLocation: () => {} } as GeoStatus,
+  subs: new Set<() => void>(),
+  set(next: GeoStatus) {
+    const p = geoStore.state;
+    if (p.permission === next.permission && p.accuracyM === next.accuracyM && p.course === next.course && p.error === next.error && p.simulated === next.simulated && p.requestLocation === next.requestLocation) return;
+    geoStore.state = next;
+    geoStore.subs.forEach((f) => f());
+  },
+  subscribe(f: () => void) {
+    geoStore.subs.add(f);
+    return () => void geoStore.subs.delete(f);
+  },
+};
+function useGeoStatus(): GeoStatus {
+  return useSyncExternalStore(geoStore.subscribe, () => geoStore.state);
+}
+
+/** One line about this device's own position, with an explicit button when the phone has not granted location yet. */
+function MyLocationStatus() {
+  const g = useGeoStatus();
+  if (g.permission === 'granted' && !g.simulated) {
+    return <p className="footnote">Your location: GPS{g.accuracyM !== null ? ` · ±${Math.round(g.accuracyM)} m` : ''}</p>;
+  }
+  return (
+    <div className="meetup-geo-warn">
+      <p className="footnote">
+        {g.permission === 'denied'
+          ? 'Location is blocked for this site. iPhone: Settings › Privacy & Security › Location Services › Safari Websites › While Using. Then tap Enable location.'
+          : g.permission === 'unavailable'
+            ? 'This device has no location service; using a simulated position.'
+            : 'Your real location is not on yet; using a simulated position near Times Square.'}
+      </p>
+      {g.permission !== 'unavailable' && (
+        <button type="button" className="btn secondary block" onClick={() => g.requestLocation()}>
+          Enable location
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- tracker */
 
 /** Mount once. While I am part of an active meetup, post my position every 2 s (real GPS, or simulated on laptops). */
@@ -43,7 +88,10 @@ function TrackerInner({ mu: { me, meetups } }: { mu: MeetupState }) {
   const from: LatLng | null = safety.myLocation ?? { lat: jitter(TIMES_SQUARE.lat), lng: jitter(TIMES_SQUARE.lng) };
   // Only the helper walks; the requester's simulated position stays put (target = itself).
   const target: LatLng | null = active?.helper === me ? otherLoc : from;
-  useGeolocation(!!active || waiting, safety.actions.postLocation, 2000, { from, target });
+  const geo = useGeolocation(!!active || waiting, safety.actions.postLocation, 2000, { from, target });
+  useEffect(() => {
+    geoStore.set({ permission: geo.permission, accuracyM: geo.position?.accuracyM ?? null, course: geo.course, error: geo.error, simulated: geo.simulated, requestLocation: geo.requestLocation });
+  }, [geo.permission, geo.position?.accuracyM, geo.course, geo.error, geo.simulated, geo.requestLocation]);
   return null;
 }
 
@@ -146,6 +194,7 @@ function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; can
         {helper && ` · updated ${ago(helper.recordedAt)}`}
       </p>
       {!helper && <p className="muted">Waiting for {meetup.helperName}&apos;s location…</p>}
+      {canCancel && <MyLocationStatus />}
       {canCancel && (
         <button type="button" className="btn plain small-btn" disabled={busy} onClick={onCancel}>
           Cancel
@@ -158,12 +207,14 @@ function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; can
 function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: boolean; onArrived: () => void; onStop: () => void }) {
   const safety = useSafety();
   const heading = useHeading(true);
+  const geo = useGeoStatus();
   const target = locOf(safety.locations, null, meetup.requester);
   const mine = safety.myLocation;
   const bearing = mine && target ? bearingDeg(mine, target) : null;
-  const rot = bearing === null ? 0 : relativeBearing(bearing, heading.heading);
+  // Compass heading when the device gives one; otherwise GPS direction of travel while walking.
+  const usedHeading = heading.heading ?? geo.course;
+  const rot = bearing === null ? 0 : relativeBearing(bearing, usedHeading);
   const dist = mine && target ? distanceM(mine, target) : null;
-  const northUp = heading.heading === null;
 
   return (
     <div className="card meetup-card meetup-compass">
@@ -180,12 +231,19 @@ function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: bo
         {target && `${meetup.requesterName}'s location updated ${ago(target.recordedAt)}`}
         {target?.approximate && ' (approximate)'}
       </p>
-      {heading.needsPermission && (
+      <p className="footnote">
+        {heading.heading !== null
+          ? `Compass on · facing ${Math.round(heading.heading)}°`
+          : geo.course !== null
+            ? 'No compass sensor: arrow follows your walking direction'
+            : 'Compass off: arrow points with north up. Walk a few steps and it follows your direction.'}
+      </p>
+      {heading.heading === null && heading.supported && (
         <button type="button" className="btn secondary block" onClick={() => void heading.requestPermission()}>
           Enable compass
         </button>
       )}
-      {!heading.needsPermission && northUp && <p className="footnote">No compass on this device: arrow points with north up.</p>}
+      <MyLocationStatus />
       {safety.myLocation?.source === 'simulated' && <Pill tone="warn">Simulated movement</Pill>}
       <div className="meetup-actions">
         <button type="button" className="btn block" disabled={busy || !target} onClick={onArrived}>
