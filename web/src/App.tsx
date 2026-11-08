@@ -114,8 +114,8 @@ export default function App({ persona, host, dbName }: Props) {
           <NightOutTab />
         ) : tab === 'map' ? (
           <>
-            <StatusBar />
             <MapScreen />
+            <StatusBar />
           </>
         ) : tab === 'inbox' ? (
           <InboxScreen key={inboxTarget?.n ?? 0} initialIncidentId={inboxTarget?.id} />
