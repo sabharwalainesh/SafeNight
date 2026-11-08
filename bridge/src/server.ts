@@ -111,13 +111,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const config = loadConfig();
   const engine = new Engine(config);
   setInterval(() => engine.tick(), 30_000).unref();
-  engine.photon.start((m) => engine.handleInbound(m)).catch((e) => console.error(`[photon] failed to start: ${(e as Error).message}`));
+  if (config.textChannel !== 'none') engine.photon.start((m) => engine.handleInbound(m)).catch((e) => console.error(`[photon] failed to start: ${(e as Error).message}`));
   createServer(createApp(config, engine)).listen(config.port, config.host, () => {
     const mode = (k: boolean) => (k ? 'live' : 'SIMULATED');
     console.log(`SafeNight bridge on ${config.host}:${config.port}`);
     if (config.host !== '127.0.0.1' && config.host !== 'localhost') console.warn('  WARNING: BRIDGE_HOST exposes the bridge beyond this machine; protect it with a firewall/TLS');
     console.log(`  nemotron: ${config.nemotronApiKey && !config.simulateAll ? 'live' : 'simulated-planner'}`);
-    console.log(`  photon: ${mode(!engine.photon.simulated)}`);
+    console.log(config.textChannel === 'none' ? '  texting: none (calls only)' : `  photon: ${mode(!engine.photon.simulated)}`);
     console.log(`  elevenlabs: ${mode(!!config.elevenLabsApiKey && !!config.agentPhoneNumberId && !config.simulateAll)}`);
     if (!config.bridgeToken) console.warn('  WARNING: BRIDGE_TOKEN unset; incident routes will refuse requests');
   });

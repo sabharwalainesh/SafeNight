@@ -2,7 +2,7 @@ import { loadConfig, type Config } from '../src/config.js';
 import type { Action, IncidentSnapshot } from '../src/types.js';
 
 export const cfg = (env: Record<string, string> = {}): Config =>
-  loadConfig({ BRIDGE_STATE_FILE: '', DEBOUNCE_MS: '20', SIM_DELAY_MS: '10', CALL_DELAY_MS: '0', ...env });
+  loadConfig({ BRIDGE_STATE_FILE: '', DEBOUNCE_MS: '20', SIM_DELAY_MS: '10', CALL_DELAY_MS: '0', TEXT_CHANNEL: 'imessage', ...env });
 
 export function incident(over: Partial<IncidentSnapshot> = {}): IncidentSnapshot {
   return {

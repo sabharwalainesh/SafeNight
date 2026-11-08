@@ -218,3 +218,47 @@ describe('photon link (spectrum-ts mocked)', () => {
     expect(sdkSend).toHaveBeenCalledWith('hello');
   });
 });
+
+describe('calls-only (texting unavailable)', () => {
+  const plan2 = (history: ReturnType<typeof act>[], over = {}, now = 10 * 60_000, openedAt = 0) =>
+    simulatedPlan({ incident: incident(over), history, now, openedAt, config: cfg({ CALL_DELAY_MS: '45000' }), fetch, textingAvailable: false });
+  const call = (target: string, status: any, createdAt: number) => act({ type: 'call_person', target, status, createdAt });
+
+  it('config defaults TEXT_CHANNEL to none without Photon credentials', () => {
+    expect(cfg({ TEXT_CHANNEL: '' }).textChannel).toBe('none');
+    expect(cfg({ TEXT_CHANNEL: '', PHOTON_PROJECT_ID: 'a', PHOTON_PROJECT_SECRET: 'b' }).textChannel).toBe('imessage');
+  });
+  it('goes buddy -> backup -> dispatch with no text step', () => {
+    expect(plan2([], {}, 10_000).proposed).toEqual([]);
+    expect(plan2([]).proposed).toMatchObject([{ type: 'call_person', personaId: 'sam' }]);
+    expect(plan2([call('sam', 'in_progress', 9 * 60_000 + 50_000)]).proposed).toEqual([]);
+    expect(plan2([call('sam', 'no_answer', 9 * 60_000 + 50_000)]).proposed).toMatchObject([{ personaId: 'maya' }]);
+    expect(plan2([call('sam', 'in_progress', 0)]).proposed).toMatchObject([{ personaId: 'maya' }]);
+    const urgent = { severity: 'urgent' };
+    expect(plan2([], urgent, 1000).proposed).toMatchObject([{ personaId: 'sam' }]);
+    expect(plan2([call('sam', 'failed', 1), call('maya', 'no_answer', 2)], urgent).proposed[0]?.type).toBe('dispatch_call');
+  });
+  it('engine blocks text_group and still permits call_person without join', async () => {
+    const e = new Engine(cfg({ TEXT_CHANNEL: 'none', PHONE_SAM: '+15550100001' }), { fetch: vi.fn() as any });
+    expect(e.textingAvailable(incident())).toBe(false);
+    e.sync(incident());
+    const run = (e as any).run.bind(e);
+    const rec = e.state.incidents['inc1'];
+    const t = await run({ type: 'text_group', template: 'help_needed' }, rec, []);
+    expect(t.status).toBe('blocked');
+    const c = await run({ type: 'call_person', personaId: 'sam', reason: 'r' }, rec, []);
+    expect(c.status).not.toBe('blocked');
+  });
+  it('Nemotron request omits text_group when texting is unavailable', async () => {
+    const { decide } = await import('../src/decide.js');
+    const body = async (textingAvailable: boolean) => {
+      const f = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok', tool_calls: [] } }] })));
+      await decide({ incident: incident(), history: [], now: 1, openedAt: 0, config: cfg({ NEMOTRON_API_KEY: 'k' }), fetch: f as any, textingAvailable });
+      return JSON.parse((f.mock.calls[0] as any)[1].body);
+    };
+    const off = await body(false);
+    expect(off.tools.map((t: any) => t.function.name)).not.toContain('text_group');
+    expect(JSON.stringify(off.messages)).toContain('Texting is unavailable for this group; use calls.');
+    expect((await body(true)).tools.map((t: any) => t.function.name)).toContain('text_group');
+  });
+});

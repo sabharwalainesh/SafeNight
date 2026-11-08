@@ -21,6 +21,7 @@ export interface Config {
   demoDispatchNumber: string;
   blockedNumbers: string[];
   personaPhones: Record<string, string>;
+  textChannel: 'imessage' | 'none';
 }
 
 const num = (v: string | undefined, d: number): number => {
@@ -35,7 +36,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     const v = e(`PHONE_${p.toUpperCase()}`);
     if (v) personaPhones[p] = v;
   }
+  const tc = e('TEXT_CHANNEL').toLowerCase();
+  const textChannel: 'imessage' | 'none' =
+    tc === 'imessage' || tc === 'none' ? tc : e('PHOTON_PROJECT_ID') && e('PHOTON_PROJECT_SECRET') ? 'imessage' : 'none';
   return {
+    textChannel,
     port: num(env.BRIDGE_PORT, 8787),
     host: e('BRIDGE_HOST') || '127.0.0.1',
     bridgeToken: e('BRIDGE_TOKEN'),

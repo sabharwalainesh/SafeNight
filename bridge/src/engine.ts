@@ -73,6 +73,10 @@ export class Engine {
     this.state.registry[personaId]?.phone || this.config.personaPhones[personaId];
   optedIn = (personaId: string): boolean => !!this.state.registry[personaId];
 
+  textingAvailable = (inc: IncidentSnapshot): boolean =>
+    this.config.textChannel !== 'none' &&
+    inc.participants.some((p) => p.personaId !== inc.subjectPersonaId && this.optedIn(p.personaId));
+
   /** Returns 'unchanged' when the snapshot hash matches the last one seen. */
   sync(snap: IncidentSnapshot): 'queued' | 'unchanged' {
     const hash = hashSnapshot(snap);
@@ -116,6 +120,7 @@ export class Engine {
       const now = this.now();
       const proposal = await this.decideFn({
         incident: inc, history: this.history(id), now, openedAt: this.openedAt(rec), config: this.config, fetch: this.f,
+        textingAvailable: this.textingAvailable(inc),
       });
       const decision: Decision = {
         id: randomUUID(), at: new Date(now).toISOString(), model: proposal.model,
@@ -149,6 +154,9 @@ export class Engine {
       id: randomUUID(), type: p.type, target: p.personaId ?? (p.type === 'text_group' ? 'group' : 'demo-dispatch-line'),
       status: 'planned', detail: p.reason ?? '', simulated: p.type === 'dispatch_call', createdAt: now,
     };
+    if (p.type === 'text_group' && !this.textingAvailable(inc)) {
+      return { ...base, status: 'blocked', detail: 'Texting is unavailable for this group; use calls' };
+    }
     const verdict = validateAction(p, {
       incident: inc, now, demoDispatchNumber: c.demoDispatchNumber, blockedNumbers: c.blockedNumbers,
       phoneFor: this.phoneFor, optedIn: this.optedIn, history: [...this.history(inc.id), ...pending],
