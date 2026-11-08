@@ -1,6 +1,6 @@
 # Demo day setup: two phones + two laptops, one database
 
-**Scenario:** New Year's Eve in New York. Alex, Maya and Jordan are at the Times Square ball drop; Sam, the designated driver, is a few blocks away near Grand Central. All locations are simulated and labeled; the seeded safety resources are Midtown demo entries.
+**Scenario:** a night out with four friends; Sam is the designated driver. **Locations are real:** every device in the group streams its own GPS (allow location when the phone asks), and the map frames wherever the group actually is. Laptop browsers that block location simply do not appear on the map. The seeded safety resources are fictional demo entries.
 
 The database runs on SpacetimeDB Maincloud (`safenight`, owner: Sohaib's spacetimedb.com login). Every device connects to `wss://maincloud.spacetimedb.com`, so nothing depends on venue Wi-Fi reaching a laptop. Health check: <https://maincloud.spacetimedb.com/v1/database/safenight/route/health> (expect `nemotronMode: "live"`).
 
@@ -52,7 +52,7 @@ Fallback without Expo Go: the web app is a PWA. `npm run dev:phone -w web` print
 7. Laptop 2 (Jordan) → Inbox → incident → **I'm on it**. Plan v3 (two rounds) proposes ride options.
 8. Phone 1 (Sam): **Choose this** → **I booked this** → **Confirm pickup** → **I'm home safe** → **Yes, I'm home**.
 9. Every device shows **Resolved by Sam**.
-10. **Come to me (compass), optional:** Phone 2 (Maya) → Map → **Need help** → **Come to me**. Laptop 2 (Jordan) → Alerts → the incident → **I'm coming**: Jordan's screen shows the compass to Maya with the distance (on a phone, tap **Enable compass** when iOS asks; a laptop shows a north-up arrow on simulated positions). Maya sees "Jordan is coming · N m away". Jordan taps **I've arrived**; both show "✓ Jordan arrived". Precise location is shared both ways only for this trip and expires in 60 minutes.
+10. **Come to me (compass), optional, two phones:** Phone 1 (Maya) → Map → **Need help** → **Come to me**. Phone 2 (Jordan) → tap the alert banner → **Accept & navigate** → allow motion/compass when asked. Jordan's arrow points at Maya's phone and the distance updates as either phone moves; expect GPS noise of 5 to 15 m, so stand at least 15 to 20 m apart outdoors for a clear demo. Maya sees "Jordan is coming · N m away". Jordan taps **I've arrived**; both show "✓ Jordan arrived". Precise location is shared both ways only for this trip and expires in 60 minutes.
 
 ## Reset between runs
 
