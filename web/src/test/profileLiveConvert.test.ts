@@ -9,13 +9,17 @@ const ts = (ms: number) => Timestamp.fromDate(new Date(ms));
 
 describe('profile live converters', () => {
   it('profile row', () => {
-    expect(toProfile({ identity: ida, displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, createdAt: ts(1), phoneE164: '+15551234567' })).toEqual({
+    expect(toProfile({ identity: ida, displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, createdAt: ts(1), phoneE164: '+15551234567' }, ida.toHexString())).toEqual({
       userId: ida.toHexString(),
       displayName: 'Maya',
       avatarEmoji: 'x',
       phoneVerified: false,
       phone: '+15551234567',
     });
+  });
+
+  it('drops other users\' phone numbers', () => {
+    expect(toProfile({ identity: ida, displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, createdAt: ts(1), phoneE164: '+15551234567' }, 'someone-else').phone).toBe('');
   });
 
   it('contact maps role and name', () => {
