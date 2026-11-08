@@ -181,8 +181,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-08 — **Follow-ups for B shipped (module 0.8.1):** default Nemotron model is now `nvidia/nemotron-3.5-super-vl-120b-a12b` (old id 404s on this account), atomic `reorder_trusted_contacts`, phone privacy confirmed fixed (`user_profile.phoneE164` always empty; use `my_phone`/`set_phone`). 99/99 tests. B's bridge-feed proposal (module → bridge server-side) is open for agreement; `bridge/` stays B-owned.
 
+- 2026-11-08 — **`mobile/` Expo app (SDK 58) for Expo Go.** Native screens for Night Out, Map, Inbox/incident (agent panel, receipts, ride stepper, home confirm), Profile (judge demo panel); persona + server picker on first launch, token per persona/host. Reuses B's five `api.ts` contracts and `live/` adapters plus the generated bindings through Metro `watchFolders` and a resolver that pins one `spacetimedb` and one `react`; localStorage shim over AsyncStorage; `withCompression('none')`. Verified: typecheck, iOS + Android `expo export` bundles, 5 unit tests, live web-mode run against the LAN server (setup group, roster, map, check-in). Not verified on a physical phone yet. See `mobile/README.md`.
+
 **In progress**
-- `mobile/`: Expo app for Expo Go (two phones + two laptops at judging), reusing B's live adapters and the generated bindings; standalone package like `bridge/`. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
+- Phone test in Expo Go (user's phones) and Maincloud publish once the user runs `spacetime login`. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
 
 **Previously in progress (done)**
 - C3-A.2 live tuning: multi-round tool loop inside `agent_step` (tool results fed back to the model, max 3 rounds), labeled deterministic policy receipts (`source: policy`) that guarantee the transport stage ends in a proposed ride plan, geocodable demo venue, pickup coordinates in ride deep links.
