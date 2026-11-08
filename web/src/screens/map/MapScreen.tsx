@@ -2,7 +2,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSafety, type VisibleLocation } from '../../features/safety/api';
-import { BALL_DROP, jitter, SPOTS, TIMES_SQUARE } from '../../features/safety/mock/spots';
 import { PERSONAS } from '../../personas';
 import { useMeetupLine } from '../../features/meetup'; // meetup feature: dashed helper→requester line
 import type { LatLng } from '../../features/meetup/geo';
@@ -66,15 +65,10 @@ function FriendMap({ pins, focus, fitRequest, onSelect, line }: { pins: Pin[]; f
     if (!el || typeof window === 'undefined') return;
     let m: L.Map;
     try {
-      m = L.map(el, { zoomControl: false, attributionControl: true }).setView([TIMES_SQUARE.lat, TIMES_SQUARE.lng], 17);
+      // World view until the first shared location arrives; then fitBounds frames the group.
+      m = L.map(el, { zoomControl: false, attributionControl: true }).setView([20, 0], 2);
       L.control.zoom({ position: 'topright' }).addTo(m);
       L.tileLayer(TILES, { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(m);
-      L.marker([BALL_DROP.lat, BALL_DROP.lng], {
-        icon: L.divIcon({ className: 'map-pin-wrap', html: '<div class="map-ball" aria-hidden="true"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
-        keyboard: false,
-      })
-        .bindTooltip(BALL_DROP.label, { direction: 'right', permanent: true, className: 'map-ball-tip' })
-        .addTo(m);
       layer.current = L.layerGroup().addTo(m);
     } catch {
       return; // no usable DOM (tests / unsupported env)
@@ -149,15 +143,28 @@ export function MapScreen() {
   const [error, setError] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null);
 
+  // "Share my spot": one real fix right now (also the tap that makes iOS show the location prompt).
   const post = async () => {
     setError(null);
-    const me = personaOf(safety.me, safety.myLocation?.displayName ?? '');
-    const base = SPOTS[me?.id ?? ''] ?? TIMES_SQUARE;
-    try {
-      await safety.actions.postLocation(jitter(base.lat), jitter(base.lng), 25, 'simulated');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not post location');
+    if (!('geolocation' in navigator)) {
+      setError('This device has no location service');
+      return;
     }
+    await new Promise<void>((resolve) =>
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          safety.actions
+            .postLocation(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy), 'device')
+            .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Could not post location'))
+            .finally(resolve);
+        },
+        (err) => {
+          setError(err.code === err.PERMISSION_DENIED ? 'Location is blocked for this site. Allow it in Settings › Privacy & Security › Location Services › Safari Websites.' : err.message);
+          resolve();
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      ),
+    );
   };
 
   const photos = useContext(ProfileContext)?.photos;
@@ -176,7 +183,7 @@ export function MapScreen() {
       </h1>
       <div className="map-badges">
         {safety.mocked && <span className="map-badge map-badge--mock">MOCK DATA</span>}
-        <span className="map-badge map-badge--sim">SIMULATED LOCATIONS</span>
+        {pins.some((x) => x.p.source === 'simulated') && <span className="map-badge map-badge--sim">SIMULATED LOCATIONS</span>}
       </div>
 
       <div className="map-toolbar">

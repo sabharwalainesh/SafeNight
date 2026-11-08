@@ -3,7 +3,7 @@ import { closeMeetupsForIncident } from './meetup';
 import { ScheduleAt, type Identity } from 'spacetimedb';
 import type { Ctx } from './auth';
 import { openDriverAssignment, sessionIsOpen } from './auth';
-import { armCheckinTimer, isOpenStatus, recordLocation } from './safety';
+import { armCheckinTimer, isOpenStatus } from './safety';
 import { minutesAfter } from './time';
 import { clearSessionExpiry, closeSession, insertGrant } from './nightout';
 import { closeJobForIncident } from './agent/jobs';
@@ -15,17 +15,8 @@ export const DEMO_SESSION_HOURS = 6;
 export const DEMO_CHECKIN_MINUTES = 60;
 export const DEMO_GRANT_TTL_MINUTES = 180;
 
-// Simulated starting positions for the New Year's Eve demo: the group is at the Times Square
-// ball drop (Alex at the ball, Maya near 7th Ave, Jordan near 47th St) and Sam, the driver, is a
-// few blocks away near Grand Central so a ride makes sense. Fixed offsets, no randomness.
-export const DEMO_VENUE_HINT = "Times Square, New York, NY";
-export const DEMO_SESSION_NAME = "New Year's Eve";
-export const DEMO_LOCATIONS: Record<PersonaId, { lat: number; lng: number; accuracyM: number }> = {
-  alex: { lat: 40.758, lng: -73.9855, accuracyM: 22 },
-  maya: { lat: 40.757, lng: -73.9868, accuracyM: 28 },
-  jordan: { lat: 40.759, lng: -73.9845, accuracyM: 25 },
-  sam: { lat: 40.7527, lng: -73.9772, accuracyM: 33 },
-};
+export const DEMO_VENUE_HINT = "";
+export const DEMO_SESSION_NAME = "Tonight";
 
 export function isPersonaId(value: string): value is PersonaId {
   return (PERSONA_IDS as readonly string[]).includes(value);
@@ -152,10 +143,7 @@ export function setupDemoGroup(ctx: Ctx, rawName: string): bigint {
     insertGrant(ctx, who[buddy], who.sam, session.id, { tag: 'messaging' }, DEMO_GRANT_TTL_MINUTES);
   }
 
-  for (const id of PERSONA_IDS) {
-    const { lat, lng, accuracyM } = DEMO_LOCATIONS[id];
-    recordLocation(ctx, session.id, who[id], lat, lng, accuracyM, { tag: 'simulated' });
-  }
+  // No seeded positions: every device posts its real GPS once it is in the group.
   return session.id;
 }
 

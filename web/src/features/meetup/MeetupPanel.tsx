@@ -1,8 +1,7 @@
 // "Come to me" UI: the helper's compass card, the requester's "X is coming" card, and the
 // one-time tracker that posts GPS while a meetup is in progress.
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSafety, type VisibleLocation } from '../safety/api';
-import { TIMES_SQUARE, jitter } from '../safety/mock/spots';
 import { Section } from '../../ui';
 import { ago } from '../../screens/incident/time';
 import { isActiveMeetup, useMeetups, type Meetup, type MeetupState } from './api';
@@ -56,8 +55,8 @@ function MyLocationStatus() {
         {g.permission === 'denied'
           ? 'Location is blocked for this site. iPhone: Settings › Privacy & Security › Location Services › Safari Websites › While Using. Then tap Enable location.'
           : g.permission === 'unavailable'
-            ? 'This device has no location service; using a simulated position.'
-            : 'Your real location is not on yet; using a simulated position near Times Square.'}
+            ? 'This device has no location service.'
+            : 'Waiting for your location. Allow location access when the phone asks.'}
       </p>
       {g.permission !== 'unavailable' && (
         <button type="button" className="btn secondary block" onClick={() => g.requestLocation()}>
@@ -70,28 +69,21 @@ function MyLocationStatus() {
 
 /* ---------------------------------------------------------------- tracker */
 
-/** Mount once. While I am part of an active meetup, post my position every 2 s (real GPS, or simulated on laptops). */
+/**
+ * Mount once. While I am in a Night Out, stream my real position: every 2 s while walking during a
+ * meetup, otherwise when I move (and at least every 15 s). Posting fails quietly when my sharing is off.
+ */
 export function MeetupTracker() {
   const mu = useMeetups();
   return mu ? <TrackerInner mu={mu} /> : null;
 }
 function TrackerInner({ mu: { me, meetups } }: { mu: MeetupState }) {
   const safety = useSafety();
-  const active = meetups.find((m) => isActiveMeetup(m) && (m.helper === me || m.requester === me));
-  // A requester starts sharing real position as soon as they ask for company (this is also when the
-  // phone asks for location permission), so the helper's compass points at where they really are.
-  const waiting = safety.incidents.some(
-    (i) => i.subject === me && !['resolved', 'cancelled', 'handed_off'].includes(i.status) && safety.timeline(i.id).some((e) => e.kind === 'company_requested'),
-  );
-  const other = active ? (active.helper === me ? active.requester : active.helper) : null;
-  const otherLoc = other ? locOf(safety.locations, null, other) : null;
-  const from: LatLng | null = safety.myLocation ?? { lat: jitter(TIMES_SQUARE.lat), lng: jitter(TIMES_SQUARE.lng) };
-  // Only the helper walks; the requester's simulated position stays put (target = itself).
-  const target: LatLng | null = active?.helper === me ? otherLoc : from;
-  const geo = useGeolocation(!!active || waiting, safety.actions.postLocation, 2000, { from, target });
+  const inTrip = meetups.some((m) => isActiveMeetup(m) && (m.helper === me || m.requester === me));
+  const geo = useGeolocation(!!safety.sessionId, safety.actions.postLocation, inTrip ? 2000 : 4000, inTrip ? 4000 : 15000);
   useEffect(() => {
-    geoStore.set({ permission: geo.permission, accuracyM: geo.position?.accuracyM ?? null, course: geo.course, error: geo.error, simulated: geo.simulated, requestLocation: geo.requestLocation });
-  }, [geo.permission, geo.position?.accuracyM, geo.course, geo.error, geo.simulated, geo.requestLocation]);
+    geoStore.set({ permission: geo.permission, accuracyM: geo.position?.accuracyM ?? null, course: geo.course, error: geo.error, simulated: false, requestLocation: geo.requestLocation });
+  }, [geo.permission, geo.position?.accuracyM, geo.course, geo.error, geo.requestLocation]);
   return null;
 }
 
@@ -243,7 +235,14 @@ function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: bo
   const bearing = mine && target ? bearingDeg(mine, target) : null;
   // Compass heading when the device gives one; otherwise GPS direction of travel while walking.
   const usedHeading = heading.heading ?? geo.course;
-  const rot = bearing === null ? 0 : relativeBearing(bearing, usedHeading);
+  const rel = bearing === null ? 0 : relativeBearing(bearing, usedHeading);
+  // Accumulate turns so 359° → 1° animates as +2°, not −358°.
+  const rotRef = useRef(0);
+  const prev = rotRef.current;
+  let delta = ((rel - (((prev % 360) + 360) % 360)) + 540) % 360 - 180;
+  if (Number.isNaN(delta)) delta = 0;
+  const rot = prev + delta;
+  rotRef.current = rot;
   const dist = mine && target ? distanceM(mine, target) : null;
 
   return (

@@ -72,16 +72,9 @@ describe('C5 demo helpers', () => {
     expect(grants).toHaveLength(28);
     expect(grants.filter(g => g.scope.tag === 'messaging')).toHaveLength(4);
 
-    const locs = [...s.test.db.latestLocation.iter()].filter(l => l.sessionId === session.id);
-    expect(locs).toHaveLength(4);
-    // New Year's Eve scenario: everyone around Times Square / Midtown Manhattan.
-    for (const l of locs) {
-      expect(l.lat).toBeGreaterThan(40.75);
-      expect(l.lat).toBeLessThan(40.76);
-      expect(l.lng).toBeGreaterThan(-73.99);
-      expect(l.lng).toBeLessThan(-73.97);
-    }
-    expect(session.venueHint).toBe('Times Square, New York, NY');
+    // No seeded positions: devices post real GPS.
+    expect([...s.test.db.latestLocation.iter()].filter(l => l.sessionId === session.id)).toHaveLength(0);
+    expect(session.venueHint).toBe('');
     expect([...s.test.db.checkinTimer.iter()].filter(tm => tm.sessionId === session.id)).toHaveLength(4);
     expect(s.test.db.sessionExpiry.count()).toBe(1n);
 
@@ -91,7 +84,7 @@ describe('C5 demo helpers', () => {
     expect([...s.test.db.sessionMember.iter()]).toHaveLength(4);
     expect([...s.test.db.driverAssignment.iter()]).toHaveLength(1);
     expect([...s.test.db.consentGrant.iter()].filter(g => g.revokedAt === undefined)).toHaveLength(28);
-    expect([...s.test.db.latestLocation.iter()]).toHaveLength(4);
+    expect([...s.test.db.latestLocation.iter()]).toHaveLength(0);
     expect([...s.test.db.trustedContact.iter()]).toHaveLength(2);
   });
 
