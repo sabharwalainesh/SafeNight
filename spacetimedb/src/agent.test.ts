@@ -4,6 +4,7 @@ import type { ProcedureCtx } from 'spacetimedb/server';
 import { createModuleTestHarness, TestAuth, type TestHttpResponse } from 'spacetimedb/server/test-utils';
 
 import spacetimedb, * as m from './index';
+import { handoffRecipients } from './lib/safety';
 
 let nextConnection = 900n;
 function principal(subject: string) {
@@ -519,5 +520,40 @@ describe('C3 transport and closure', () => {
     expect(job(s.test).escalationTier).toBe(1);
     expect(timers(s.test)).toHaveLength(0);
     expect(() => s.test.withReducerTx(s.alex, ctx => m.demoFireFollowup(ctx, { jobId }))).toThrow('No open follow-up timer');
+  });
+});
+
+describe('hand-off never targets the suspected driver', () => {
+  it('hands off to the reporter when the organizer is the incident subject', () => {
+    const test = makeHarness();
+    test.clock.set(NOW);
+    const sam = principal('sam-organizer');
+    const alex = principal('alex-participant');
+    const id = (auth: TestAuth): Identity => test.viewContext(auth).sender;
+    test.withReducerTx(sam, ctx => m.setProfile(ctx, { displayName: 'Sam', avatarEmoji: '🚗' }));
+    test.withReducerTx(alex, ctx => m.setProfile(ctx, { displayName: 'Alex', avatarEmoji: '🦊' }));
+    // Sam organizes AND drives; nobody is a trusted contact, so the planner must hand off.
+    test.withReducerTx(sam, ctx =>
+      m.createSession(ctx, { name: 'Solo organizer', venueHint: '', startsAt: NOW, expiresAt: plus(300), checkinIntervalMinutes: 60 })
+    );
+    const session = [...test.db.nightSession.iter()][0]!;
+    test.withReducerTx(sam, ctx => m.createInvite(ctx, { sessionId: session.id, ttlMinutes: 60, maxUses: 4 }));
+    const code = [...test.db.invite.iter()][0]!.code;
+    test.withReducerTx(alex, ctx => m.joinSession(ctx, { code }));
+    test.withReducerTx(sam, ctx => m.volunteerDriver(ctx, { sessionId: session.id }));
+    const assignment = [...test.db.driverAssignment.iter()][0]!;
+    test.withReducerTx(sam, ctx => m.acceptDriverRole(ctx, { assignmentId: assignment.id }));
+    test.withReducerTx(alex, ctx =>
+      m.reportConcern(ctx, { sessionId: session.id, subject: id(sam), category: { tag: 'possible_consumption' }, note: 'Had a few' })
+    );
+
+    runPendingWakes(test);
+
+    expect(job(test).status.tag).toBe('handed_off');
+    const incident = [...test.db.incident.iter()][0]!;
+    expect(events(test, incident.id)).toContain('handed_off');
+    // Event-table rows are gone after commit, so check the recipient rule directly.
+    const takers = test.withReducerTx(alex, ctx => handoffRecipients(ctx as never, incident).map(i => i.toHexString()));
+    expect(takers).toEqual([id(alex).toHexString()]);
   });
 });

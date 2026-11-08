@@ -138,6 +138,22 @@ export function openIncident(
   return inc;
 }
 
+/**
+ * Who should take over when automated coordination stops. The organizer, unless the
+ * organizer is the person the incident is about (never hand coordination to a suspected
+ * driver); then the reporter, then any other active participant. May be empty.
+ */
+export function handoffRecipients(ctx: Ctx, incident: { id: bigint; sessionId: bigint; subject: Identity }): Identity[] {
+  const session = ctx.db.nightSession.id.find(incident.sessionId);
+  if (session && !session.organizer.isEqual(incident.subject)) return [session.organizer];
+  const participants = [...ctx.db.incidentParticipant.incidentId.filter(incident.id)].filter(
+    p => !p.userId.isEqual(incident.subject)
+  );
+  const reporter = participants.find(p => p.role.tag === 'reporter');
+  if (reporter) return [reporter.userId];
+  return participants.length > 0 ? [participants[0]!.userId] : [];
+}
+
 export function participantsOf(ctx: Ctx, incidentId: bigint) {
   return Array.from(ctx.db.incidentParticipant.incidentId.filter(incidentId));
 }

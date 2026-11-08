@@ -1,7 +1,7 @@
 import { Identity, ScheduleAt } from 'spacetimedb';
 import type { Ctx } from '../auth';
 import { envOf } from '../env';
-import { addEvent, isOpenStatus, sendAlert } from '../safety';
+import { addEvent, isOpenStatus, sendAlert, handoffRecipients } from '../safety';
 import { minutesAfter } from '../time';
 import { isTerminalJob } from './jobs';
 import { recipientAllowed } from './context';
@@ -370,11 +370,11 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
       case 'hand_off': {
         ctx.db.agentJob.id.update({ ...job, status: { tag: 'handed_off' }, lastEvent: 'handed_off', updatedAt: ctx.timestamp });
         for (const t of ctx.db.followupTimer.jobId.filter(job.id)) ctx.db.followupTimer.scheduledId.delete(t.scheduledId);
-        const session = ctx.db.nightSession.id.find(incident.sessionId);
         const reason = (args.reason as string) || 'no eligible contact remains';
-        addEvent(ctx, incident.id, 'handed_off', `Automated coordination stopped (${reason}); organizer asked to take over`, sim);
-        if (session) {
-          sendAlert(ctx, session.organizer, incident.id, 'incident_update', `SafeNight could not reach a helper for ${subjectName}. Please take over coordination.`);
+        const takers = handoffRecipients(ctx, incident);
+        addEvent(ctx, incident.id, 'handed_off', `Automated coordination stopped (${reason}); ${takers.length ? 'a human participant' : 'nobody is available and the group'} asked to take over`, sim);
+        for (const who of takers) {
+          sendAlert(ctx, who, incident.id, 'incident_update', `SafeNight could not reach a helper for ${subjectName}. Please take over coordination.`);
         }
         out.handedOff = true;
         receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { reason }, '', sim, `Handed off to the organizer: ${reason}`);

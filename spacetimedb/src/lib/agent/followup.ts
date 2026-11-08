@@ -1,6 +1,6 @@
 import type { Identity } from 'spacetimedb';
 import type { Ctx } from '../auth';
-import { addEvent, displayNameOf, findParticipant, isOpenStatus, sendAlert } from '../safety';
+import { addEvent, displayNameOf, findParticipant, isOpenStatus, sendAlert, handoffRecipients } from '../safety';
 import { clearFollowupTimers, clearPendingWakes, closeJobForIncident, isTerminalJob, wakeAgent } from './jobs';
 
 export const MAX_ESCALATION_TIER = 2;
@@ -34,9 +34,8 @@ export function runFollowup(ctx: Ctx, timer: { jobId: bigint; expectedFrom: Iden
     clearFollowupTimers(ctx, job.id);
     clearPendingWakes(ctx, job.id);
     addEvent(ctx, incident.id, 'handed_off', `No acknowledgment after ${MAX_ESCALATION_TIER} escalations; organizer asked to take over`);
-    const session = ctx.db.nightSession.id.find(incident.sessionId);
-    if (session) {
-      sendAlert(ctx, session.organizer, incident.id, 'incident_update', `Nobody acknowledged the request to help ${displayNameOf(ctx, incident.subject)}. Please take over.`);
+    for (const who of handoffRecipients(ctx, incident)) {
+      sendAlert(ctx, who, incident.id, 'incident_update', `Nobody acknowledged the request to help ${displayNameOf(ctx, incident.subject)}. Please take over.`);
     }
     return 'handed_off';
   }
