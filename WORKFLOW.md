@@ -241,6 +241,26 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 _Owner: Person B (Claude Pro). Edit only this section._
 
+### Summary (kept current; details in the dated log below)
+
+**Done (all on `main`, web suite 112 tests green, bridge 56 tests green):**
+- Client for every chunk (C1–C5): Night Out, Map, status/check-ins + hold-to-confirm emergency, concern sheet, no-driving banner, Inbox + incident timeline, agent plan/receipts/messages, ride options + "I'm home safe", Reports, Profile (contacts ladder, privacy, phone, delete), judge demo panel.
+- Live SpacetimeDB adapters for all five domains (night-out, safety, agent, reports, profile); live is the default, `npm run dev:mock -w web` for local mocks. Demo persona auto-registration + one-click "Set up demo group" on the server.
+- Verification: integration tests for the demo flow and safety rules, axe accessibility checks on every screen, WCAG contrast test, keyboard hold-to-confirm test, converter tests for every live adapter.
+- Phone-ready web app (PWA, persona picker, install hint, `dev:phone`), four-device demo guide in `docs/DEMO_SCRIPT.md`.
+- Emergency coordination `bridge/`: Nemotron decides calls (buddy → backup → SIMULATED dispatch to a demo number; emergency numbers hard-blocked), ElevenLabs voice over the Photon 2.0 SIP line. Verified live: real Nemotron decision → real call to a teammate's phone. Texting off (`TEXT_CHANNEL=none`) because SMS on the line needs a 10DLC campaign.
+- Docs: README (modes, bridge, phones, tracks), demo script, bridge README.
+
+**In progress (2026-11-08):**
+- UI redesign from user feedback: Apple-style design system (SF typography, grouped lists, translucent 4-tab bar: Tonight / Map / Alerts / You), diagnostics moved off the home screen, one-tap "Start a hangout" (defaults: New Year's Eve, Times Square), sectioned session screen with fewer buttons, real Leaflet/OpenStreetMap map of Times Square with the four friends at preset spots for the ball drop, compact status bar with a "Need help" sheet.
+
+**Planned / remaining:**
+- Walk the four-device demo on live data (2 laptop tabs + 2 phones) once the module is on Maincloud; record results here.
+- Rehearse with `SIMULATE_ALL=1`; real calls only for final checks (ElevenLabs Starter ≈ 45 call-minutes; plan set to cancel Dec 8).
+- Fill `bridge/.env` demo phones (`PHONE_MAYA`, `PHONE_JORDAN`, `DEMO_DISPATCH_NUMBER`), optional dispatch agent; enable voicemail detection on the ElevenLabs agents.
+- Stretch (with A, `mobile/`): Expo development build in the iOS Simulator and a Live Activity incident card on the lock screen / Dynamic Island.
+- Stretch: SMS texting via the Photon 2.0 beta API once a 10DLC campaign is approved.
+
 **Done**
 - 2026-11-07 — C0 web shell exists (built by the orchestrator so B starts from a working app): persona switcher (`?as=sam|alex|maya|jordan`, one SpacetimeDB identity per persona), connection status, runtime-status badges, online list, ping check, five-tab shell with placeholders. Typecheck and `vite build` pass.
 
