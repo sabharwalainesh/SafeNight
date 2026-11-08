@@ -55,7 +55,7 @@ State is in memory plus `bridge/.data/state.json` (gitignored).
 | BRIDGE_PORT | listen port | 8787 |
 | BRIDGE_TOKEN | required header value | none (routes refuse) |
 | SIMULATE_ALL | `1` forces simulation | off |
-| NEMOTRON_API_KEY / _BASE_URL / _MODEL | decider | planner fallback / NIM / nvidia/nemotron-3-super-120b-a12b |
+| NEMOTRON_API_KEY / _BASE_URL / _MODEL | decider | planner fallback / NIM / nvidia/nemotron-3.5-lightning-30b-a3b (the 120b super model is not enabled on every NIM account) |
 | PHOTON_PROJECT_ID, PHOTON_PROJECT_SECRET (PHOTON_WEBHOOK_SECRET optional) | texting + inbound via spectrum-ts | simulated |
 | BRIDGE_HOST | bind address | 127.0.0.1 |
 | ELEVENLABS_API_KEY, ELEVENLABS_WEBHOOK_SECRET | calls + post-call webhook | simulated |

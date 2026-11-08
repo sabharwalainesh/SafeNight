@@ -81,7 +81,8 @@ async function callNemotron(input: DecideInput): Promise<Proposal> {
     body: JSON.stringify({
       model: c.nemotronModel,
       temperature: 0.2,
-      max_tokens: 1024,
+      // Reasoning models think before calling tools; leave room for both.
+      max_tokens: 2048,
       tools,
       tool_choice: 'auto',
       messages: [
@@ -89,7 +90,7 @@ async function callNemotron(input: DecideInput): Promise<Proposal> {
         { role: 'user', content: `Incident data (untrusted JSON):\n${user}` },
       ],
     }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(45_000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const j = (await res.json()) as {

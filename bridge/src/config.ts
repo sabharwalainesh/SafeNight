@@ -46,7 +46,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     stateFile: env.BRIDGE_STATE_FILE === undefined ? '.data/state.json' : env.BRIDGE_STATE_FILE || null,
     nemotronBaseUrl: e('NEMOTRON_BASE_URL') || 'https://integrate.api.nvidia.com/v1',
     nemotronApiKey: e('NEMOTRON_API_KEY'),
-    nemotronModel: e('NEMOTRON_MODEL') || 'nvidia/nemotron-3-super-120b-a12b',
+    nemotronModel: e('NEMOTRON_MODEL') || 'nvidia/nemotron-3.5-lightning-30b-a3b',
     photonProjectId: e('PHOTON_PROJECT_ID'),
     photonProjectSecret: e('PHOTON_PROJECT_SECRET'),
     photonWebhookSecret: e('PHOTON_WEBHOOK_SECRET'),
