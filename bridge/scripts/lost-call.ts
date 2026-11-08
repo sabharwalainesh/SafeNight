@@ -2,7 +2,7 @@
 // Rings ONE persona's phone (from PHONE_* in .env) with the SafeNight Buddy agent.
 // Never dials anything else; emergency numbers are refused.
 //
-//   npm run call:lost                       # ring Alex's phone, about Jordan
+//   npm run call:lost -- --name Jordan        # ring PHONE_ALEX, greet as Jordan, about lost Alex
 //   npm run call:lost -- --to sam --lost Alex
 //   npm run call:lost -- --dry              # print what would be said, no call
 import { loadConfig } from '../src/config.js';
@@ -18,7 +18,8 @@ const flag = (name: string, d: string): string => {
 };
 const dry = argv.includes('--dry');
 const to = flag('to', 'alex').toLowerCase();
-const lost = flag('lost', 'Jordan');
+const lost = flag('lost', 'Alex');
+const nameFlag = flag('name', '');
 const where = flag('where', 'West 44th Street near 8th Avenue, a block west of Times Square');
 
 const c = loadConfig();
@@ -30,7 +31,7 @@ if (blocked) throw new Error(`Refusing to call: ${blocked}`);
 
 const vars = {
   call_type: 'buddy',
-  person_name: NAMES[to]!,
+  person_name: nameFlag || NAMES[to]!,
   reporter: lost,
   situation: `${lost} got separated from the group and is alone on the street. They are not answering texts`,
   location_text: where,
@@ -38,7 +39,7 @@ const vars = {
   callback_note: 'Open the SafeNight app to see their last location, or call them directly',
 };
 
-console.log(`Calling ${NAMES[to]} (…${number.slice(-4)}) about ${lost}, last seen at ${where}.`);
+console.log(`Calling ${nameFlag || NAMES[to]} (…${number.slice(-4)}) about ${lost}, last seen at ${where}.`);
 if (dry) {
   console.log('[dry run] no call placed. Variables:', vars);
   process.exit(0);

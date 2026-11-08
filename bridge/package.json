@@ -11,7 +11,8 @@
     "start": "tsx --env-file-if-exists=.env src/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "call:lost": "tsx --env-file-if-exists=.env scripts/lost-call.ts"
+    "call:lost": "tsx --env-file-if-exists=.env scripts/lost-call.ts",
+    "demo:call": "tsx --env-file-if-exists=.env scripts/lost-call.ts --to alex --name Jordan --lost Alex --where 'the Residence Hall West parking lot at UT Dallas'"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
