@@ -14,4 +14,22 @@ if (typeof g.window === 'undefined') {
   g.window = globalThis;
 }
 
+// The SpacetimeDB SDK registers window/document "focus", "online", "pageshow" and
+// "visibilitychange" listeners after the socket opens to detect resume. React Native's
+// global has no EventTarget API, so provide no-op listeners (AppState handles resume
+// via the SDK's automatic reconnect instead).
+const w = g.window as Record<string, unknown>;
+if (typeof w.addEventListener !== 'function') {
+  w.addEventListener = () => {};
+  w.removeEventListener = () => {};
+  w.dispatchEvent = () => true;
+}
+if (typeof g.document !== 'undefined') {
+  const d = g.document as Record<string, unknown>;
+  if (typeof d.addEventListener !== 'function') {
+    d.addEventListener = () => {};
+    d.removeEventListener = () => {};
+  }
+}
+
 installLocalStorage();
