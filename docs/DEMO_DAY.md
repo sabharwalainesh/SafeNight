@@ -22,6 +22,12 @@ npm run dev -w web
 
 Open `http://localhost:5173/?as=alex` (laptop 1) and `http://localhost:5173/?as=jordan` (laptop 2). The status strip must read **Nemotron: live** and **module 0.8.1**. Optional: the coordination bridge (`bridge/`, B's) needs its own `bridge/.env` and `npm run dev --prefix bridge`; it is simulated unless configured.
 
+## Phones without Expo Go: the hosted PWA (recommended)
+
+The web app is deployed on Vercel and already points at Maincloud: **<https://safenight-liart.vercel.app>** (project `safenight` in Sohaib's Vercel account; redeploy with `cd web && VITE_SPACETIMEDB_HOST=wss://maincloud.spacetimedb.com VITE_SPACETIMEDB_DB_NAME=safenight VITE_NIGHTOUT_SOURCE=live VITE_SAFETY_SOURCE=live VITE_BRIDGE_URL= VITE_BRIDGE_TOKEN= npx vite build && cd dist && npx vercel deploy --prod --yes`).
+
+On each phone: open the URL in Safari, add `?as=sam` (phone 1) or `?as=maya` (phone 2), tap Share → **Add to Home Screen**, then launch it from the home screen like an app. No laptop, Metro, or tunnel is involved; the phone talks to Maincloud directly. The coordination bridge is disabled in this build (it only runs on a laptop).
+
 ## Phones (Expo Go)
 
 Each phone loads the app code from its owner's laptop; data goes straight to Maincloud.
