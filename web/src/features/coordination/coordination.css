@@ -1,0 +1,13 @@
+.coord-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:grid;gap:12px}
+.coord-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.coord-head h3{margin:0}
+.coord-badge,.coord-sim{border:1px solid var(--accent);border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:700;color:var(--text)}
+.coord-sim{margin-left:6px}
+.coord-actions{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.coord-actions li{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:grid;gap:6px}
+.coord-chip{justify-self:start;border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-weight:600;color:var(--text)}
+.coord-chip.st-failed,.coord-chip.st-blocked,.coord-chip.st-no_answer{border-color:var(--danger)}
+.coord-chip.st-sent,.coord-chip.st-completed{border-color:var(--accent)}
+.coord-dispatch{border:2px solid var(--danger);border-radius:var(--radius);padding:12px;display:grid;gap:6px}
+.coord-err{color:var(--danger)}
+.coord-why summary{cursor:pointer;min-height:var(--tap)}

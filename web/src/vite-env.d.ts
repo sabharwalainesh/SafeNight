@@ -17,6 +17,9 @@ interface ImportMetaEnv {
   readonly VITE_REPORTS_SOURCE?: string;
   /** `live` runs the Profile tab against the SpacetimeDB module; default `mock`. */
   readonly VITE_PROFILE_SOURCE?: string;
+  /** Base URL of the emergency-coordination bridge; unset disables the panel. */
+  readonly VITE_BRIDGE_URL?: string;
+  readonly VITE_BRIDGE_TOKEN?: string;
 }
 
 interface ImportMeta {

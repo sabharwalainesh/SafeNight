@@ -3,6 +3,7 @@ import { useNightOut } from '../../features/night-out/api';
 import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../features/safety/api';
 import { AgentPanel } from '../../features/agent-panel';
 import { HomeConfirm, RidePanel } from '../../features/rides';
+import { CoordinationPanel } from '../../features/coordination';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
 
@@ -228,6 +229,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
       )}
 
       <AgentPanel incidentId={incident.id} />
+      <CoordinationPanel incidentId={incident.id} />
       <RidePanel incidentId={incident.id} />
 
       <h3>Timeline</h3>
