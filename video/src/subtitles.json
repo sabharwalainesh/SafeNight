@@ -1,0 +1,378 @@
+[
+  {
+    "id": "01-friends-sound",
+    "start": 0,
+    "end": 9,
+    "text": "[Upbeat music]",
+    "type": "sound",
+    "speaker": ""
+  },
+  {
+    "id": "02-outside-sound",
+    "start": 9,
+    "end": 18,
+    "text": "[Music stops. Quiet night ambience.]",
+    "type": "sound",
+    "speaker": ""
+  },
+  {
+    "id": "03-stat-safety-1",
+    "start": 18.2,
+    "end": 23.033,
+    "text": "In a 2019 survey across thirty-three\nuniversities, thirteen percent of",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "03-stat-safety-2",
+    "start": 23.033,
+    "end": 26.417,
+    "text": "student respondents reported nonconsensual\nsexual contact involving",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "03-stat-safety-3",
+    "start": 26.417,
+    "end": 29.8,
+    "text": "force or inability to consent since\nenrolling.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "04-stat-context-1",
+    "start": 30.2,
+    "end": 35.436,
+    "text": "In a separate 2024 survey, one in four\nfull-time college students aged",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "04-stat-context-2",
+    "start": 35.436,
+    "end": 39.8,
+    "text": "eighteen to twenty-five reported binge\ndrinking in the past month.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "05-reason-1",
+    "start": 40.2,
+    "end": 43.309,
+    "text": "These figures describe different risks, not\na causal link.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "05-reason-2",
+    "start": 43.309,
+    "end": 47.455,
+    "text": "SafeNight is designed to turn a request for\nhelp into an acknowledged",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "05-reason-3",
+    "start": 47.455,
+    "end": 47.8,
+    "text": "response.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "06-unsafe-1",
+    "start": 48.2,
+    "end": 53.8,
+    "text": "Back outside, Maya opens SafeNight and\ntaps, I feel unsafe.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "07-incoming-call-1",
+    "start": 54.2,
+    "end": 57.8,
+    "text": "In this proposed flow, SafeNight calls her.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "08-call-check-1",
+    "start": 58.2,
+    "end": 62.04,
+    "text": "Maya, this is SafeNight responding to your\nrequest.",
+    "type": "speech",
+    "speaker": "SafeNight"
+  },
+  {
+    "id": "08-call-check-2",
+    "start": 62.04,
+    "end": 64.44,
+    "text": "You shared the east entrance.",
+    "type": "speech",
+    "speaker": "SafeNight"
+  },
+  {
+    "id": "08-call-check-3",
+    "start": 64.44,
+    "end": 67.8,
+    "text": "Is that correct, and are you safe?",
+    "type": "speech",
+    "speaker": "SafeNight"
+  },
+  {
+    "id": "09-call-reply-1",
+    "start": 68.2,
+    "end": 70.96,
+    "text": "That’s right. I don’t feel safe.",
+    "type": "speech",
+    "speaker": "Maya"
+  },
+  {
+    "id": "09-call-reply-2",
+    "start": 70.96,
+    "end": 72.8,
+    "text": "Please contact campus safety.",
+    "type": "speech",
+    "speaker": "Maya"
+  },
+  {
+    "id": "10-call-confirm-1",
+    "start": 73.2,
+    "end": 75.883,
+    "text": "I’ll send your confirmed location and\nrequest.",
+    "type": "speech",
+    "speaker": "SafeNight"
+  },
+  {
+    "id": "10-call-confirm-2",
+    "start": 75.883,
+    "end": 77.8,
+    "text": "I’m waiting for their acknowledgment.",
+    "type": "speech",
+    "speaker": "SafeNight"
+  },
+  {
+    "id": "11-handoff-1",
+    "start": 78.2,
+    "end": 82.422,
+    "text": "The proposed handoff sends the confirmed\ndetails to an authorized",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "11-handoff-2",
+    "start": 82.422,
+    "end": 85.8,
+    "text": "campus-safety channel. This demonstration\nuses a simulated receiver.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "12-app-group-1",
+    "start": 86.2,
+    "end": 88.617,
+    "text": "Now let’s look inside SafeNight.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "12-app-group-2",
+    "start": 88.617,
+    "end": 91.517,
+    "text": "A Night Out connects the group.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "12-app-group-3",
+    "start": 91.517,
+    "end": 95.867,
+    "text": "Each person chooses their sharing\npermissions and approved contacts",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "12-app-group-4",
+    "start": 95.867,
+    "end": 97.8,
+    "text": "before the night begins.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "13-app-incident-1",
+    "start": 98.2,
+    "end": 102.376,
+    "text": "The incident timeline brings requests,\nresponses, plans, and tool",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "13-app-incident-2",
+    "start": 102.376,
+    "end": 107.016,
+    "text": "receipts together. Simulated actions stay\nlabeled, so the demo separates",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "13-app-incident-3",
+    "start": 107.016,
+    "end": 109.8,
+    "text": "the working interface from proposed\nintegrations.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "14-app-response-1",
+    "start": 110.2,
+    "end": 113.122,
+    "text": "An approved friend can acknowledge the\nrequest.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "14-app-response-2",
+    "start": 113.122,
+    "end": 118.13,
+    "text": "The group can see the difference between a\nmessage being sent and",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "14-app-response-3",
+    "start": 118.13,
+    "end": 119.8,
+    "text": "someone agreeing to help.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "15-permissions-1",
+    "start": 120.2,
+    "end": 123.226,
+    "text": "Location sharing stays scoped and visible.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "15-permissions-2",
+    "start": 123.226,
+    "end": 129.278,
+    "text": "The response uses information the person\nchose to share, and keeps stale",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "15-permissions-3",
+    "start": 129.278,
+    "end": 131.8,
+    "text": "updates distinct from confirmed details.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "16-coordination-1",
+    "start": 132.2,
+    "end": 136.376,
+    "text": "Nemotron is intended to interpret context\nand coordinate permitted",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "16-coordination-2",
+    "start": 136.376,
+    "end": 140.552,
+    "text": "tools. SpacetimeDB owns the durable state,\npermissions, and follow-up",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "16-coordination-3",
+    "start": 140.552,
+    "end": 143.8,
+    "text": "logic. Immediate alerts stay independent of\nAI.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "17-human-handoff-1",
+    "start": 144.2,
+    "end": 147.912,
+    "text": "A sent message is not a completed handoff.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "17-human-handoff-2",
+    "start": 147.912,
+    "end": 152.088,
+    "text": "The workflow tracks acknowledgment and\nkeeps unresolved needs visible",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "17-human-handoff-3",
+    "start": 152.088,
+    "end": 155.8,
+    "text": "until a person confirms who is taking\nresponsibility.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "18-resolution-1",
+    "start": 156.2,
+    "end": 160.662,
+    "text": "When Maya can confirm her status, she\nchecks in explicitly.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "18-resolution-2",
+    "start": 160.662,
+    "end": 165.123,
+    "text": "The incident closes through human\nconfirmation, rather than assuming a",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "18-resolution-3",
+    "start": 165.123,
+    "end": 167.8,
+    "text": "location update means everything is okay.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "19-evidence-1",
+    "start": 168.2,
+    "end": 174.25,
+    "text": "One timeline: the request, the response,\nthe handoff, and the confirmed",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "19-evidence-2",
+    "start": 174.25,
+    "end": 174.8,
+    "text": "outcome.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "20-close-1",
+    "start": 175.2,
+    "end": 177.257,
+    "text": "SafeNight. Go out together.",
+    "type": "speech",
+    "speaker": ""
+  },
+  {
+    "id": "20-close-2",
+    "start": 177.257,
+    "end": 178.8,
+    "text": "Get home together.",
+    "type": "speech",
+    "speaker": ""
+  }
+]

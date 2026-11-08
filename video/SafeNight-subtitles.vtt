@@ -1,0 +1,169 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:09.000
+[Upbeat music]
+
+00:00:09.000 --> 00:00:18.000
+[Music stops. Quiet night ambience.]
+
+00:00:18.200 --> 00:00:23.033
+In a 2019 survey across thirty-three
+universities, thirteen percent of
+
+00:00:23.033 --> 00:00:26.417
+student respondents reported nonconsensual
+sexual contact involving
+
+00:00:26.417 --> 00:00:29.800
+force or inability to consent since
+enrolling.
+
+00:00:30.200 --> 00:00:35.436
+In a separate 2024 survey, one in four
+full-time college students aged
+
+00:00:35.436 --> 00:00:39.800
+eighteen to twenty-five reported binge
+drinking in the past month.
+
+00:00:40.200 --> 00:00:43.309
+These figures describe different risks, not
+a causal link.
+
+00:00:43.309 --> 00:00:47.455
+SafeNight is designed to turn a request for
+help into an acknowledged
+
+00:00:47.455 --> 00:00:47.800
+response.
+
+00:00:48.200 --> 00:00:53.800
+Back outside, Maya opens SafeNight and
+taps, I feel unsafe.
+
+00:00:54.200 --> 00:00:57.800
+In this proposed flow, SafeNight calls her.
+
+00:00:58.200 --> 00:01:02.040
+Maya, this is SafeNight responding to your
+request.
+
+00:01:02.040 --> 00:01:04.440
+You shared the east entrance.
+
+00:01:04.440 --> 00:01:07.800
+Is that correct, and are you safe?
+
+00:01:08.200 --> 00:01:10.960
+That’s right. I don’t feel safe.
+
+00:01:10.960 --> 00:01:12.800
+Please contact campus safety.
+
+00:01:13.200 --> 00:01:15.883
+I’ll send your confirmed location and
+request.
+
+00:01:15.883 --> 00:01:17.800
+I’m waiting for their acknowledgment.
+
+00:01:18.200 --> 00:01:22.422
+The proposed handoff sends the confirmed
+details to an authorized
+
+00:01:22.422 --> 00:01:25.800
+campus-safety channel. This demonstration
+uses a simulated receiver.
+
+00:01:26.200 --> 00:01:28.617
+Now let’s look inside SafeNight.
+
+00:01:28.617 --> 00:01:31.517
+A Night Out connects the group.
+
+00:01:31.517 --> 00:01:35.867
+Each person chooses their sharing
+permissions and approved contacts
+
+00:01:35.867 --> 00:01:37.800
+before the night begins.
+
+00:01:38.200 --> 00:01:42.376
+The incident timeline brings requests,
+responses, plans, and tool
+
+00:01:42.376 --> 00:01:47.016
+receipts together. Simulated actions stay
+labeled, so the demo separates
+
+00:01:47.016 --> 00:01:49.800
+the working interface from proposed
+integrations.
+
+00:01:50.200 --> 00:01:53.122
+An approved friend can acknowledge the
+request.
+
+00:01:53.122 --> 00:01:58.130
+The group can see the difference between a
+message being sent and
+
+00:01:58.130 --> 00:01:59.800
+someone agreeing to help.
+
+00:02:00.200 --> 00:02:03.226
+Location sharing stays scoped and visible.
+
+00:02:03.226 --> 00:02:09.278
+The response uses information the person
+chose to share, and keeps stale
+
+00:02:09.278 --> 00:02:11.800
+updates distinct from confirmed details.
+
+00:02:12.200 --> 00:02:16.376
+Nemotron is intended to interpret context
+and coordinate permitted
+
+00:02:16.376 --> 00:02:20.552
+tools. SpacetimeDB owns the durable state,
+permissions, and follow-up
+
+00:02:20.552 --> 00:02:23.800
+logic. Immediate alerts stay independent of
+AI.
+
+00:02:24.200 --> 00:02:27.912
+A sent message is not a completed handoff.
+
+00:02:27.912 --> 00:02:32.088
+The workflow tracks acknowledgment and
+keeps unresolved needs visible
+
+00:02:32.088 --> 00:02:35.800
+until a person confirms who is taking
+responsibility.
+
+00:02:36.200 --> 00:02:40.662
+When Maya can confirm her status, she
+checks in explicitly.
+
+00:02:40.662 --> 00:02:45.123
+The incident closes through human
+confirmation, rather than assuming a
+
+00:02:45.123 --> 00:02:47.800
+location update means everything is okay.
+
+00:02:48.200 --> 00:02:54.250
+One timeline: the request, the response,
+the handoff, and the confirmed
+
+00:02:54.250 --> 00:02:54.800
+outcome.
+
+00:02:55.200 --> 00:02:57.257
+SafeNight. Go out together.
+
+00:02:57.257 --> 00:02:58.800
+Get home together.

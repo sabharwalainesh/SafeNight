@@ -1,0 +1,29 @@
+{
+  "name": "safenight-film",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio src/index.tsx",
+    "typecheck": "tsc --noEmit",
+    "preview": "node scripts/render.mjs preview",
+    "render": "node scripts/render.mjs final",
+    "check": "node scripts/render.mjs check",
+    "guide": "node scripts/guide.mjs",
+    "subtitles:reset": "node scripts/guide.mjs --reset-timing",
+    "test": "node scripts/check-timeline.mjs",
+    "music": "python3 scripts/music.py"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.541",
+    "remotion": "4.0.541",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "@fontsource/manrope": "5.3.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}
