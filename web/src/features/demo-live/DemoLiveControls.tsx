@@ -33,7 +33,7 @@ export function DemoLiveControls() {
       <div className="demo-row">
         <button
           type="button"
-          className="demo-btn primary"
+          className="btn block"
           disabled={busy || !demo.allRegistered}
           onClick={() => void run('Demo group is ready', () => demo.setupGroup('Saturday night'))}
         >
@@ -41,14 +41,14 @@ export function DemoLiveControls() {
         </button>
         {!demo.allRegistered && <span className="small muted">Open the four persona tabs first</span>}
         {!confirming ? (
-          <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
+          <button type="button" className="btn plain demo-danger" disabled={busy} onClick={() => setConfirming(true)}>
             Reset demo group
           </button>
         ) : (
           <>
             <button
               type="button"
-              className="demo-btn danger"
+              className="btn plain demo-danger"
               disabled={busy}
               onClick={() => {
                 setConfirming(false);
@@ -57,7 +57,7 @@ export function DemoLiveControls() {
             >
               Yes, reset the group
             </button>
-            <button type="button" className="demo-btn" onClick={() => setConfirming(false)}>
+            <button type="button" className="btn plain" onClick={() => setConfirming(false)}>
               Cancel
             </button>
           </>

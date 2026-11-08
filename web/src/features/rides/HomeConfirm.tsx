@@ -14,7 +14,7 @@ export default function HomeConfirm({ incidentId }: { incidentId: string }) {
   const isSubject = inc.subject === me;
 
   if (inc.status === 'resolved') {
-    return inc.resolvedBy === inc.subject ? <p className="home-confirm">Confirmed home by {inc.subjectName}</p> : null;
+    return inc.resolvedBy === inc.subject ? <p className="home-confirm home-done">Confirmed home by {inc.subjectName}</p> : null;
   }
   if (!isSubject) {
     return inc.status === 'awaiting_home_confirmation' ? (
@@ -41,7 +41,7 @@ export default function HomeConfirm({ incidentId }: { incidentId: string }) {
   return (
     <div className="home-confirm">
       {!confirming ? (
-        <button type="button" className="btn big" onClick={() => setConfirming(true)}>
+        <button type="button" className="btn block big" onClick={() => setConfirming(true)}>
           I'm home safe
         </button>
       ) : (
@@ -51,7 +51,7 @@ export default function HomeConfirm({ incidentId }: { incidentId: string }) {
             <button type="button" className="btn big" disabled={busy} onClick={go}>
               Yes, I'm home
             </button>
-            <button type="button" className="btn" disabled={busy} onClick={() => setConfirming(false)}>
+            <button type="button" className="btn plain" disabled={busy} onClick={() => setConfirming(false)}>
               Not yet
             </button>
           </div>

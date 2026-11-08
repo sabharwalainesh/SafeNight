@@ -4,6 +4,7 @@ import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../fea
 import { AgentPanel } from '../../features/agent-panel';
 import { HomeConfirm, RidePanel } from '../../features/rides';
 import { CoordinationPanel } from '../../features/coordination';
+import { LargeTitle, Pill, Row, Section } from '../../ui';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
 
@@ -34,6 +35,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
   const [text, setText] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [announce, setAnnounce] = useState('');
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const seen = useRef<number | null>(null);
   const { myConsents } = useNightOut();
   const noteRef = useRef<HTMLInputElement>(null);
@@ -59,10 +61,10 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
   const mine = incident?.participants.find(p => p.userId === me);
   if (!incident || (events.length === 0 && !mine)) {
     return (
-      <section className="incident-screen">
-        <button type="button" className="btn" onClick={onBack}>← Back</button>
+      <div className="incident-screen">
+        <button type="button" className="btn plain back-link" onClick={onBack}>‹ Back</button>
         <p role="status">You are not part of this incident</p>
-      </section>
+      </div>
     );
   }
 
@@ -111,18 +113,23 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
     setError(null);
   }
 
+  const shownEvents = showAllEvents ? events : events.slice(-5);
+  const primaryIsResolve = !canAck;
+
   return (
-    <section className="incident-screen">
-      <button type="button" className="btn" onClick={onBack}>← Back</button>
-      <header>
-        <h2>{KIND_LABELS[incident.kind] ?? incident.kind}</h2>
-        <p className="inc-subject">{incident.subjectName}</p>
-        <div className="inc-badges">
-          <span className={`inc-pill sev-${incident.severity}`}>{incident.severity}</span>
-          <span className="inc-pill">{INCIDENT_STATUS_LABELS[incident.status]}</span>
-          {mocked && <span className="inc-pill">MOCK DATA</span>}
-        </div>
-        <p className="muted small">Opened {ago(incident.openedAt)}</p>
+    <div className="incident-screen">
+      <button type="button" className="btn plain back-link" onClick={onBack}>‹ Back</button>
+      <header className="inc-head">
+        <LargeTitle>{KIND_LABELS[incident.kind] ?? incident.kind}</LargeTitle>
+        <p className="inc-sub">
+          <span className="headline">{incident.subjectName}</span>
+          <Pill tone={incident.severity === 'urgent' ? 'danger' : incident.severity === 'elevated' ? 'warn' : 'neutral'}>
+            {incident.severity}
+          </Pill>
+          <Pill tone={incident.status === 'resolved' ? 'ok' : 'info'}>{INCIDENT_STATUS_LABELS[incident.status]}</Pill>
+          {mocked && <span className="badge sim">MOCK DATA</span>}
+        </p>
+        <p className="muted footnote">Opened {ago(incident.openedAt)}</p>
         {incident.status === 'resolved' && resolvedByName && (
           <p className="inc-resolved">Resolved by {resolvedByName}</p>
         )}
@@ -130,26 +137,60 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
 
       <HomeConfirm incidentId={incident.id} />
 
-      <h3>Participants</h3>
-      <ul className="inc-list">
+      <Section title="What's happening">
+        <div className="inc-sr" aria-live="polite" role="status">{announce}</div>
+        {events.length === 0 ? (
+          <p className="inc-empty">No events yet.</p>
+        ) : (
+          <ol className="inc-events">
+            {shownEvents.map(e => (
+              <li key={e.id}>
+                <time dateTime={new Date(e.at).toISOString()} className="footnote muted">{clock(e.at)}</time>{' '}
+                <strong>{e.actorName}</strong> {eventText(e)}
+                {e.simulated && <> <Pill tone="warn">SIMULATED</Pill></>}
+              </li>
+            ))}
+          </ol>
+        )}
+        {events.length > 5 && (
+          <button type="button" className="btn plain small-btn inc-more" aria-expanded={showAllEvents} onClick={() => setShowAllEvents(v => !v)}>
+            {showAllEvents ? 'Show fewer' : `Show all (${events.length})`}
+          </button>
+        )}
+      </Section>
+
+      <AgentPanel incidentId={incident.id} />
+      <RidePanel incidentId={incident.id} />
+      <CoordinationPanel incidentId={incident.id} />
+
+      <Section title="People">
         {incident.participants.map(p => (
-          <li key={p.userId}>
-            <strong>{p.displayName}</strong> <span className="muted">({p.role})</span>
-            <div className="small muted">
-              {p.acknowledgedAt !== null ? `Acknowledged ${ago(p.acknowledgedAt)}` : 'Not yet acknowledged'}
-            </div>
-          </li>
+          <Row
+            key={p.userId}
+            label={
+              <>
+                <span className="headline">{p.displayName}</span> <span className="muted subhead">({p.role})</span>
+              </>
+            }
+            value={
+              p.acknowledgedAt !== null ? (
+                <Pill tone="ok">Acknowledged {ago(p.acknowledgedAt)}</Pill>
+              ) : (
+                <span className="footnote">Not yet acknowledged</span>
+              )
+            }
+          />
         ))}
-      </ul>
+      </Section>
 
       {error && <p role="alert" className="inc-error">{error}</p>}
 
-      {!closed && mode === 'none' && (
+      {!closed && mode === 'none' && (canAck || canResolve || canCancel) && (
         <div className="inc-actions">
           {canAck && (
             <button
               type="button"
-              className="btn inc-primary"
+              className="btn block"
               disabled={busy}
               onClick={() => run(() => actions.acknowledgeIncident(incident.id))}
             >
@@ -157,12 +198,17 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
             </button>
           )}
           {canResolve && (
-            <button type="button" className="btn inc-primary" disabled={busy} onClick={() => openMode('resolve')}>
+            <button
+              type="button"
+              className={primaryIsResolve ? 'btn block' : 'btn secondary block'}
+              disabled={busy}
+              onClick={() => openMode('resolve')}
+            >
               {isSubject ? "I'm safe — resolve" : 'Resolve'}
             </button>
           )}
           {canCancel && (
-            <button type="button" className="btn" disabled={busy} onClick={() => openMode('cancel')}>
+            <button type="button" className="btn plain inc-cancel" disabled={busy} onClick={() => openMode('cancel')}>
               Cancel incident
             </button>
           )}
@@ -171,7 +217,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
 
       {mode === 'resolve' && (
         <form
-          className="inc-form"
+          className="card inc-form"
           onSubmit={ev => {
             ev.preventDefault();
             if (!text.trim() || busy) return;
@@ -201,17 +247,17 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
             </p>
           )}
           <div className="inc-actions">
-            <button type="submit" className="btn inc-primary" disabled={busy || !text.trim()}>
+            <button type="submit" className="btn block" disabled={busy || !text.trim()}>
               {confirming ? 'Yes, resolve' : 'Continue'}
             </button>
-            <button type="button" className="btn" disabled={busy} onClick={() => setMode('none')}>Back</button>
+            <button type="button" className="btn plain" disabled={busy} onClick={() => setMode('none')}>Back</button>
           </div>
         </form>
       )}
 
       {mode === 'cancel' && (
         <form
-          className="inc-form"
+          className="card inc-form"
           onSubmit={ev => {
             ev.preventDefault();
             if (text.trim() && !busy) void run(() => actions.cancelIncident(incident.id, text.trim()));
@@ -220,33 +266,13 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
           <label htmlFor="inc-reason">Reason for cancelling</label>
           <input id="inc-reason" ref={reasonRef} value={text} maxLength={200} onChange={e => setText(e.target.value)} />
           <div className="inc-actions">
-            <button type="submit" className="btn inc-primary" disabled={busy || !text.trim()}>
+            <button type="submit" className="btn block" disabled={busy || !text.trim()}>
               Cancel incident
             </button>
-            <button type="button" className="btn" disabled={busy} onClick={() => setMode('none')}>Back</button>
+            <button type="button" className="btn plain" disabled={busy} onClick={() => setMode('none')}>Back</button>
           </div>
         </form>
       )}
-
-      <AgentPanel incidentId={incident.id} />
-      <CoordinationPanel incidentId={incident.id} />
-      <RidePanel incidentId={incident.id} />
-
-      <h3>Timeline</h3>
-      <div className="inc-sr" aria-live="polite" role="status">{announce}</div>
-      {events.length === 0 ? (
-        <p className="muted">No events yet.</p>
-      ) : (
-        <ol className="inc-list">
-          {events.map(e => (
-            <li key={e.id}>
-              <time dateTime={new Date(e.at).toISOString()} className="small muted">{clock(e.at)}</time>{' '}
-              <strong>{e.actorName}</strong> {eventText(e)}
-              {e.simulated && <span className="inc-pill inc-sim">SIMULATED</span>}
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
+    </div>
   );
 }

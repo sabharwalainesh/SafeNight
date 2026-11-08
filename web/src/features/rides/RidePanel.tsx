@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { RIDE_STATUS_LABELS, useAgent, type RideStatus } from '../agent/api';
+import { Pill, Section } from '../../ui';
 import './rides.css';
 
 // Ride options can come from model output, so only render links to known
@@ -52,80 +53,81 @@ export default function RidePanel({ incidentId }: { incidentId: string }) {
   const cancelled = plan.status === 'cancelled';
 
   return (
-    <section className="rides-panel" aria-label="Ride options">
-      <h3>Ride for {plan.riderName}</h3>
-      {cancelled ? (
-        <p>{RIDE_STATUS_LABELS.cancelled}</p>
-      ) : (
-        <ol className="rides-steps">
-          {STEPS.map((s, i) => (
-            <li key={s} className={i < idx ? 'done' : undefined} aria-current={i === idx ? 'step' : undefined}>
-              {RIDE_STATUS_LABELS[s]}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {plan.status === 'proposed' || plan.status === 'accepted' ? (
-        <ul className="rides-options">
-          {plan.options.map(o => {
-            const chosen = plan.chosenOption === o.id;
-            return (
-              <li key={o.id} className={chosen ? 'chosen' : undefined}>
-                <div className="rides-row">
-                  <strong>{o.label}</strong>
-                  <span className="rides-meta">{o.kind.replace(/_/g, ' ')}</span>
-                  {o.simulated && <span className="badge sim">SIMULATED</span>}
-                  {chosen && <span className="rides-meta">Chosen</span>}
-                </div>
-                <div className="rides-meta">
-                  {o.etaMinutes !== null ? `ETA ${o.etaMinutes} min · ` : ''}
-                  {o.source}, fetched {agoText(o.fetchedAt)}
-                </div>
-                <div className="rides-row">
-                  {safeRideLink(o.url) && (
-                    <a className="btn" href={safeRideLink(o.url)!} target="_blank" rel="noopener noreferrer">Open in app</a>
-                  )}
-                  {plan.status === 'proposed' && (
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy}
-                      onClick={() => run(() => actions.acceptRideOption(plan.id, o.id))}
-                    >
-                      Choose this
-                    </button>
-                  )}
-                </div>
+    <Section title={`Ride for ${plan.riderName}`}>
+      <div className="rides-panel" role="group" aria-label="Ride options">
+        {cancelled ? (
+          <p>{RIDE_STATUS_LABELS.cancelled}</p>
+        ) : (
+          <ol className="rides-steps">
+            {STEPS.map((s, i) => (
+              <li key={s} className={i < idx ? 'done' : undefined} aria-current={i === idx ? 'step' : undefined}>
+                {RIDE_STATUS_LABELS[s]}
               </li>
-            );
-          })}
-        </ul>
-      ) : null}
+            ))}
+          </ol>
+        )}
 
-      {plan.status === 'accepted' && (
-        <div>
-          <p>SafeNight never books or pays. Book it yourself, then confirm.</p>
-          <button
-            type="button"
-            className="btn"
-            disabled={busy}
-            onClick={() => run(() => actions.confirmRideBooked(plan.id))}
-          >
-            I booked this
+        {plan.status === 'proposed' || plan.status === 'accepted' ? (
+          <ul className="rides-options">
+            {plan.options.map(o => {
+              const chosen = plan.chosenOption === o.id;
+              return (
+                <li key={o.id} className={chosen ? 'chosen' : undefined}>
+                  <div className="rides-row">
+                    <strong>{o.label}</strong>
+                    <span className="rides-meta">{o.kind.replace(/_/g, ' ')}</span>
+                    {o.simulated && <Pill tone="warn">SIMULATED</Pill>}
+                    {chosen && <Pill tone="info">Chosen</Pill>}
+                  </div>
+                  <div className="rides-meta">
+                    {o.etaMinutes !== null ? `ETA ${o.etaMinutes} min · ` : ''}
+                    {o.source}, fetched {agoText(o.fetchedAt)}
+                  </div>
+                  <div className="rides-row">
+                    {safeRideLink(o.url) && (
+                      <a className="btn plain small-btn" href={safeRideLink(o.url)!} target="_blank" rel="noopener noreferrer">Open in app</a>
+                    )}
+                    {plan.status === 'proposed' && (
+                      <button
+                        type="button"
+                        className="btn secondary small-btn"
+                        disabled={busy}
+                        onClick={() => run(() => actions.acceptRideOption(plan.id, o.id))}
+                      >
+                        Choose this
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+
+        {plan.status === 'accepted' && (
+          <div className="rides-confirm">
+            <p className="rides-meta">SafeNight never books or pays. Book it yourself, then confirm.</p>
+            <button
+              type="button"
+              className="btn block"
+              disabled={busy}
+              onClick={() => run(() => actions.confirmRideBooked(plan.id))}
+            >
+              I booked this
+            </button>
+          </div>
+        )}
+        {plan.status === 'booked_by_user' && (
+          <button type="button" className="btn block" disabled={busy} onClick={() => run(() => actions.confirmPickup(plan.id))}>
+            Confirm pickup
           </button>
-        </div>
-      )}
-      {plan.status === 'booked_by_user' && (
-        <button type="button" className="btn" disabled={busy} onClick={() => run(() => actions.confirmPickup(plan.id))}>
-          Confirm pickup
-        </button>
-      )}
-      {error && (
-        <p role="alert" className="rides-err">
-          {error}
-        </p>
-      )}
-    </section>
+        )}
+        {error && (
+          <p role="alert" className="rides-err">
+            {error}
+          </p>
+        )}
+      </div>
+    </Section>
   );
 }

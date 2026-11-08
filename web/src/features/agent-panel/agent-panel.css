@@ -1,28 +1,14 @@
-.agent-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin: 1rem 0; }
-.agent-panel h2 { margin: 0; }
-.agent-panel h3 { font-size: 0.95rem; margin: 0 0 0.35rem; display: flex; gap: 0.5rem; align-items: center; }
-.agent-panel .ap-head { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.agent-panel .ap-block { margin-top: 0.9rem; padding-top: 0.7rem; border-top: 1px solid var(--border); }
-.agent-panel summary { cursor: pointer; font-weight: 600; min-height: var(--tap); display: flex; align-items: center; }
-.agent-panel .ap-muted { color: var(--muted); font-size: 0.9rem; }
+.agent-panel { padding: 0.85rem 1rem; display: grid; gap: 0.5rem; }
+.agent-panel p { margin: 0; }
+.agent-panel .ap-block { display: grid; gap: 0.4rem; padding-top: 0.7rem; border-top: 0.5px solid var(--border); }
+.agent-panel summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; color: var(--accent); font-size: 15px; }
+.agent-panel .ap-muted { color: var(--muted); font-size: 13px; line-height: 18px; }
 .agent-panel .ap-timer { color: var(--warn); font-weight: 600; font-variant-numeric: tabular-nums; }
-.agent-panel .ap-steps { padding-left: 1.3rem; margin: 0.4rem 0; }
-.agent-panel .ap-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.6rem; }
-.agent-panel .ap-list li { background: var(--surface-2); border-radius: 10px; padding: 0.6rem 0.75rem; }
+.agent-panel .ap-steps { padding-left: 1.3rem; margin: 0.2rem 0; display: grid; gap: 0.25rem; }
+.agent-panel .ap-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+.agent-panel .ap-list li { padding: 0.5rem 0; display: grid; gap: 0.2rem; }
+.agent-panel .ap-list li + li { border-top: 0.5px solid var(--border); }
 .agent-panel .ap-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.agent-panel .ap-chip { display: inline-block; font-size: 0.78rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; border: 2px solid var(--border); }
-.agent-panel .ap-status { border-color: var(--accent); color: var(--accent); }
-.agent-panel .ap-sim { border: 2px dashed var(--warn); color: var(--warn); letter-spacing: 0.04em; }
-.agent-panel .ap-updated { border-color: var(--accent); color: var(--accent); }
-.agent-panel .ap-a-proposed, .agent-panel .ap-d-queued { border-style: dotted; color: var(--muted); }
-.agent-panel .ap-a-rejected { border-color: var(--danger); color: var(--danger); text-decoration: line-through; }
-.agent-panel .ap-a-failed, .agent-panel .ap-d-failed { background: var(--danger); border-color: var(--danger); color: #000; }
-.agent-panel .ap-a-executed, .agent-panel .ap-d-sent { border-color: var(--accent); color: var(--accent); }
-.agent-panel .ap-a-delivered, .agent-panel .ap-d-delivered { border-color: var(--ok); color: var(--ok); }
-.agent-panel .ap-a-acknowledged, .agent-panel .ap-d-acknowledged { background: var(--ok); border-color: var(--ok); color: #000; }
 .agent-panel .ap-blocked, .agent-panel .ap-error { color: var(--danger); font-weight: 600; }
-.agent-panel .ap-btn { min-height: var(--tap); padding: 0 1.1rem; border-radius: 10px; border: 2px solid var(--border); background: var(--surface-2); font-weight: 600; }
-.agent-panel .ap-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.agent-panel .ap-primary { background: var(--accent); border-color: var(--accent); color: #000; }
-.agent-panel .ap-label { display: grid; gap: 0.2rem; font-size: 0.9rem; flex: 1; }
-.agent-panel input { min-height: var(--tap); padding: 0 0.6rem; border-radius: 10px; border: 2px solid var(--border); background: var(--bg); color: var(--text); }
+.agent-panel .ap-label { display: grid; gap: 0.2rem; font-size: 15px; flex: 1; }
+.agent-panel .btn.small-btn { justify-self: start; }

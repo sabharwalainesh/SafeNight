@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DELIVERY_LABELS, JOB_STATUS_LABELS, useAgent, type ActionStatus } from '../agent/api';
+import { Pill, Section } from '../../ui';
 import './agent-panel.css';
 
 const TIERS = ['Primary buddy', 'Backup buddy', 'Handed off to organizer'];
@@ -20,7 +21,17 @@ const mmss = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
-const Sim = () => <span className="ap-chip ap-sim">SIMULATED</span>;
+type Tone = 'neutral' | 'ok' | 'warn' | 'danger' | 'info';
+const ACTION_TONE: Record<ActionStatus, Tone> = {
+  proposed: 'neutral',
+  rejected: 'danger',
+  executed: 'info',
+  failed: 'danger',
+  delivered: 'ok',
+  acknowledged: 'ok',
+};
+const DELIVERY_TONE: Record<string, Tone> = { queued: 'neutral', sent: 'info', delivered: 'ok', acknowledged: 'ok', failed: 'danger' };
+const Sim = () => <Pill tone="warn">SIMULATED</Pill>;
 
 export default function AgentPanel({ incidentId }: { incidentId: string }) {
   const agent = useAgent();
@@ -31,6 +42,7 @@ export default function AgentPanel({ incidentId }: { incidentId: string }) {
   const [announce, setAnnounce] = useState('');
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('');
+  const [showAllReceipts, setShowAllReceipts] = useState(false);
   const due = job?.followupDueAt ?? null;
 
   useEffect(() => {
@@ -67,122 +79,131 @@ export default function AgentPanel({ incidentId }: { incidentId: string }) {
   }
 
   const jobId = job.id;
+  const shownReceipts = showAllReceipts ? receipts : receipts.slice(-3);
   return (
-    <section className="agent-panel" aria-label="SafeNight agent">
-      <header className="ap-head">
-        <h2>SafeNight agent</h2>
-        <span className="ap-chip ap-status">{JOB_STATUS_LABELS[job.status]}</span>
-        {plan?.simulated && <Sim />}
-      </header>
-      <p className="ap-muted">
-        {TIERS[job.escalationTier] ?? TIERS[0]}
-        {plan ? ` · model ${plan.model}` : ''}
-      </p>
-      {due !== null && (
-        <p className="ap-timer">
-          Waiting on {waitingName} — follow-up in {mmss(due - now)}
-        </p>
-      )}
-
-      {plan && (
-        <div className="ap-block">
-          <h3>
-            Plan v{plan.version}
-            {plan.version > 1 && <span className="ap-chip ap-updated">Plan updated</span>}
-          </h3>
-          <p>{plan.summary}</p>
-          <ol className="ap-steps">
-            {plan.steps.map((s, i) => (
-              <li key={i}>
-                <strong>{s.title}</strong>
-                {s.detail && <span className="ap-muted"> — {s.detail}</span>}
-              </li>
-            ))}
-          </ol>
+    <Section title="SafeNight agent">
+      <div className="agent-panel" aria-label="SafeNight agent" role="group">
+        <div className="ap-row">
+          <Pill tone="info">{JOB_STATUS_LABELS[job.status]}</Pill>
+          {plan?.simulated && <Sim />}
+          <span className="ap-muted">
+            {TIERS[job.escalationTier] ?? TIERS[0]}
+            {plan ? ` · model ${plan.model}` : ''}
+          </span>
         </div>
-      )}
-
-      <details className="ap-block" open>
-        <summary>Receipts ({receipts.length})</summary>
-        {receipts.length === 0 ? (
-          <p className="ap-muted">No actions yet.</p>
-        ) : (
-          <ul className="ap-list">
-            {receipts.map(r => (
-              <li key={r.id}>
-                <div className="ap-row">
-                  <strong>{humanize(r.tool)}</strong>
-                  <span className={`ap-chip ap-a-${r.status}`}>{ACTION_LABELS[r.status]}</span>
-                  {r.simulated && <Sim />}
-                  <time className="ap-muted">{clock(r.at)}</time>
-                </div>
-                {r.resultText && <p>{r.resultText}</p>}
-                {r.status === 'rejected' && r.rejectReason && <p className="ap-blocked">Blocked: {r.rejectReason}</p>}
-              </li>
-            ))}
-          </ul>
+        {due !== null && (
+          <p className="ap-timer">
+            Waiting on {waitingName} — follow-up in {mmss(due - now)}
+          </p>
         )}
-      </details>
 
-      <div className="ap-block">
-        <h3>Messages</h3>
-        {notes.length === 0 ? (
-          <p className="ap-muted">No messages yet.</p>
-        ) : (
-          <ul className="ap-list">
-            {notes.map(n => (
-              <li key={n.id}>
-                <div className="ap-row">
-                  <strong>{n.recipientName}</strong>
-                  <span className="ap-muted">{n.channel.replace('_', '-')}</span>
-                  <span className={`ap-chip ap-d-${n.status}`}>{DELIVERY_LABELS[n.status]}</span>
-                  {n.simulated && <Sim />}
-                </div>
-                <p>{n.body}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {canAct && (
-        <div className="ap-block">
-          <h3>Your help is requested</h3>
-          <div className="ap-row">
-            <button
-              type="button"
-              className="ap-btn ap-primary"
-              disabled={busy}
-              onClick={() => run(() => agent.actions.acknowledgeAssistance(jobId), 'You told the group you are on it.')}
-            >
-              I'm on it
-            </button>
-            <button type="button" className="ap-btn" disabled={busy} onClick={() => setDeclining(d => !d)} aria-expanded={declining}>
-              I can't help
-            </button>
+        {plan && (
+          <div className="ap-block">
+            <p className="headline">
+              Plan v{plan.version} {plan.version > 1 && <Pill tone="info">Plan updated</Pill>}
+            </p>
+            <p>{plan.summary}</p>
+            <details className="ap-steps-wrap">
+              <summary>Steps ({plan.steps.length})</summary>
+              <ol className="ap-steps">
+                {plan.steps.map((s, i) => (
+                  <li key={i}>
+                    <strong>{s.title}</strong>
+                    {s.detail && <span className="ap-muted"> — {s.detail}</span>}
+                  </li>
+                ))}
+              </ol>
+            </details>
           </div>
-          {declining && (
-            <div className="ap-row">
-              <label className="ap-label">
-                Reason (optional)
-                <input value={reason} onChange={e => setReason(e.target.value)} disabled={busy} autoFocus />
-              </label>
-              <button
-                type="button"
-                className="ap-btn"
-                disabled={busy}
-                onClick={() =>
-                  run(() => agent.actions.declineAssistance(jobId, reason.trim()), 'You said you cannot help. The next contact will be asked.')
-                }
-              >
-                Send decline
-              </button>
-            </div>
+        )}
+
+        <div className="ap-block">
+          <p className="headline">Receipts ({receipts.length})</p>
+          {receipts.length === 0 ? (
+            <p className="ap-muted">No actions yet.</p>
+          ) : (
+            <ul className="ap-list">
+              {shownReceipts.map(r => (
+                <li key={r.id}>
+                  <div className="ap-row">
+                    <strong>{humanize(r.tool)}</strong>
+                    <Pill tone={ACTION_TONE[r.status]}>{ACTION_LABELS[r.status]}</Pill>
+                    {r.simulated && <Sim />}
+                    <time className="ap-muted">{clock(r.at)}</time>
+                  </div>
+                  {r.resultText && <p>{r.resultText}</p>}
+                  {r.status === 'rejected' && r.rejectReason && <p className="ap-blocked">Blocked: {r.rejectReason}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+          {receipts.length > 3 && (
+            <button type="button" className="btn plain small-btn" aria-expanded={showAllReceipts} onClick={() => setShowAllReceipts(v => !v)}>
+              {showAllReceipts ? 'Show fewer' : `Show all (${receipts.length})`}
+            </button>
           )}
         </div>
-      )}
-      {error && <p role="alert" className="ap-error">{error}</p>}
-      <p role="status" className="ap-muted">{announce}</p>
-    </section>
+
+        <div className="ap-block">
+          <p className="headline">Messages</p>
+          {notes.length === 0 ? (
+            <p className="ap-muted">No messages yet.</p>
+          ) : (
+            <ul className="ap-list">
+              {notes.map(n => (
+                <li key={n.id}>
+                  <div className="ap-row">
+                    <strong>{n.recipientName}</strong>
+                    <span className="ap-muted">{n.channel.replace('_', '-')}</span>
+                    <Pill tone={DELIVERY_TONE[n.status]}>{DELIVERY_LABELS[n.status]}</Pill>
+                    {n.simulated && <Sim />}
+                  </div>
+                  <p>{n.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {canAct && (
+          <div className="ap-block">
+            <p className="headline">Your help is requested</p>
+            <div className="ap-row">
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => run(() => agent.actions.acknowledgeAssistance(jobId), 'You told the group you are on it.')}
+              >
+                I'm on it
+              </button>
+              <button type="button" className="btn plain" disabled={busy} onClick={() => setDeclining(d => !d)} aria-expanded={declining}>
+                I can't help
+              </button>
+            </div>
+            {declining && (
+              <div className="ap-row">
+                <label className="ap-label">
+                  Reason (optional)
+                  <input value={reason} onChange={e => setReason(e.target.value)} disabled={busy} autoFocus />
+                </label>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    run(() => agent.actions.declineAssistance(jobId, reason.trim()), 'You said you cannot help. The next contact will be asked.')
+                  }
+                >
+                  Send decline
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {error && <p role="alert" className="ap-error">{error}</p>}
+        <p role="status" className="ap-muted">{announce}</p>
+      </div>
+    </Section>
   );
 }

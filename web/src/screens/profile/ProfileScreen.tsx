@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useProfile, type ContactRole, type DefaultSharing } from '../../features/profile/api';
+import { Pill, Section } from '../../ui';
 import './profile.css';
 
 const EMOJIS = ['🙂', '😎', '🦊', '🐼', '🌙', '⭐', '🚗', '🛡️'];
@@ -44,6 +45,8 @@ export function ProfileScreen() {
   const [retain, setRetain] = useState(privacy.retainCheckinsDays);
   const [privMsg, setPrivMsg] = useState<Msg>(null);
 
+  const [editing, setEditing] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState('');
   const [delMsg, setDelMsg] = useState<Msg>(null);
 
@@ -120,12 +123,15 @@ export function ProfileScreen() {
 
   return (
     <div className="profile-screen">
-      <div className="strip">{api.mocked && <span className="badge sim">MOCK</span>}</div>
+      {api.mocked && (
+        <div className="strip">
+          <span className="badge sim">MOCK</span>
+        </div>
+      )}
 
-      <section className="card" aria-labelledby="pf-profile">
-        <h2 id="pf-profile">Profile</h2>
-        {!profile && <p className="muted">{api.mocked ? 'You have no profile yet. Save one to appear to others.' : 'You have no profile yet. Set up your profile to continue.'}</p>}
-        <form onSubmit={saveProfile}>
+      <Section title="You">
+        <form className="pf-body" onSubmit={saveProfile} aria-label="Profile">
+          {!profile && <p className="muted subhead">{api.mocked ? 'You have no profile yet. Save one to appear to others.' : 'You have no profile yet. Set up your profile to continue.'}</p>}
           <label>
             Display name
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} autoComplete="nickname" />
@@ -133,7 +139,7 @@ export function ProfileScreen() {
           <label>
             Phone (optional)
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" placeholder="+15551234567" inputMode="tel" />
-            <span className="muted small">International format (E.164), like +15551234567. Leave empty for none. Only you and SafeNight's server can see this number.</span>
+            <span className="muted footnote">International format (E.164), like +15551234567. Leave empty for none. Only you and SafeNight's server can see this number.</span>
           </label>
           <fieldset>
             <legend>Avatar</legend>
@@ -146,81 +152,97 @@ export function ProfileScreen() {
               ))}
             </div>
           </fieldset>
-          <button className="btn" type="submit">Save profile</button>
+          <button className="btn block" type="submit">Save profile</button>
+          <Feedback msg={profMsg} />
         </form>
-        <Feedback msg={profMsg} />
-      </section>
+      </Section>
 
-      <section className="card" aria-labelledby="pf-contacts">
-        <h2 id="pf-contacts">Trusted contacts &amp; backup ladder</h2>
-        <p className="muted small">
+      <section className="sn-section" aria-labelledby="pf-contacts">
+        <div className="pf-title-row">
+          <h2 id="pf-contacts" className="sn-section-title">Trusted contacts</h2>
+          {contacts.length > 1 && (
+            <button type="button" className="btn plain small-btn" aria-pressed={editing} onClick={() => { setEditing((v) => !v); setRemoving(null); }}>
+              {editing ? 'Done' : 'Edit'}
+            </button>
+          )}
+        </div>
+        <div className="sn-section-body">
+          {contacts.length === 0 ? (
+            <p className="pf-empty">No trusted contacts yet.</p>
+          ) : (
+            <ol className="ladder">
+              {contacts.map((c, i) => (
+                <li key={c.id}>
+                  <div className="rung">
+                    <span className="rung-no">{i + 1}.</span>
+                    <span className="headline">{c.contactName}</span>
+                    <Pill>{ROLE_LABEL[c.role]}</Pill>
+                    {c.messagingConsent ? <Pill tone="ok">Can message</Pill> : <Pill>No messages</Pill>}
+                  </div>
+                  {editing && (
+                    <div className="rung-actions">
+                      <button type="button" className="btn secondary small-btn icon" disabled={i === 0} aria-label={`Move ${c.contactName} up`}
+                        onClick={() => void attempt(() => actions.moveContact(c.id, 'up'), setContactMsg, `Moved ${c.contactName} up.`)}>↑</button>
+                      <button type="button" className="btn secondary small-btn icon" disabled={i === contacts.length - 1} aria-label={`Move ${c.contactName} down`}
+                        onClick={() => void attempt(() => actions.moveContact(c.id, 'down'), setContactMsg, `Moved ${c.contactName} down.`)}>↓</button>
+                      {removing === c.id ? (
+                        <>
+                          <button type="button" className="btn plain small-btn red" aria-label={`Confirm remove ${c.contactName}`}
+                            onClick={() => { setRemoving(null); void attempt(() => actions.removeTrustedContact(c.id), setContactMsg, `Removed ${c.contactName}.`); }}>Confirm remove</button>
+                          <button type="button" className="btn plain small-btn" onClick={() => setRemoving(null)}>Keep</button>
+                        </>
+                      ) : (
+                        <button type="button" className="btn plain small-btn red" aria-label={`Remove ${c.contactName}`} onClick={() => setRemoving(c.id)}>Remove</button>
+                      )}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+          <form className="pf-body pf-add" onSubmit={addContact} aria-label="Add a contact">
+            <h3 className="headline">Add a contact</h3>
+            {candidates.length === 0 ? (
+              <p className="muted footnote">Nobody else with a SafeNight profile is available to add.</p>
+            ) : (
+              <>
+                <label>
+                  Person
+                  <select value={selected} onChange={(e) => setPerson(e.target.value)}>
+                    {candidates.map((p) => <option key={p.userId} value={p.userId}>{p.displayName}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Role
+                  <select value={role} onChange={(e) => setRole(e.target.value as ContactRole)}>
+                    <option value="buddy">Buddy</option>
+                    <option value="backup_buddy">Backup buddy</option>
+                    <option value="emergency">Emergency</option>
+                  </select>
+                </label>
+                <label className="inline">
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                  They agreed to get messages from SafeNight
+                </label>
+                <button className="btn block" type="submit" disabled={!selected}>Add contact</button>
+              </>
+            )}
+            <Feedback msg={contactMsg} />
+          </form>
+        </div>
+        <p className="sn-section-footer">
           When you need help, SafeNight asks your contacts in this order. Each step waits for a reply before moving on.
         </p>
-        {contacts.length === 0 ? (
-          <p className="muted">No trusted contacts yet.</p>
-        ) : (
-          <ol className="ladder">
-            {contacts.map((c, i) => (
-              <li key={c.id}>
-                <div className="rung">
-                  <span className="rung-no">{i + 1}.</span>
-                  <strong>{c.contactName}</strong>
-                  <span className="tag">{ROLE_LABEL[c.role]}</span>
-                  {c.messagingConsent ? <span className="tag consent">Can message</span> : <span className="tag">No messages</span>}
-                </div>
-                <div className="rung-actions">
-                  <button type="button" className="btn secondary icon" disabled={i === 0} aria-label={`Move ${c.contactName} up`}
-                    onClick={() => void attempt(() => actions.moveContact(c.id, 'up'), setContactMsg, `Moved ${c.contactName} up.`)}>↑</button>
-                  <button type="button" className="btn secondary icon" disabled={i === contacts.length - 1} aria-label={`Move ${c.contactName} down`}
-                    onClick={() => void attempt(() => actions.moveContact(c.id, 'down'), setContactMsg, `Moved ${c.contactName} down.`)}>↓</button>
-                  <button type="button" className="btn secondary" aria-label={`Remove ${c.contactName}`}
-                    onClick={() => void attempt(() => actions.removeTrustedContact(c.id), setContactMsg, `Removed ${c.contactName}.`)}>Remove</button>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
-        <form onSubmit={addContact}>
-          <h3>Add a contact</h3>
-          {candidates.length === 0 ? (
-            <p className="muted small">Nobody else with a SafeNight profile is available to add.</p>
-          ) : (
-            <>
-              <label>
-                Person
-                <select value={selected} onChange={(e) => setPerson(e.target.value)}>
-                  {candidates.map((p) => <option key={p.userId} value={p.userId}>{p.displayName}</option>)}
-                </select>
-              </label>
-              <label>
-                Role
-                <select value={role} onChange={(e) => setRole(e.target.value as ContactRole)}>
-                  <option value="buddy">Buddy</option>
-                  <option value="backup_buddy">Backup buddy</option>
-                  <option value="emergency">Emergency</option>
-                </select>
-              </label>
-              <label className="inline">
-                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                They agreed to get messages from SafeNight
-              </label>
-              <button className="btn" type="submit" disabled={!selected}>Add contact</button>
-            </>
-          )}
-        </form>
-        <Feedback msg={contactMsg} />
       </section>
 
-      <section className="card" aria-labelledby="pf-privacy">
-        <h2 id="pf-privacy">Privacy defaults</h2>
-        {!api.privacySaved && !api.mocked && <p className="muted small">Not saved yet. These are the starting defaults.</p>}
-        <form onSubmit={savePrivacy}>
+      <Section title="Privacy" footer={!api.privacySaved && !api.mocked ? 'Not saved yet. These are the starting defaults.' : undefined}>
+        <form className="pf-body" onSubmit={savePrivacy} aria-label="Privacy defaults">
           <fieldset>
             <legend>Default location sharing</legend>
             {SHARING.map((o) => (
               <label key={o.v} className="inline">
                 <input type="radio" name="sharing" value={o.v} checked={sharing === o.v} onChange={() => setSharing(o.v)} />
-                <span>{o.label} <span className="muted small">{o.hint}</span></span>
+                <span>{o.label} <span className="muted footnote">{o.hint}</span></span>
               </label>
             ))}
           </fieldset>
@@ -248,27 +270,28 @@ export function ProfileScreen() {
               <option value={30}>30 days</option>
             </select>
           </label>
-          <button className="btn" type="submit">Save privacy defaults</button>
+          <button className="btn block" type="submit">Save privacy defaults</button>
+          <Feedback msg={privMsg} />
         </form>
-        <Feedback msg={privMsg} />
-      </section>
+      </Section>
 
-      <section className="card danger-zone" aria-labelledby="pf-data">
-        <h2 id="pf-data">Your data</h2>
-        <p className="muted small">
-          {api.mocked
+      <Section
+        title="Data"
+        footer={
+          api.mocked
             ? "Deleting removes your profile, your trusted contacts, other people's contacts lists that include you, and your privacy defaults. Night Out, location, incident and report data are not deleted by this demo control yet. Full deletion arrives with the backend. This cannot be undone."
-            : 'Delete my data deletes everything SafeNight stores about you: your profile, trusted contacts, privacy settings, locations, check-ins and your part in Night Out sessions and incidents. Reports you posted stay, anonymized. This cannot be undone.'}
-        </p>
-        <form onSubmit={del}>
+            : 'Delete my data deletes everything SafeNight stores about you: your profile, trusted contacts, privacy settings, locations, check-ins and your part in Night Out sessions and incidents. Reports you posted stay, anonymized. This cannot be undone.'
+        }
+      >
+        <form className="pf-body" onSubmit={del} aria-label="Delete my data">
           <label>
             Type DELETE to confirm
             <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" autoCapitalize="characters" />
           </label>
-          <button className="btn danger" type="submit" disabled={confirmText !== 'DELETE'}>Delete my data</button>
+          <button className="btn plain pf-delete" type="submit" disabled={confirmText !== 'DELETE'}>Delete my data</button>
+          <Feedback msg={delMsg} />
         </form>
-        <Feedback msg={delMsg} />
-      </section>
+      </Section>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useContext, useState, type FormEvent } from 'react';
 import { SafetyContext } from '../../features/safety/api';
 import { useReports, type ReportCategory, type ReportConfidence, type SafetyResourceType } from '../../features/reports/api';
+import { Pill, SegmentedControl, Section, Sheet } from '../../ui';
 import './reports.css';
 
 const MAX = 280;
@@ -54,6 +55,8 @@ export function ReportsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'nearby' | 'resources'>('nearby');
+  const [sheet, setSheet] = useState(false);
   const now = Date.now();
 
   async function submit(e: FormEvent) {
@@ -107,101 +110,133 @@ export function ReportsScreen() {
     }
   }
 
+  const CONF_TONE: Record<ReportConfidence, 'neutral' | 'ok' | 'danger'> = {
+    unverified: 'neutral',
+    corroborated: 'ok',
+    verified: 'ok',
+    disputed: 'danger',
+  };
+
   return (
-    <section className="reports-screen" aria-labelledby="reports-h">
-      <header className="rs-head">
-        <h2 id="reports-h">Reports</h2>
-        {mocked && <span className="rs-chip rs-mock">MOCK</span>}
-      </header>
-      <p className="rs-intro">Venue-level observations. Never about a person. Reports expire.</p>
-
-      <form className="rs-card" onSubmit={submit}>
-        <h3>Report a venue</h3>
-        <label>
-          Venue
-          <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
-            <option value="">Select a venue</option>
-            {venues.map((v) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Category
-          <select value={category} onChange={(e) => setCategory(e.target.value as ReportCategory)}>
-            {(Object.keys(CATEGORY_LABEL) as ReportCategory[]).map((c) => (
-              <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Details (optional)
-          <textarea rows={3} value={text} maxLength={MAX} onChange={(e) => setText(e.target.value)} aria-describedby="rs-warn rs-count" />
-        </label>
-        <div className="rs-row">
-          <p id="rs-warn" className="rs-warn">Don't name or describe individuals.</p>
-          <span id="rs-count" className="rs-count">{text.length}/{MAX}</span>
-        </div>
-        {error && <p role="alert" className="rs-error">{error}</p>}
-        {notice && <p role="status" className="rs-ok">{notice}</p>}
-        <button type="submit" className="rs-btn" disabled={busy}>{busy ? 'Submitting...' : 'Submit report'}</button>
-      </form>
-
-      <form className="rs-card" onSubmit={addVenue}>
-        <h3>Add a venue</h3>
-        <label>
-          Venue name
-          <input type="text" value={newVenue} maxLength={80} onChange={(e) => setNewVenue(e.target.value)} />
-        </label>
-        <p className="rs-muted">
-          Placed near {myLocation ? 'your last shared location' : 'a demo location'}, rounded to about 100 m.
+    <div className="reports-screen">
+      <div className="rs-top">
+        <p className="rs-intro footnote">
+          Venue-level observations. Never about a person. Reports expire.
+          {mocked && <> <span className="badge sim">MOCK</span></>}
         </p>
-        <button type="submit" className="rs-btn" disabled={busy}>Add venue</button>
-      </form>
+        <button type="button" className="btn secondary small-btn" onClick={() => setSheet(true)}>Add report</button>
+      </div>
 
-      <h3>Community reports</h3>
-      {voteError && <p role="alert" className="rs-error">{voteError}</p>}
-      {reports.length === 0 && <p className="rs-muted">No active reports.</p>}
-      {venues.filter((v) => reports.some((r) => r.venueId === v.id)).map((v) => (
-        <div className="rs-card" key={v.id}>
-          <h4>{v.name} <span className="rs-chip rs-community">Community report</span></h4>
+      <SegmentedControl
+        label="Reports view"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'nearby', label: 'Nearby reports' },
+          { value: 'resources', label: 'Resources' },
+        ]}
+      />
+
+      {view === 'nearby' && (
+        <>
+          {voteError && <p role="alert" className="rs-error">{voteError}</p>}
+          {notice && !sheet && <p role="status" className="rs-ok">{notice}</p>}
+          {reports.length === 0 && (
+            <Section title="Community reports">
+              <p className="rs-empty">No active reports.</p>
+            </Section>
+          )}
+          {venues.filter((v) => reports.some((r) => r.venueId === v.id)).map((v) => (
+            <Section key={v.id} title={v.name} footer="Community report">
+              <ul className="rs-list">
+                {reports.filter((r) => r.venueId === v.id).map((r) => (
+                  <li key={r.id}>
+                    <span className="headline">{CATEGORY_LABEL[r.category]}</span>
+                    <div className="rs-chips">
+                      <Pill tone={CONF_TONE[r.confidence]}>{CONFIDENCE_LABEL[r.confidence]}</Pill>
+                      {r.moderation === 'pending' && <Pill tone="warn">Pending review</Pill>}
+                      {r.moderation === 'hidden' && <Pill tone="warn">Hidden by moderators</Pill>}
+                      <Pill>{r.reportCount} {r.reportCount === 1 ? 'report' : 'reports'}</Pill>
+                      <Pill>{r.disputeCount} {r.disputeCount === 1 ? 'dispute' : 'disputes'}</Pill>
+                    </div>
+                    {r.textRedacted && <p>{r.textRedacted}</p>}
+                    <p className="rs-muted">reported {ago(now - r.createdAt)} ago · expires in {expiresIn(r.expiresAt - now)}{r.updatedAt > r.createdAt ? ` · updated ${ago(now - r.updatedAt)} ago` : ''}</p>
+                    {r.moderation === 'published' && (
+                      <div className="rs-row">
+                        <button type="button" className="btn secondary small-btn" disabled={voteBusy === r.id || votedIds.has(r.id)} onClick={() => vote(r.id, 'corroborate')}>Corroborate</button>
+                        <button type="button" className="btn plain small-btn" disabled={voteBusy === r.id || votedIds.has(r.id)} onClick={() => vote(r.id, 'dispute')}>Dispute</button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ))}
+        </>
+      )}
+
+      {view === 'resources' && (
+        <Section title="Verified resources">
           <ul className="rs-list">
-            {reports.filter((r) => r.venueId === v.id).map((r) => (
+            {resources.map((r) => (
               <li key={r.id}>
-                <strong>{CATEGORY_LABEL[r.category]}</strong>
-                <div className="rs-chips">
-                  <span className={`rs-chip rs-${r.confidence}`}>{CONFIDENCE_LABEL[r.confidence]}</span>
-                  {r.moderation === 'pending' && <span className="rs-chip rs-pending">Pending review</span>}
-                  {r.moderation === 'hidden' && <span className="rs-chip rs-pending">Hidden by moderators</span>}
-                  <span className="rs-chip">{r.reportCount} {r.reportCount === 1 ? 'report' : 'reports'}</span>
-                  <span className="rs-chip">{r.disputeCount} {r.disputeCount === 1 ? 'dispute' : 'disputes'}</span>
-                </div>
-                {r.textRedacted && <p>{r.textRedacted}</p>}
-                <p className="rs-muted">reported {ago(now - r.createdAt)} ago · expires in {expiresIn(r.expiresAt - now)}{r.updatedAt > r.createdAt ? ` · updated ${ago(now - r.updatedAt)} ago` : ''}</p>
-                {r.moderation === 'published' && (
-                  <div className="rs-row">
-                    <button type="button" className="rs-btn" disabled={voteBusy === r.id || votedIds.has(r.id)} onClick={() => vote(r.id, 'corroborate')}>Corroborate</button>
-                    <button type="button" className="rs-btn" disabled={voteBusy === r.id || votedIds.has(r.id)} onClick={() => vote(r.id, 'dispute')}>Dispute</button>
-                  </div>
-                )}
+                <span className="headline">{r.name}</span>
+                <div className="rs-chips"><Pill tone="ok">Verified resource</Pill><Pill>{TYPE_LABEL[r.type]}</Pill></div>
+                <p>Hours: {r.hours}</p>
+                {r.verifiedAt !== null && <p className="rs-muted">Verified {dateOf(r.verifiedAt)}</p>}
+                <p className="rs-muted">Source: {r.source}</p>
               </li>
             ))}
           </ul>
-        </div>
-      ))}
+        </Section>
+      )}
 
-      <h3>Verified resources</h3>
-      <ul className="rs-list rs-card">
-        {resources.map((r) => (
-          <li key={r.id}>
-            <strong>{r.name}</strong>
-            <div className="rs-chips"><span className="rs-chip rs-verified-res">Verified resource</span><span className="rs-chip">{TYPE_LABEL[r.type]}</span></div>
-            <p>Hours: {r.hours}</p>
-            {r.verifiedAt !== null && <p className="rs-muted">Verified {dateOf(r.verifiedAt)}</p>}
-            <p className="rs-muted">Source: {r.source}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
+      <Sheet open={sheet} onClose={() => setSheet(false)} title="Add report">
+        <div className="rs-sheet">
+          <form className="rs-form" onSubmit={submit} aria-label="Report a venue">
+            <label>
+              Venue
+              <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
+                <option value="">Select a venue</option>
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Category
+              <select value={category} onChange={(e) => setCategory(e.target.value as ReportCategory)}>
+                {(Object.keys(CATEGORY_LABEL) as ReportCategory[]).map((c) => (
+                  <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Details (optional)
+              <textarea rows={3} value={text} maxLength={MAX} onChange={(e) => setText(e.target.value)} aria-describedby="rs-warn rs-count" />
+            </label>
+            <div className="rs-row rs-between">
+              <p id="rs-warn" className="rs-warn">Don't name or describe individuals.</p>
+              <span id="rs-count" className="rs-count">{text.length}/{MAX}</span>
+            </div>
+            {error && <p role="alert" className="rs-error">{error}</p>}
+            {notice && <p role="status" className="rs-ok">{notice}</p>}
+            <button type="submit" className="btn block" disabled={busy}>{busy ? 'Submitting...' : 'Submit report'}</button>
+          </form>
+
+          <form className="rs-form rs-venue" onSubmit={addVenue} aria-label="Add a venue">
+            <span className="headline">Add a venue</span>
+            <label>
+              Venue name
+              <input type="text" value={newVenue} maxLength={80} onChange={(e) => setNewVenue(e.target.value)} />
+            </label>
+            <p className="rs-muted">
+              Placed near {myLocation ? 'your last shared location' : 'a demo location'}, rounded to about 100 m.
+            </p>
+            <button type="submit" className="btn secondary block" disabled={busy}>Add venue</button>
+          </form>
+        </div>
+      </Sheet>
+    </div>
   );
 }

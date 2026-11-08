@@ -1,19 +1,15 @@
-.incident-screen { display: grid; gap: 0.7rem; min-width: 0; overflow-wrap: anywhere; }
-.incident-screen h2, .incident-screen h3, .incident-screen p { margin: 0; }
-.incident-screen h3 { font-size: 0.95rem; color: var(--muted); margin-top: 0.4rem; }
-.incident-screen .inc-subject { font-size: 1.1rem; font-weight: 700; }
-.incident-screen .inc-badges, .incident-screen .inc-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.4rem 0; }
-.incident-screen .inc-pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); font-size: 0.8rem; font-weight: 700; }
-.incident-screen .sev-elevated { border-color: var(--warn); color: var(--warn); }
-.incident-screen .sev-urgent { border-color: var(--danger); color: var(--danger); }
-.incident-screen .inc-sim { margin-left: 0.4rem; border-color: var(--warn); color: var(--warn); }
-.incident-screen .inc-resolved { color: var(--ok); font-weight: 700; }
+.incident-screen { display: grid; gap: 1.25rem; min-width: 0; overflow-wrap: anywhere; }
+.incident-screen p { margin: 0; }
+.incident-screen .inc-head { display: grid; gap: 0.35rem; }
+.incident-screen .inc-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.incident-screen .inc-resolved { color: var(--ok); font-weight: 600; }
 .incident-screen .inc-error { color: var(--danger); font-weight: 600; }
-.incident-screen .inc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
-.incident-screen .inc-list > li { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.8rem; }
-.incident-screen .inc-form { display: grid; gap: 0.5rem; }
-.incident-screen .inc-form input { min-height: var(--tap); width: 100%; padding: 0 0.7rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; }
-.incident-screen .btn { min-height: var(--tap); }
-.incident-screen .inc-primary { border-color: var(--accent); }
-.incident-screen .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.incident-screen .inc-events { list-style: none; margin: 0; padding: 0; }
+.incident-screen .inc-events li { padding: 0.55rem 1rem; font-size: 15px; line-height: 20px; }
+.incident-screen .inc-events li + li { border-top: 0.5px solid var(--border); }
+.incident-screen .inc-empty { padding: 0.75rem 1rem; color: var(--muted); }
+.incident-screen .inc-more { margin: 0 0.4rem 0.2rem; }
+.incident-screen .inc-actions { display: grid; gap: 0.4rem; }
+.incident-screen .inc-cancel { color: var(--danger); justify-self: center; }
+.incident-screen .inc-form { display: grid; gap: 0.6rem; }
 .incident-screen .inc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

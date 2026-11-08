@@ -4,6 +4,7 @@ import { JOB_STATUS_LABELS, useAgent } from '../agent/api';
 import { useNightOut } from '../night-out/api';
 import { useSafety } from '../safety/api';
 import { DemoLiveControls } from '../demo-live/DemoLiveControls';
+import { Section } from '../../ui';
 import './demo-panel.css';
 
 const TIER_LABELS = ['Primary buddy', 'Backup buddy', 'Organizer'];
@@ -41,30 +42,31 @@ export function DemoPanel() {
   });
 
   return (
-    <section className="card demo-panel" aria-label="Judge demo">
+    <Section title="Judge demo">
+    <div className="demo-panel" role="group" aria-label="Judge demo">
       <div className="demo-head">
-        <h2>Judge demo</h2>
+        <span className="headline">Agent mode</span>
         <span className="badge sim">{agent.mocked ? 'MOCK' : 'LIVE'}</span>
       </div>
       {!agent.mocked && <DemoLiveControls />}
       <div className="demo-row">
         {agent.mocked && (
           <>
-            <button type="button" className="demo-btn primary" disabled={busy || !mockedNightOut} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
+            <button type="button" className="btn block" disabled={busy || !mockedNightOut} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
               Set up demo group
             </button>
             {!mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>}
           </>
         )}
         {!confirming ? (
-          <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
+          <button type="button" className="btn plain demo-danger" disabled={busy} onClick={() => setConfirming(true)}>
             {agent.mocked ? 'Reset demo' : 'Wipe all demo data'}
           </button>
         ) : (
           <>
             <button
               type="button"
-              className="demo-btn danger"
+              className="btn plain demo-danger"
               disabled={busy}
               onClick={() => {
                 setConfirming(false);
@@ -80,7 +82,7 @@ export function DemoPanel() {
             >
               {agent.mocked ? 'Yes, erase all demo data' : 'Yes, wipe all demo data'}
             </button>
-            <button type="button" className="demo-btn" onClick={() => setConfirming(false)}>
+            <button type="button" className="btn plain" onClick={() => setConfirming(false)}>
               Cancel
             </button>
           </>
@@ -106,7 +108,7 @@ export function DemoPanel() {
             <div className="demo-row">
               <button
                 type="button"
-                className="demo-btn"
+                className="btn secondary small-btn"
                 disabled={busy || (agent.mocked && secs === null)}
                 onClick={() => void run('Timer advanced', () => agent.demo.fireFollowup(job.id))}
               >
@@ -122,6 +124,7 @@ export function DemoPanel() {
         <li>Switch to Maya: acknowledge, or advance the timer to escalate to Jordan.</li>
         <li>Choose and book a ride, confirm pickup, then Sam confirms "I'm home".</li>
       </ol>
-    </section>
+    </div>
+    </Section>
   );
 }

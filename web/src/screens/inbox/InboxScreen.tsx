@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { INCIDENT_STATUS_LABELS, useSafety, type AlertKind } from '../../features/safety/api';
+import { useState, type ReactNode } from 'react';
+import { INCIDENT_STATUS_LABELS, useSafety, type AlertKind, type Incident } from '../../features/safety/api';
+import { Pill, Row, Section } from '../../ui';
 import { IncidentScreen } from '../incident';
 import { ago, KIND_LABELS } from '../incident/time';
 import './inbox.css';
@@ -19,53 +20,69 @@ export default function InboxScreen({ initialIncidentId }: { initialIncidentId?:
   if (openId) return <IncidentScreen incidentId={openId} onBack={() => setOpenId(null)} />;
 
   const sortedAlerts = [...alerts].sort((a, b) => b.at - a.at);
-  const active = incidents.filter(i => !CLOSED.includes(i.status));
-  const closed = incidents.filter(i => CLOSED.includes(i.status));
+  const needsMe = (i: Incident) =>
+    i.status === 'open' && i.participants.some(p => p.userId === me && p.role !== 'subject' && p.acknowledgedAt === null);
+  const open = incidents.filter(i => !CLOSED.includes(i.status));
+  const needs = open.filter(needsMe);
+  const active = open.filter(i => !needsMe(i));
+  const earlier = incidents.filter(i => CLOSED.includes(i.status));
+
+  const incidentRow = (i: Incident): ReactNode => (
+    <Row
+      key={i.id}
+      chevron
+      onClick={() => setOpenId(i.id)}
+      label={
+        <>
+          <span className="headline">{i.subjectName}</span>
+          <span className="subhead muted"> · {KIND_LABELS[i.kind] ?? i.kind} · {ago(i.openedAt)}</span>
+        </>
+      }
+      value={needsMe(i) ? <Pill tone="warn">Needs your acknowledgment</Pill> : <Pill>{INCIDENT_STATUS_LABELS[i.status]}</Pill>}
+    />
+  );
 
   return (
-    <section className="inbox-screen">
-      {mocked && <span className="inbox-pill">MOCK DATA</span>}
-      <h2>Alerts</h2>
-      {sortedAlerts.length === 0 ? (
-        <p className="muted">No alerts.</p>
-      ) : (
-        <ul className="inbox-list">
-          {sortedAlerts.map(a => (
-            <li key={a.id}>
-              <strong>{ALERT_LABELS[a.kind]}</strong>
+    <div className="inbox-screen">
+      {mocked && (
+        <div className="strip">
+          <span className="badge sim">MOCK DATA</span>
+        </div>
+      )}
+
+      {needs.length > 0 && <Section title="Needs you">{needs.map(incidentRow)}</Section>}
+      {active.length > 0 && <Section title="Active">{active.map(incidentRow)}</Section>}
+      {incidents.length === 0 && (
+        <Section title="Incidents">
+          <p className="inbox-empty">No incidents.</p>
+        </Section>
+      )}
+
+      <Section title="Alerts">
+        {sortedAlerts.length === 0 ? (
+          <p className="inbox-empty">No alerts.</p>
+        ) : (
+          sortedAlerts.map(a => (
+            <div className="inbox-item" key={a.id}>
+              <span className="headline">{ALERT_LABELS[a.kind]}</span>
               <p>{a.message}</p>
-              <p className="small muted">{ago(a.at)}</p>
-              <div className="inbox-actions">
-                {a.incidentId && <button type="button" className="btn" onClick={() => setOpenId(a.incidentId)}>Open incident</button>}
-                <button type="button" className="btn" onClick={() => dismissAlert(a.id)}>Dismiss</button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      <h2>Incidents</h2>
-      {incidents.length === 0 ? (
-        <p className="muted">No incidents.</p>
-      ) : (
-        <ul className="inbox-list">
-          {[...active, ...closed].map(i => {
-            const needs =
-              i.status === 'open' && i.participants.some(p => p.userId === me && p.role !== 'subject' && p.acknowledgedAt === null);
-            return (
-              <li key={i.id}>
-                <button type="button" className="inbox-row" onClick={() => setOpenId(i.id)}>
-                  <strong>{i.subjectName}</strong>
-                  <span className="small muted"> · {KIND_LABELS[i.kind] ?? i.kind} · {ago(i.openedAt)}</span>
-                  <span className="inbox-badges">
-                    <span className="inbox-pill">{INCIDENT_STATUS_LABELS[i.status]}</span>
-                    {needs && <span className="inbox-pill inbox-need">Needs your acknowledgment</span>}
-                  </span>
+              <p className="footnote muted">{ago(a.at)}</p>
+              <div className="inbox-item-actions">
+                {a.incidentId && (
+                  <button type="button" className="btn plain small-btn" onClick={() => setOpenId(a.incidentId)}>
+                    Open incident
+                  </button>
+                )}
+                <button type="button" className="btn plain small-btn" onClick={() => dismissAlert(a.id)}>
+                  Dismiss
                 </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
+              </div>
+            </div>
+          ))
+        )}
+      </Section>
+
+      {earlier.length > 0 && <Section title="Earlier">{earlier.map(incidentRow)}</Section>}
+    </div>
   );
 }

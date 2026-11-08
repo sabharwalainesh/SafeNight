@@ -1,10 +1,6 @@
-.inbox-screen { display: grid; gap: 0.7rem; min-width: 0; overflow-wrap: anywhere; }
-.inbox-screen h2 { margin: 0.3rem 0 0; }
-.inbox-screen p { margin: 0; }
-.inbox-screen .inbox-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
-.inbox-screen .inbox-list > li { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.8rem; }
-.inbox-screen .inbox-actions, .inbox-screen .inbox-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
-.inbox-screen .btn { min-height: var(--tap); }
-.inbox-screen .inbox-row { display: block; width: 100%; min-height: var(--tap); text-align: left; background: none; border: 0; padding: 0; color: inherit; }
-.inbox-screen .inbox-pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); font-size: 0.8rem; font-weight: 700; }
-.inbox-screen .inbox-need { border-color: var(--warn); color: var(--warn); }
+.inbox-screen { display: grid; gap: 1.25rem; min-width: 0; overflow-wrap: anywhere; }
+.inbox-screen .inbox-item { display: grid; gap: 0.15rem; padding: 0.6rem 1rem; }
+.inbox-screen .inbox-item + .inbox-item { border-top: 0.5px solid var(--border); }
+.inbox-screen .inbox-item p { margin: 0; }
+.inbox-screen .inbox-item-actions { display: flex; gap: 0.25rem; margin-left: -0.6rem; }
+.inbox-screen .inbox-empty { padding: 0.75rem 1rem; margin: 0; color: var(--muted); }
