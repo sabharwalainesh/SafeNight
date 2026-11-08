@@ -31,6 +31,7 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
   const [contactRows, cReady] = useTable(tables.myContacts);
   const [phoneRows, phReady] = useTable(tables.myPhone);
   const [privacyRows, vReady] = useTable(tables.myPrivacySettings);
+  const [photoRows] = useTable(tables.visibleProfilePhotos);
 
   const rSetProfile = useReducer(reducers.setProfile);
   const rSetPhone = useReducer(reducers.setPhone);
@@ -39,6 +40,7 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
   const rRemove = useReducer(reducers.removeTrustedContact);
   const rPrivacy = useReducer(reducers.setPrivacySettings);
   const rDelete = useReducer(reducers.deleteMyData);
+  const rPhoto = useReducer(reducers.setProfilePhoto);
 
   const myPhone = toPhone((phoneRows as Row[])[0]);
   const profiles = (profileRows as Row[]).map(r => toProfile(r, identityStr(r.identity) === me ? myPhone : ''));
@@ -53,6 +55,7 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
       rAdd({ contact: Identity.fromString(contact), role: roleTag(role), messagingConsent: consent, priority: clampPriority(priority) });
     return {
       setProfile: (displayName, avatarEmoji) => wrap(() => rSetProfile({ displayName: displayName.trim(), avatarEmoji })),
+      setProfilePhoto: (dataUrl) => wrap(() => rPhoto({ dataUrl })),
       setPhone: (e164) => wrap(() => rSetPhone({ phoneE164: e164.trim() })),
       addTrustedContact: (contact, role, consent, priority) => wrap(() => add(contact, role, consent, priority)),
       removeTrustedContact: (id) => wrap(() => rRemove({ id: BigInt(id) })),
@@ -74,6 +77,7 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
     profile: profiles.find((p) => p.userId === me) ?? null,
     contacts,
     knownPeople: profiles.map((p) => ({ userId: p.userId, displayName: p.displayName })),
+    photos: Object.fromEntries((photoRows as Row[]).map((r) => [identityStr(r.identity), String(r.dataUrl)])),
     privacy: toPrivacy((privacyRows as Row[])[0]),
     privacySaved: (privacyRows as Row[]).length > 0,
     actions,

@@ -96,3 +96,14 @@ export const reorderTrustedContacts = spacetimedb.reducer({ contactIds: t.array(
   });
   audit(ctx, 'reorder_trusted_contacts', `count=${contactIds.length}`);
 });
+
+export const setProfilePhoto = spacetimedb.reducer({ dataUrl: t.string() }, (ctx, { dataUrl }) => {
+  if (!ctx.db.userProfile.identity.find(ctx.sender)) throw new SenderError('Save your profile first');
+  if (dataUrl === '') { ctx.db.profilePhoto.identity.delete(ctx.sender); return; }
+  if (dataUrl.length > 100_000 || !/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]+={0,2}$/.test(dataUrl)) {
+    throw new SenderError('Use a JPEG profile thumbnail smaller than 75 KB');
+  }
+  const row = { identity: ctx.sender, dataUrl, updatedAt: ctx.timestamp };
+  if (ctx.db.profilePhoto.identity.find(ctx.sender)) ctx.db.profilePhoto.identity.update(row);
+  else ctx.db.profilePhoto.insert(row);
+});

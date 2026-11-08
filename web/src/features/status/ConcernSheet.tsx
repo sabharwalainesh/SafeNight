@@ -1,3 +1,4 @@
+import { MenuSelect } from '../../ui';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNightOut } from '../night-out/api';
@@ -32,7 +33,7 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
   const { me, sessionId, mocked, actions } = useSafety();
   const nightOut = useNightOut();
   const ref = useRef<HTMLDialogElement>(null);
-  const firstField = useRef<HTMLSelectElement>(null);
+  const firstField = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
   const [who, setWho] = useState('');
   const [cat, setCat] = useState<ConcernCategory>('possible_consumption');
@@ -59,7 +60,7 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
       setMsg(null);
       setSelfMsg(null);
       d.showModal();
-      firstField.current?.focus();
+      firstField.current?.querySelector('button')?.focus();
     } else if (!open && d.open) {
       d.close();
     }
@@ -109,15 +110,14 @@ export function ConcernSheet({ open, onClose }: { open: boolean; onClose: () => 
       </div>
 
       <form onSubmit={submit} className="status-form">
-        <label className="status-field">
-          Who
-          <select ref={firstField} value={who} onChange={(e) => setWho(e.target.value)} required>
-            <option value="">Select a person</option>
-            {others.map((m) => (
-              <option key={m.userId} value={m.userId}>{m.displayName}</option>
-            ))}
-          </select>
-        </label>
+        <div className="status-field" ref={firstField}>
+          <MenuSelect
+            label="Who"
+            value={who}
+            options={[{ value: '', label: 'Choose' }, ...others.map((m) => ({ value: m.userId, label: m.displayName }))]}
+            onChange={setWho}
+          />
+        </div>
         <fieldset className="status-field">
           <legend>What is the concern?</legend>
           {CATEGORIES.map((c) => (

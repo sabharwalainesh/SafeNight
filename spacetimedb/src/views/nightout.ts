@@ -1,3 +1,4 @@
+import { profilePhoto } from '../tables/photos';
 import { t, type Infer } from 'spacetimedb/server';
 import type { Identity } from 'spacetimedb';
 import { spacetimedb } from '../schema';
@@ -157,4 +158,19 @@ export const myContacts = spacetimedb.view(
   { name: 'my_contacts', public: true },
   t.array(trustedContact.rowType),
   ctx => Array.from(ctx.db.trustedContact.owner.filter(ctx.sender))
+);
+
+export const visibleProfilePhotos = spacetimedb.view(
+  { name: 'visible_profile_photos', public: true }, t.array(profilePhoto.rowType), ctx => {
+    const allowed = new Map([[ctx.sender.toHexString(), ctx.sender]]);
+    for (const mine of ctx.db.sessionMember.userId.filter(ctx.sender)) {
+      if (!mine.active) continue;
+      const session = ctx.db.nightSession.id.find(mine.sessionId);
+      if (!session || session.status.tag !== 'active') continue;
+      for (const member of ctx.db.sessionMember.sessionId.filter(mine.sessionId)) {
+        if (member.active) allowed.set(member.userId.toHexString(), member.userId);
+      }
+    }
+    return [...allowed.values()].flatMap(id => { const photo = ctx.db.profilePhoto.identity.find(id); return photo ? [photo] : []; });
+  }
 );

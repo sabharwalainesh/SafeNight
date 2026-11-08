@@ -3,6 +3,7 @@ import { useSpacetimeDB } from 'spacetimedb/react';
 import { PERSONAS, personaHref, type Persona } from './personas';
 import { LargeTitle, Row, Section } from './ui';
 import { Diagnostics } from './features/diagnostics';
+import { AboutPage, LegalDoc, PRIVACY_POLICY, TERMS } from './features/legal';
 import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
@@ -22,7 +23,7 @@ import { ProfileScreen } from './screens/profile';
 import { ReportsScreen } from './screens/reports';
 
 type TabId = 'night' | 'map' | 'inbox' | 'profile';
-type SubRoute = 'reports' | 'diagnostics' | undefined;
+type SubRoute = 'reports' | 'diagnostics' | 'privacy' | 'terms' | 'about' | undefined;
 
 const icon = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -88,9 +89,9 @@ export default function App({ persona, host, dbName }: Props) {
       : 'connecting';
 
   return (
-    <div className="app" style={{ ['--accent' as string]: persona.accent }}>
+    <div className="app">
       <header className="topbar">
-        <LargeTitle>{TABS.find(t => t.id === tab)!.label}</LargeTitle>
+        <div><p className="brand-label">SAFENIGHT</p><LargeTitle>{TABS.find(t => t.id === tab)!.label}</LargeTitle></div>
         <div className="topbar-right">
           <PersonaChip persona={persona} />
         </div>
@@ -113,6 +114,7 @@ export default function App({ persona, host, dbName }: Props) {
         <DemoPersonaRegistrar />
         <MeetupTracker />
         <NoDrivingBanner onViewIncident={openIncident} />
+        <div className="sn-screen" key={`${tab}:${sub ?? ''}`}>
         {tab === 'night' ? (
           <NightOutTab />
         ) : tab === 'map' ? (
@@ -132,16 +134,32 @@ export default function App({ persona, host, dbName }: Props) {
             <BackButton onClick={() => navigate('profile')} />
             <Diagnostics persona={persona} host={host} dbName={dbName} />
           </>
+        ) : sub === 'privacy' || sub === 'terms' ? (
+          <>
+            <BackButton onClick={() => navigate('profile')} />
+            <LegalDoc doc={sub === 'privacy' ? PRIVACY_POLICY : TERMS} />
+          </>
+        ) : sub === 'about' ? (
+          <>
+            <BackButton onClick={() => navigate('profile')} />
+            <AboutPage />
+          </>
         ) : (
           <>
-            <ProfileScreen />
+            <ProfileScreen onOpenPrivacy={() => navigate('profile', 'privacy')} />
             <Section title="More">
               <Row label="Venue reports" chevron onClick={() => navigate('profile', 'reports')} />
-              <Row label="About & diagnostics" chevron onClick={() => navigate('profile', 'diagnostics')} />
+              <Row label="Diagnostics" chevron onClick={() => navigate('profile', 'diagnostics')} />
+            </Section>
+            <Section title="Legal & safety" footer="SafeNight is not an emergency service. In immediate danger, call 911.">
+              <Row label="Privacy Policy" chevron onClick={() => navigate('profile', 'privacy')} />
+              <Row label="Terms of Use" chevron onClick={() => navigate('profile', 'terms')} />
+              <Row label="Safety & acknowledgements" chevron onClick={() => navigate('profile', 'about')} />
             </Section>
             <DemoPanel />
           </>
         )}
+        </div>
       </main>
       </ProfileProvider>
       </ReportsProvider>

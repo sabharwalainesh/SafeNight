@@ -49,7 +49,7 @@ export function SetupScreen({ initial, onDone }: Props) {
                 accessibilityState={{ checked: on }}
                 accessibilityLabel={`${p.name}, ${p.roleHint}`}
                 onPress={() => setPersona(p.id)}
-                style={[s.persona, { borderColor: on ? p.accent : C.border, backgroundColor: on ? '#1d2231' : C.surface }]}
+                style={[s.persona, { borderColor: on ? C.accent : 'transparent', backgroundColor: on ? 'rgba(10,132,255,0.14)' : C.surface }]}
               >
                 <View style={[s.swatch, { backgroundColor: p.accent }]} />
                 <View style={{ flex: 1 }}>
@@ -84,7 +84,7 @@ export function SetupScreen({ initial, onDone }: Props) {
 const s = StyleSheet.create({
   wrap: { padding: 16, paddingTop: 72, paddingBottom: 48, gap: 14 },
   word: { color: C.text, fontSize: 32, fontWeight: '800', letterSpacing: 0.5 },
-  persona: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderRadius: 12, padding: 12, minHeight: 60 },
+  persona: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderRadius: 14, borderCurve: 'continuous', padding: 12, minHeight: 60 },
   swatch: { width: 14, height: 14, borderRadius: 7 },
   pName: { color: C.text, fontSize: 17, fontWeight: '700' },
   pRole: { color: C.muted, fontSize: 13 },

@@ -276,6 +276,7 @@ export const deleteMyData = spacetimedb.reducer(ctx => {
   if (ctx.db.appRole.identity.find(me)) ctx.db.appRole.identity.delete(me);
   if (ctx.db.userPrivacySettings.identity.find(me)) ctx.db.userPrivacySettings.identity.delete(me);
   if (ctx.db.userPhone.identity.find(me)) ctx.db.userPhone.identity.delete(me);
+  if (ctx.db.profilePhoto.identity.find(me)) ctx.db.profilePhoto.identity.delete(me);
   const persona = ctx.db.demoPersona.identity.find(me);
   if (persona) ctx.db.demoPersona.personaId.delete(persona.personaId);
   if (ctx.db.userProfile.identity.find(me)) ctx.db.userProfile.identity.delete(me);
@@ -308,6 +309,7 @@ export const resetDemo = spacetimedb.reducer(ctx => {
   clear(d.venueReportVote); clear(d.venueReportAuthor); clear(d.venueReport);
   for (const r of d.userPrivacySettings.iter()) d.userPrivacySettings.identity.delete(r.identity);
   for (const r of d.userPhone.iter()) d.userPhone.identity.delete(r.identity);
+  for (const r of d.profilePhoto.iter()) d.profilePhoto.identity.delete(r.identity);
   for (const r of d.userProfile.iter()) d.userProfile.identity.delete(r.identity);
   ensureCommunitySchedules(ctx);
   audit(ctx, 'reset_demo', 'all');

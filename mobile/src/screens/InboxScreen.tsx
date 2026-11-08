@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Badge, Btn, Card, H2, P, Row } from '../components/ui';
 import { ago } from '../lib/format';
 import { C } from '../theme';
@@ -22,11 +22,11 @@ export function InboxScreen({ initialIncidentId }: { initialIncidentId?: string 
   const active = incidents.filter((i) => !CLOSED.includes(i.status));
   const closed = incidents.filter((i) => CLOSED.includes(i.status));
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 24 }}>
       <Card>
         <H2>Alerts</H2>
         {sorted.length === 0 ? <P muted>No alerts.</P> : sorted.map((a) => (
-          <View key={a.id} style={{ gap: 4, borderTopWidth: 1, borderTopColor: C.border, paddingTop: 8 }}>
+          <View key={a.id} style={{ gap: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.separator, paddingTop: 8 }}>
             <P style={{ fontWeight: '700' }}>{ALERT_LABELS[a.kind]}</P>
             <P>{a.message}</P>
             <P muted small>{ago(a.at)}</P>
@@ -42,7 +42,7 @@ export function InboxScreen({ initialIncidentId }: { initialIncidentId?: string 
         {incidents.length === 0 ? <P muted>No incidents.</P> : [...active, ...closed].map((i) => {
           const needs = i.status === 'open' && i.participants.some((p) => p.userId === me && p.role !== 'subject' && p.acknowledgedAt === null);
           return (
-            <Pressable key={i.id} accessibilityRole="button" onPress={() => setOpenId(i.id)} style={{ borderTopWidth: 1, borderTopColor: C.border, paddingVertical: 10, gap: 4 }}>
+            <Pressable key={i.id} accessibilityRole="button" onPress={() => setOpenId(i.id)} style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.separator, paddingVertical: 10, gap: 4 }}>
               <Text style={{ color: C.text, fontWeight: '700', fontSize: 16 }}>{i.subjectName} <Text style={{ color: C.muted, fontWeight: '400', fontSize: 13 }}>· {KIND_LABELS[i.kind] ?? i.kind} · {ago(i.openedAt)}</Text></Text>
               <Row><Badge>{INCIDENT_STATUS_LABELS[i.status]}</Badge>{needs && <Badge tone="warn">Needs your acknowledgment</Badge>}</Row>
             </Pressable>

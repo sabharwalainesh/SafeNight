@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { Badge, Btn, Card, Confirm, Feedback, Field, H2, H3, Input, P, Row, type Msg } from '../components/ui';
 import { ago, clock, errText, humanize, mmss } from '../lib/format';
 import { C } from '../theme';
@@ -68,7 +68,7 @@ function AgentPanel({ incidentId }: { incidentId: string }) {
       {receipts.length === 0 ? <P muted small>No actions yet.</P> : receipts.map((r) => {
         const policy = r.resultText.startsWith('Policy:');
         return (
-          <View key={r.id} style={{ borderTopWidth: 1, borderTopColor: C.border, paddingTop: 6, gap: 2 }}>
+          <View key={r.id} style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.separator, paddingTop: 6, gap: 2 }}>
             <Row><P style={{ fontWeight: '700' }}>{humanize(r.tool)}</P><Badge tone={r.status === 'rejected' || r.status === 'failed' ? 'danger' : 'ok'}>{ACTION_LABELS[r.status]}</Badge>{policy && <Badge tone="policy">Policy</Badge>}{r.simulated && <Sim />}<P muted small>{clock(r.at)}</P></Row>
             {!!r.resultText && <P small>{r.resultText}</P>}
             {r.status === 'rejected' && !!r.rejectReason && <P small style={{ color: C.danger }}>Blocked: {r.rejectReason}</P>}
@@ -77,7 +77,7 @@ function AgentPanel({ incidentId }: { incidentId: string }) {
       })}
       <H3>Messages</H3>
       {notes.length === 0 ? <P muted small>No messages yet.</P> : notes.map((n) => (
-        <View key={n.id} style={{ borderTopWidth: 1, borderTopColor: C.border, paddingTop: 6, gap: 2 }}>
+        <View key={n.id} style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.separator, paddingTop: 6, gap: 2 }}>
           <Row><P style={{ fontWeight: '700' }}>{n.recipientName}</P><P muted small>{n.channel.replace('_', '-')}</P><Badge tone={n.status === 'acknowledged' ? 'ok' : n.status === 'failed' ? 'danger' : 'default'}>{DELIVERY_LABELS[n.status]}</Badge>{n.simulated && <Sim />}</Row>
           <P small>{n.body}</P>
         </View>
@@ -118,7 +118,7 @@ function RidePanel({ incidentId }: { incidentId: string }) {
         const chosen = plan.chosenOption === o.id;
         const link = safeRideLink(o.url);
         return (
-          <View key={o.id} style={{ borderWidth: 1, borderColor: chosen ? C.accent : C.border, borderRadius: 10, padding: 10, gap: 4 }}>
+          <View key={o.id} style={{ borderRadius: 12, borderCurve: 'continuous', backgroundColor: chosen ? 'rgba(10,132,255,0.16)' : C.surface2, padding: 12, gap: 4 }}>
             <Row><P style={{ fontWeight: '700' }}>{o.label}</P><P muted small>{o.kind.replace(/_/g, ' ')}</P>{o.simulated && <Sim />}{chosen && <Badge tone="accent">Chosen</Badge>}</Row>
             <P muted small>{o.etaMinutes !== null ? `ETA ${o.etaMinutes} min · ` : ''}{o.source}, fetched {ago(o.fetchedAt)}</P>
             <Row>
@@ -181,7 +181,7 @@ export function IncidentScreen({ incidentId, onBack }: { incidentId: string; onB
   const resolvedByName = incident.resolvedBy ? (incident.participants.find((p) => p.userId === incident.resolvedBy)?.displayName ?? incident.resolvedBy.slice(0, 8)) : null;
   async function run(fn: () => Promise<void>) { setBusy(true); setMsg(null); try { await fn(); setMode('none'); setText(''); setConfirming(false); } catch (e) { setMsg({ ok: false, text: errText(e, 'Action failed') }); } finally { setBusy(false); } }
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 24 }}>
       <Card>
         <Btn title="← Back" variant="ghost" small onPress={onBack} style={{ alignSelf: 'flex-start' }} />
         <H2>{KIND_LABELS[incident.kind] ?? incident.kind}</H2>

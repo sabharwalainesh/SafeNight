@@ -80,6 +80,7 @@ import SetAppRoleReducer from "./set_app_role_reducer";
 import SetPhoneReducer from "./set_phone_reducer";
 import SetPrivacySettingsReducer from "./set_privacy_settings_reducer";
 import SetProfileReducer from "./set_profile_reducer";
+import SetProfilePhotoReducer from "./set_profile_photo_reducer";
 import SetSharingScopeReducer from "./set_sharing_scope_reducer";
 import SubmitVenueReportReducer from "./submit_venue_report_reducer";
 import VolunteerDriverReducer from "./volunteer_driver_reducer";
@@ -120,6 +121,7 @@ import SessionMemberRow from "./session_member_table";
 import UserProfileRow from "./user_profile_table";
 import VenueRow from "./venue_table";
 import VisibleLocationsRow from "./visible_locations_table";
+import VisibleProfilePhotosRow from "./visible_profile_photos_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -407,6 +409,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, VisibleLocationsRow),
+  visibleProfilePhotos: __table({
+    name: 'visible_profile_photos',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, VisibleProfilePhotosRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
@@ -457,6 +466,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_phone", SetPhoneReducer),
   __reducerSchema("set_privacy_settings", SetPrivacySettingsReducer),
   __reducerSchema("set_profile", SetProfileReducer),
+  __reducerSchema("set_profile_photo", SetProfilePhotoReducer),
   __reducerSchema("set_sharing_scope", SetSharingScopeReducer),
   __reducerSchema("submit_venue_report", SubmitVenueReportReducer),
   __reducerSchema("volunteer_driver", VolunteerDriverReducer),

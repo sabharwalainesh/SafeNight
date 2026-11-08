@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { Badge, Btn, Card, Confirm, Feedback, H2, H3, P, Row, Segmented, Toggle, type Msg } from '../components/ui';
+import { Avatar, Badge, Btn, Card, Confirm, Feedback, H2, H3, ListRow, P, Row, Rows, Section, Segmented, Toggle, type Msg } from '../components/ui';
 import { errText, relFuture } from '../lib/format';
+import { inviteFromContacts, shareInvite } from '../lib/invite';
 import { C } from '../theme';
-import { useNightOut, type ConsentGrant, type ConsentScope, type DriverEndReason, type Invite, type SharingScope } from '../web';
+import { useNightOut, useProfile, type ConsentGrant, type ConsentScope, type DriverEndReason, type Invite, type SharingScope } from '../web';
 
 const SCOPES: { id: ConsentScope; label: string }[] = [
   { id: 'location_precise', label: 'Precise location' },
@@ -24,6 +25,7 @@ export function SessionDetail({ sessionId, onBack }: { sessionId: string; onBack
   const api = useNightOut();
   const { actions, me, myConsents } = api;
   const roster = api.roster(sessionId);
+  const { photos } = useProfile();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -69,53 +71,64 @@ export function SessionDetail({ sessionId, onBack }: { sessionId: string; onBack
   const endDriver = (reason: DriverEndReason) => openDriver && void run(() => actions.endDriverRole(openDriver.id, reason));
 
   return (
-    <View style={{ gap: 12 }}>
-      <Card>
-        <Btn title="← Back" variant="ghost" small onPress={onBack} style={{ alignSelf: 'flex-start' }} />
-        <H2>{session.name}</H2>
-        {!!session.venueHint && <P muted>{session.venueHint}</P>}
-        <Row><Badge>{session.status}</Badge><Badge>Ends {relFuture(session.expiresAt, now)}</Badge></Row>
-      </Card>
+    <View style={{ gap: 24 }}>
+      <View style={{ gap: 6 }}>
+        <Btn title="‹ Tonight" variant="ghost" small onPress={onBack} style={{ alignSelf: 'flex-start', paddingHorizontal: 4 }} />
+        <Text accessibilityRole="header" style={{ color: C.text, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 }}>{session.name}</Text>
+        <P muted>{session.venueHint ? `${session.venueHint} · ` : ''}Ends {relFuture(session.expiresAt, now)}</P>
+      </View>
       <Feedback msg={msg} />
 
-      <Card>
-        <H2>Roster</H2>
-        {active.map((m) => {
-          const ds = driverState(m.userId);
-          return (
-            <Row key={m.id}>
-              <Text style={{ color: C.text, fontWeight: '700', fontSize: 16 }}>{m.displayName}{m.userId === me ? ' (you)' : ''}</Text>
-              {m.role === 'organizer' && <Badge tone="accent">Organizer</Badge>}
-              <Badge>{sharingLabel(m.sharingScope)}</Badge>
-              {ds && <Badge tone="warn">{ds}</Badge>}
-            </Row>
-          );
-        })}
-        {departed.length > 0 && <P muted small>Left: {departed.map((m) => m.displayName).join(', ')}</P>}
-      </Card>
+      <Section header={`Group · ${active.length}`} flush footer={departed.length > 0 ? `Left: ${departed.map((m) => m.displayName).join(', ')}` : undefined}>
+        <Rows inset={68}>
+          {active.map((m) => {
+            const ds = driverState(m.userId);
+            return (
+              <ListRow
+                key={m.id}
+                left={<Avatar uri={photos[m.userId]} name={m.displayName} size={40} />}
+                title={`${m.displayName}${m.userId === me ? ' (you)' : ''}`}
+                subtitle={[m.role === 'organizer' ? 'Organizer' : null, ds, `Location: ${sharingLabel(m.sharingScope)}`].filter(Boolean).join(' · ')}
+              />
+            );
+          })}
+        </Rows>
+      </Section>
 
       {isOrganizer && (
-        <Card>
-          <H2>Invite</H2>
-          <Btn title="Create invite (60 min, 6 uses)" disabled={busy} onPress={() => void run(async () => setNewInvite(await actions.createInvite(sessionId, 60, 6)))} />
+        <Section header="Invite friends" footer="Invites expire after an hour and work up to 6 times. Joining shares nothing until each person chooses to.">
+          <Row style={{ flexWrap: 'nowrap' }}>
+            <Btn title="Share invite" style={{ flex: 1 }} disabled={busy} onPress={() => void run(async () => {
+              const inv = newInvite && newInvite.revokedAt === null && newInvite.expiresAt > Date.now() ? newInvite : await actions.createInvite(sessionId, 60, 6);
+              setNewInvite(inv);
+              await shareInvite(session.name, inv.code);
+            })} />
+            <Btn title="From Contacts" variant="secondary" style={{ flex: 1 }} disabled={busy} onPress={() => void run(async () => {
+              const inv = newInvite && newInvite.revokedAt === null && newInvite.expiresAt > Date.now() ? newInvite : await actions.createInvite(sessionId, 60, 6);
+              setNewInvite(inv);
+              const r = await inviteFromContacts(session.name, inv.code);
+              if (r === 'sent') setMsg({ ok: true, text: 'Invite sent.' });
+            })} />
+          </Row>
           {newInvite && (
-            <View>
-              <Text accessibilityLabel={`Invite code ${newInvite.code.split('').join(' ')}`} style={{ color: C.text, fontSize: 36, fontWeight: '800', letterSpacing: 8, fontFamily: 'Menlo' }}>{newInvite.code}</Text>
-              <P muted small>Expires {relFuture(newInvite.expiresAt, now)} · read it out or show the screen</P>
+            <View style={{ alignItems: 'center', gap: 2 }}>
+              <Text accessibilityLabel={`Invite code ${newInvite.code.split('').join(' ')}`} style={{ color: C.text, fontSize: 34, fontWeight: '700', letterSpacing: 8, fontFamily: 'Menlo' }}>{newInvite.code}</Text>
+              <P muted small>Or read the code out · expires {relFuture(newInvite.expiresAt, now)}</P>
             </View>
           )}
-          <H3>Active invites</H3>
-          {activeInvites.length === 0 ? <P muted small>No active invites.</P> : activeInvites.map((i) => (
-            <Row key={i.id} style={{ justifyContent: 'space-between' }}>
-              <P style={{ fontFamily: 'Menlo' }}>{i.code} <Text style={{ color: C.muted, fontSize: 13 }}>{i.uses}/{i.maxUses} · {relFuture(i.expiresAt, now)}</Text></P>
-              <Btn title="Revoke" small variant="secondary" disabled={busy} onPress={() => void run(() => actions.revokeInvite(i.id))} />
-            </Row>
-          ))}
-        </Card>
+          {activeInvites.length > 0 && (<>
+            <H3>Active invites</H3>
+            {activeInvites.map((i) => (
+              <Row key={i.id} style={{ justifyContent: 'space-between' }}>
+                <P style={{ fontFamily: 'Menlo' }}>{i.code} <Text style={{ color: C.muted, fontSize: 13 }}>{i.uses}/{i.maxUses} · {relFuture(i.expiresAt, now)}</Text></P>
+                <Btn title="Revoke" small variant="danger" disabled={busy} onPress={() => void run(() => actions.revokeInvite(i.id))} />
+              </Row>
+            ))}
+          </>)}
+        </Section>
       )}
 
-      <Card>
-        <H2>Driver</H2>
+      <Section header="Driver">
         {!openDriver && (<>
           <P muted>No driver yet.</P>
           <Btn title="I can drive tonight" disabled={busy || !meMember} onPress={() => void run(() => actions.volunteerDriver(sessionId))} />
@@ -133,17 +146,13 @@ export function SessionDetail({ sessionId, onBack }: { sessionId: string; onBack
           <Btn title="Remove driver" variant="secondary" disabled={busy} onPress={() => setConfirm('driver-remove')} />
           <Confirm show={confirm === 'driver-remove'} busy={busy} text={`Remove ${nameOf(openDriver.driverId)} as driver?`} label="Remove driver" onYes={() => endDriver('replaced')} onCancel={() => setConfirm(null)} />
         </>)}
-      </Card>
+      </Section>
 
-      <Card>
-        <H2>My sharing</H2>
-        <P muted small>This is your ceiling. Each friend still needs a grant from you below. Nobody, including the organizer, can turn this on for you.</P>
+      <Section header="My location" footer="This is your ceiling. Each friend still needs your OK below. Nobody, including the organizer, can turn this on for you.">
         <Segmented options={SHARING} value={meMember?.sharingScope ?? 'none'} disabled={busy || !meMember} onChange={(v) => void run(() => actions.setSharingScope(sessionId, v))} />
-      </Card>
+      </Section>
 
-      <Card>
-        <H2>Consent</H2>
-        <P muted small>Each toggle grants that person access for 5 hours. Turn it off to revoke.</P>
+      <Section header="Who can see what" footer="Each switch gives that person access for 5 hours. Turn it off to stop sharing.">
         {others.length === 0 && <P muted>No other members yet.</P>}
         {others.map((m) => (
           <View key={m.id} style={{ gap: 2 }}>
@@ -158,10 +167,9 @@ export function SessionDetail({ sessionId, onBack }: { sessionId: string; onBack
         {sharedWithMe.length === 0 ? <P muted small>Nobody is sharing with you yet.</P> : sharedWithMe.map((g) => (
           <P key={g.id} small>{nameOf(g.subject)}: {scopeLabel(g.scope)} <Text style={{ color: C.muted }}>· expires {relFuture(g.expiresAt, now)}</Text></P>
         ))}
-      </Card>
+      </Section>
 
-      <Card>
-        <H2>{isOrganizer ? 'End session' : 'Leave session'}</H2>
+      <Section header={isOrganizer ? 'End group' : 'Leave group'}>
         {isOrganizer ? (<>
           <Btn title="End session for everyone" variant="danger" disabled={busy} onPress={() => setConfirm('end')} />
           <Confirm show={confirm === 'end'} busy={busy} text="This ends the session for all members and stops all sharing." label="Yes, end it" onYes={() => void run(() => actions.endSession(sessionId), onBack)} onCancel={() => setConfirm(null)} />
@@ -169,7 +177,7 @@ export function SessionDetail({ sessionId, onBack }: { sessionId: string; onBack
           <Btn title="Leave session" variant="danger" disabled={busy || !meMember} onPress={() => setConfirm('leave')} />
           <Confirm show={confirm === 'leave'} busy={busy} text="You will leave this session and stop sharing with it." label="Yes, leave" onYes={() => void run(() => actions.leaveSession(sessionId), onBack)} onCancel={() => setConfirm(null)} />
         </>)}
-      </Card>
+      </Section>
     </View>
   );
 }

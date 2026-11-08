@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { useNightOut, type NightSession } from '../../../features/night-out/api';
 import './start.css';
 
-type Props = { onOpen: (sessionId: string) => void };
+type Props = { onOpen: (sessionId: string) => void; initialCode?: string };
 
 const DEFAULT_NAME = "New Year's Eve";
 const DEFAULT_VENUE = 'Times Square, New York';
@@ -34,12 +34,13 @@ function SessionRow({ s, onOpen }: { s: NightSession; onOpen: (id: string) => vo
   );
 }
 
-export function NightOutStart({ onOpen }: Props) {
+export function NightOutStart({ onOpen, initialCode = '' }: Props) {
   const api = useNightOut();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [venue, setVenue] = useState('');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode);
+  const [invited, setInvited] = useState(!!initialCode);
   const [createBusy, setCreateBusy] = useState(false);
   const [joinBusy, setJoinBusy] = useState(false);
   const [createErr, setCreateErr] = useState<string | null>(null);
@@ -66,8 +67,8 @@ export function NightOutStart({ onOpen }: Props) {
     }
   }
 
-  async function join(e: FormEvent) {
-    e.preventDefault();
+  async function join(e?: FormEvent) {
+    e?.preventDefault();
     setJoinErr(null);
     setJoinBusy(true);
     try {
@@ -91,9 +92,23 @@ export function NightOutStart({ onOpen }: Props) {
   return (
     <div className="nos-start">
       <header className="nos-hero">
-        <h2>Tonight</h2>
+        <div><h2>Go out together.<br />Get home together.</h2><p className="muted">Your people. Your plans. One place to stay connected.</p></div>
         {api.mocked && <span className="badge sim">MOCK</span>}
       </header>
+
+      {invited && code.length === 6 && (
+        <section className="nos-invited" aria-label="Invitation">
+          <p className="headline">You’re invited to a hangout</p>
+          <p className="muted subhead">Code <span className="code-inline">{code}</span>. Your location stays private until you choose to share it.</p>
+          <div className="nos-invited-actions">
+            <button type="button" className="btn" disabled={joinBusy} onClick={() => void join()}>
+              {joinBusy ? 'Joining…' : 'Join hangout'}
+            </button>
+            <button type="button" className="btn plain" onClick={() => setInvited(false)}>Not now</button>
+          </div>
+          {joinErr && <div role="alert" className="result err">{joinErr}</div>}
+        </section>
+      )}
 
       {api.mySessions.length > 0 && (
         <section aria-labelledby="nos-sessions">
@@ -160,7 +175,7 @@ export function NightOutStart({ onOpen }: Props) {
             {joinBusy ? 'Joining…' : 'Join'}
           </button>
         </form>
-        {joinErr && (
+        {joinErr && !(invited && code.length === 6) && (
           <div role="alert" className="result err">
             {joinErr}
           </div>

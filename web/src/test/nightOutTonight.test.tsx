@@ -17,7 +17,7 @@ describe('Tonight tab', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Start a hangout' }));
     expect(await screen.findByRole('heading', { name: /New Year's Eve/ })).toBeTruthy();
     expect(screen.getByText(/Times Square, New York/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Invite' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Invite friends' })).toBeTruthy();
     expect(screen.getByRole('button', { name: "I'll drive" })).toBeTruthy();
   });
 

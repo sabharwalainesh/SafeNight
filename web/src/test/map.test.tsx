@@ -1,6 +1,6 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { useEffect, type ReactNode } from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgent, type AgentApi } from '../features/agent/api';
 import { AgentMockProvider } from '../features/agent/mock';
 import { NightOutMockProvider } from '../features/night-out/mock';
@@ -56,6 +56,21 @@ describe('Times Square map', () => {
     }
     expect(r.getByRole('list', { name: 'Locations' }).querySelectorAll('li').length).toBe(4);
     expect(r.getByText('SIMULATED LOCATIONS')).toBeTruthy();
+  });
+
+  it('focus and group scan use existing shared locations without publishing a new point', async () => {
+    const r = renderAlex(<MapScreen />);
+    await act(async () => { await live.agent!.demo.setupGroup(); });
+    await waitFor(() => expect(live.safety!.locations.length).toBe(3));
+    const post = vi.spyOn(live.safety!.actions, 'postLocation');
+    const maya = within(r.getByRole('list', { name: 'Locations' })).getByRole('button', { name: /Maya/ });
+    fireEvent.click(maya);
+    expect(maya.getAttribute('aria-pressed')).toBe('true');
+    expect(maya.textContent).toContain('Accuracy');
+    fireEvent.click(r.getByRole('button', { name: 'Find my group' }));
+    expect(post).not.toHaveBeenCalled();
+    expect(r.getByRole('list', { name: 'Locations' }).querySelectorAll('li')).toHaveLength(4);
+    post.mockRestore();
   });
 
   it('share my spot posts a point within jitter of the preset', async () => {

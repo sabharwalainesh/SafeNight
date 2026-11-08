@@ -25,6 +25,13 @@ function makeActions(me: UserId): ProfileActions {
           p.avatarEmoji = emoji;
         } else s.profiles.push({ userId: me, displayName: n, avatarEmoji: emoji, phoneVerified: false, phone: '' });
       }),
+    setProfilePhoto: (dataUrl) =>
+      run((s) => {
+        if (!s.profiles.some((x) => x.userId === me)) throw new Error('Save your profile first');
+        s.photos = { ...(s.photos ?? {}) };
+        if (dataUrl) s.photos[me] = dataUrl;
+        else delete s.photos[me];
+      }),
     addTrustedContact: (contact, role, messagingConsent, priority) =>
       run((s, id) => {
         if (contact === me) throw new Error("You can't add yourself");
@@ -77,6 +84,10 @@ function makeActions(me: UserId): ProfileActions {
       }),
     deleteMyData: () =>
       run((s) => {
+        if (s.photos?.[me]) {
+          s.photos = { ...s.photos };
+          delete s.photos[me];
+        }
         s.profiles = s.profiles.filter((x) => x.userId !== me);
         const affected = new Set(s.contacts.filter((x) => x.contact === me && x.owner !== me).map((x) => x.owner));
         s.contacts = s.contacts.filter((x) => x.owner !== me && x.contact !== me);
@@ -95,6 +106,7 @@ export function useProfileMock(me: UserId, _displayName: string): ProfileApi {
     mocked: true,
     profile: state.profiles.find((p) => p.userId === me) ?? null,
     contacts: state.contacts.filter((c) => c.owner === me).sort((a, b) => a.priority - b.priority),
+    photos: state.photos ?? {},
     knownPeople: state.profiles.map((p) => ({ userId: p.userId, displayName: p.displayName })),
     privacy: { ...DEFAULT_PRIVACY, ...(state.privacy[me] ?? {}) },
     privacySaved: !!state.privacy[me],

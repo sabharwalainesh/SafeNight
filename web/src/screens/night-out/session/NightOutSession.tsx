@@ -8,6 +8,10 @@ import {
   type Invite,
   type SharingScope,
 } from '../../../features/night-out/api';
+import { pickContactPhone, smsHref, supportsContactPicker } from '../../../lib/contacts';
+import { inviteMessage, inviteUrl, shareInvite } from '../../../lib/invite';
+import { PrivacyLink } from '../../../features/legal';
+import { Avatar } from '../../../ui';
 import './session.css';
 
 type Props = { sessionId: string; onBack: () => void };
@@ -124,6 +128,27 @@ export function NightOutSession({ sessionId, onBack }: Props) {
     }
   }
 
+  async function share(code: string) {
+    try {
+      const r = await shareInvite(session.name, code);
+      setCopied(r === 'copied' ? 'Invite link copied' : r === 'shared' ? 'Invite shared' : null);
+    } catch {
+      setCopied('Sharing is unavailable here. Copy the code instead.');
+    }
+  }
+
+  async function inviteContact(code: string) {
+    try {
+      const c = await pickContactPhone();
+      if (!c) return;
+      const body = `${inviteMessage(session.name, code)}\n${inviteUrl(window.location.href, code)}`;
+      window.location.href = smsHref(c.tel, body);
+      setCopied(`Opening Messages for ${c.name}`);
+    } catch {
+      setCopied('Contacts are unavailable. Use Share instead.');
+    }
+  }
+
   const activeGrant = (g: ConsentGrant) => g.revokedAt === null && g.expiresAt > now;
   const myGrant = (recipient: string, scope: ConsentScope) =>
     myConsents.find(
@@ -183,7 +208,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
             ].filter(Boolean).join(' · ');
             return (
               <li key={m.id} className="nos-person">
-                <span className="nos-avatar" aria-hidden="true">{m.displayName.charAt(0).toUpperCase()}</span>
+                <Avatar userId={m.userId} name={m.displayName} size={40} />
                 <span className="nos-pm">
                   <span className="nos-name">{m.displayName}</span>
                   <span className="nos-sub">{sub}</span>
@@ -203,7 +228,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
         <div className="nos-primary">
           {isOrganizer && (
             <button type="button" className="btn" disabled={busy} aria-expanded={sheet} onClick={toggleInvite}>
-              Invite
+              Invite friends
             </button>
           )}
           {!openDriver && (
@@ -261,12 +286,23 @@ export function NightOutSession({ sessionId, onBack }: Props) {
                 <p className="nos-sub">
                   Expires {relFuture(shownInvite.expiresAt, now)} · {shownInvite.uses}/{shownInvite.maxUses} uses
                 </p>
+                <div className="nos-share">
+                  <button type="button" className="btn block" onClick={() => void share(shownInvite.code)}>
+                    <ShareIcon /> Share invite link
+                  </button>
+                  {supportsContactPicker() && (
+                    <button type="button" className="btn secondary block" onClick={() => void inviteContact(shownInvite.code)}>
+                      Invite from contacts
+                    </button>
+                  )}
+                </div>
                 <div className="nos-actions">
-                  <button type="button" className="btn" onClick={() => void copy(shownInvite.code)}>Copy</button>
-                  <button type="button" className="btn secondary" disabled={busy} onClick={() => void run(() => actions.revokeInvite(shownInvite.id))}>
+                  <button type="button" className="btn plain small-btn" onClick={() => void copy(shownInvite.code)}>Copy code</button>
+                  <button type="button" className="btn plain small-btn red" disabled={busy} onClick={() => void run(() => actions.revokeInvite(shownInvite.id))}>
                     Revoke<span className="sr-only"> {shownInvite.code}</span>
                   </button>
                 </div>
+                <p className="nos-sub">Friends join with the link or the code. Nothing is shared until they choose.</p>
                 <p className="nos-sub" role="status">{copied ?? ''}</p>
               </>
             ) : (
@@ -307,7 +343,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
                 ))}
               </div>
             </fieldset>
-            <p className="nos-sub">Each toggle grants that person access for 5 hours. Turn it off to revoke.</p>
+            <p className="nos-sub">Each toggle grants that person access for 5 hours. Turn it off to revoke. <PrivacyLink label="How we use your location" /></p>
             {others.length === 0 && <p className="nos-sub">No other members yet.</p>}
             {others.map(m => (
               <fieldset key={m.id} className="nos-fs" aria-busy={busy}>
@@ -316,14 +352,16 @@ export function NightOutSession({ sessionId, onBack }: Props) {
                   const grant = myGrant(m.userId, sc.id);
                   return (
                     <label key={sc.id} className="nos-check">
+                      <span>{sc.label}</span>
                       <input
                         type="checkbox"
+                        role="switch"
+                        className="sn-switch"
                         checked={!!grant}
                         onChange={() =>
                           void run(() => (grant ? actions.revokeConsent(grant.id) : actions.grantConsent(m.userId, sessionId, sc.id, 300)))
                         }
                       />
-                      {sc.label}
                     </label>
                   );
                 })}
@@ -380,6 +418,14 @@ export function NightOutSession({ sessionId, onBack }: Props) {
         )}
       </footer>
     </div>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
   );
 }
 

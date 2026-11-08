@@ -1,3 +1,4 @@
+import { SafetyNote } from '../legal';
 import { useEffect, useRef, useState } from 'react';
 import { CHECKIN_LABELS, useSafety } from '../safety/api';
 import type { CheckinKind } from '../safety/api';
@@ -114,6 +115,7 @@ export function StatusBar() {
             <p id="status-hold-help" className="status-help">
               Press and hold for 1.5 seconds. Releasing early cancels.
             </p>
+            <SafetyNote />
           </div>
         </div>
       </div>

@@ -17,3 +17,26 @@
 .nos-joinrow input { flex: 1; }
 .nos-joinrow .btn { min-height: 44px; }
 .nos-start .code { text-transform: uppercase; letter-spacing: 0.2em; font-family: ui-monospace, Menlo, monospace; }
+
+.nos-start { gap: 28px; }
+.nos-hero { align-items: flex-start; justify-content: space-between; padding: 20px 0 8px; }
+.nos-hero h2 { font-size: clamp(26px, 4vw, 38px); line-height: 1.15; letter-spacing: -0.04em; margin-bottom: 12px; }
+.nos-hero p { font-size: 15px; line-height: 24px; max-width: 360px; }
+.nos-rowbtn { padding: 18px; min-height: 76px; }
+.nos-label { text-transform: none; letter-spacing: 0; font-size: 14px; margin-bottom: 12px; }
+.nos-start .nos-big { min-height: 52px; font-size: 16px; }
+
+.nos-group { box-shadow: var(--shadow); }
+.nos-rowbtn { transition: background-color 0.2s var(--ease); }
+.nos-rowbtn:active { background: var(--fill); }
+.nos-start input { border: 0; background: var(--fill); border-radius: var(--radius-sm); }
+.nos-start .nos-big { border-radius: 999px; }
+.nos-fields { box-shadow: var(--shadow); }
+.nos-invited {
+  display: grid; gap: 6px; padding: 18px 20px; border-radius: var(--radius);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--surface)), var(--surface));
+  box-shadow: var(--shadow); animation: sn-screen-in 0.3s var(--ease) both;
+}
+.nos-invited p { margin: 0; }
+.nos-invited-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.code-inline { font-family: ui-monospace, Menlo, monospace; letter-spacing: 0.12em; font-weight: 700; color: var(--text); }

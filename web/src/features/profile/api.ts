@@ -38,6 +38,8 @@ export type ProfileActions = {
   /** E.164 (+15551234567) or empty to clear. */
   setPhone(e164: string): Promise<void>;
   setProfile(displayName: string, avatarEmoji: string): Promise<void>;
+  /** JPEG data URL (≤75 KB, from prepareProfilePhoto) or '' to remove. Visible to me and my current group only. */
+  setProfilePhoto(dataUrl: string): Promise<void>;
   addTrustedContact(contact: UserId, role: ContactRole, messagingConsent: boolean, priority: number): Promise<void>;
   removeTrustedContact(id: string): Promise<void>;
   moveContact(id: string, direction: 'up' | 'down'): Promise<void>;
@@ -45,6 +47,11 @@ export type ProfileActions = {
   /** Removes the caller's profile, contacts and privacy prefs. */
   deleteMyData(): Promise<void>;
 };
+
+/** Contacts no longer pick a role: it follows their order (1st = buddy, 2nd = backup, rest = emergency). */
+export function roleForPosition(index: number): ContactRole {
+  return index === 0 ? 'buddy' : index === 1 ? 'backup_buddy' : 'emergency';
+}
 
 export type ProfileApi = {
   me: UserId;
@@ -54,6 +61,8 @@ export type ProfileApi = {
   /** My contacts, sorted by priority. */
   contacts: TrustedContact[];
   knownPeople: { userId: UserId; displayName: string }[];
+  /** Profile photo data URLs I am allowed to see (me + current group), by userId. */
+  photos: Record<UserId, string>;
   privacy: PrivacyDefaults;
   /** False when the server has no privacy row yet and `privacy` shows defaults. */
   privacySaved: boolean;

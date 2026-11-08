@@ -16,8 +16,12 @@
       "bundleIdentifier": "app.safenight.demo",
       "infoPlist": {
         "NSSupportsLiveActivities": true,
-        "NSSupportsLiveActivitiesFrequentUpdates": true
-      }
+        "NSSupportsLiveActivitiesFrequentUpdates": true,
+        "NSContactsUsageDescription": "SafeNight lets you pick a friend from Contacts to text them a group invite. Your contacts are never uploaded.",
+        "NSPhotoLibraryUsageDescription": "Choose a profile photo. Only your current group can see it.",
+        "NSCameraUsageDescription": "Take a profile photo. Only your current group can see it."
+      },
+      "appleTeamId": "K3J4Q67HR7"
     },
     "android": {
       "package": "app.safenight.demo",
@@ -34,7 +38,21 @@
     },
     "plugins": [
       "expo-dev-client",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a profile photo. Only your current group can see it.",
+          "cameraPermission": "Take a profile photo. Only your current group can see it.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "SafeNight lets you pick a friend from Contacts to text them a group invite. Your contacts are never uploaded."
+        }
+      ]
     ]
   }
 }

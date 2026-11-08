@@ -696,6 +696,13 @@ export const ParticipantRole = __t.enum("ParticipantRole", {
 });
 export type ParticipantRole = __Infer<typeof ParticipantRole>;
 
+export const ProfilePhoto = __t.object("ProfilePhoto", {
+  identity: __t.identity(),
+  dataUrl: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type ProfilePhoto = __Infer<typeof ProfilePhoto>;
+
 export const PublishedVenueReports = __t.object("PublishedVenueReports", {});
 export type PublishedVenueReports = __Infer<typeof PublishedVenueReports>;
 
@@ -981,6 +988,9 @@ export type VisibleLocationRow = __Infer<typeof VisibleLocationRow>;
 
 export const VisibleLocations = __t.object("VisibleLocations", {});
 export type VisibleLocations = __Infer<typeof VisibleLocations>;
+
+export const VisibleProfilePhotos = __t.object("VisibleProfilePhotos", {});
+export type VisibleProfilePhotos = __Infer<typeof VisibleProfilePhotos>;
 
 // The tagged union or sum type for the algebraic type `VoteKind`.
 export const VoteKind = __t.enum("VoteKind", {

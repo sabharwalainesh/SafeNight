@@ -5,6 +5,7 @@ import type { PrivacyDefaults, TrustedContact, UserProfile } from '../api';
 export type MockState = {
   counter: number;
   profiles: UserProfile[];
+  photos?: Record<string, string>;
   contacts: TrustedContact[];
   privacy: Record<string, PrivacyDefaults>;
 };

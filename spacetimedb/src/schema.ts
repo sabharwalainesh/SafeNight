@@ -1,3 +1,4 @@
+import { profilePhoto } from './tables/photos';
 import { schema, t, table } from 'spacetimedb/server';
 import {
   consentGrant,
@@ -99,6 +100,7 @@ export const spacetimedb = schema(
     clientPresence,
     auditEvent,
     userProfile,
+    profilePhoto,
     userPhone,
     trustedContact,
     nightSession,

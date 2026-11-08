@@ -39,3 +39,23 @@
 .nos-sheet .nos-actions { justify-content: center; }
 .nos-inv { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.3rem 1rem; min-height: 48px; }
 .nos-session .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Polish */
+.nos-group { box-shadow: var(--shadow); }
+.nos-person { min-height: 60px; padding: 8px 18px; gap: 12px; }
+.nos-session .btn { min-height: 48px; }
+.nos-session .btn.secondary { background: var(--fill); border: 0; }
+.nos-session .btn.danger { background: var(--danger); color: #0b0d12; }
+.nos-session .btn.red { color: var(--danger); }
+.nos-disc { min-height: 54px; padding: 0 18px; transition: border-radius 0.2s var(--ease); }
+.nos-privbody { border-top: 0; box-shadow: var(--shadow), inset 0 0.5px 0 var(--border); padding: 12px 18px 18px; gap: 14px; }
+.nos-seg { background: var(--fill); }
+.nos-seg label { transition: background-color 0.22s var(--ease); }
+.nos-seg label:has(input:checked) { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18); }
+.nos-check { justify-content: space-between; min-height: 48px; }
+.nos-check + .nos-check { box-shadow: inset 0 0.5px 0 var(--border); }
+.nos-confirm { border: 0; background: color-mix(in srgb, var(--warn) 12%, var(--surface)); border-radius: var(--radius-sm); padding: 12px 14px; }
+.nos-sheet { border: 0; padding: 22px 20px 16px; gap: 10px; }
+.nos-code { font-size: 2.4rem; }
+.nos-share { display: grid; gap: 8px; margin-top: 4px; }
+.nos-sheet .nos-actions { margin-top: 0; }

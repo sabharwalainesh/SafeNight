@@ -6,7 +6,7 @@ export { useSafety, CHECKIN_LABELS, INCIDENT_STATUS_LABELS } from '../../web/src
 export type { AlertKind, CheckinKind, ConcernCategory, ConsumptionLevel, Incident, IncidentEvent, VisibleLocation } from '../../web/src/features/safety/api';
 export { useAgent, DELIVERY_LABELS, JOB_STATUS_LABELS, RIDE_STATUS_LABELS } from '../../web/src/features/agent/api';
 export type { ActionStatus, RideStatus } from '../../web/src/features/agent/api';
-export { useProfile } from '../../web/src/features/profile/api';
+export { useProfile, roleForPosition } from '../../web/src/features/profile/api';
 export type { ContactRole, DefaultSharing } from '../../web/src/features/profile/api';
 export { NightOutLiveProvider } from '../../web/src/features/night-out/live';
 export { SafetyLiveProvider } from '../../web/src/features/safety/live';
@@ -16,3 +16,4 @@ export { CurrentSessionProvider, useCurrentSessionId, useSetCurrentSessionId } f
 export { useDemoLive, AVATARS } from '../../web/src/features/demo-live/useDemoLive';
 export { DbConnection, reducers, tables } from '../../web/src/module_bindings';
 export type { ErrorContext } from '../../web/src/module_bindings';
+export { PRIVACY_POLICY, TERMS, SAFETY_NOTE, ACKNOWLEDGEMENTS, type LegalDoc } from '../../web/src/legal/content';

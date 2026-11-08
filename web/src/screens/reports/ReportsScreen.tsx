@@ -1,7 +1,7 @@
 import { useContext, useState, type FormEvent } from 'react';
 import { SafetyContext } from '../../features/safety/api';
 import { useReports, type ReportCategory, type ReportConfidence, type SafetyResourceType } from '../../features/reports/api';
-import { Pill, SegmentedControl, Section, Sheet } from '../../ui';
+import { MenuSelect, Pill, SegmentedControl, Section, Sheet } from '../../ui';
 import './reports.css';
 
 const MAX = 280;
@@ -194,23 +194,18 @@ export function ReportsScreen() {
       <Sheet open={sheet} onClose={() => setSheet(false)} title="Add report">
         <div className="rs-sheet">
           <form className="rs-form" onSubmit={submit} aria-label="Report a venue">
-            <label>
-              Venue
-              <select value={venueId} onChange={(e) => setVenueId(e.target.value)}>
-                <option value="">Select a venue</option>
-                {venues.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Category
-              <select value={category} onChange={(e) => setCategory(e.target.value as ReportCategory)}>
-                {(Object.keys(CATEGORY_LABEL) as ReportCategory[]).map((c) => (
-                  <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
-                ))}
-              </select>
-            </label>
+            <MenuSelect
+              label="Venue"
+              value={venueId}
+              options={[{ value: '', label: 'Choose' }, ...venues.map((v) => ({ value: v.id, label: v.name }))]}
+              onChange={setVenueId}
+            />
+            <MenuSelect
+              label="Category"
+              value={category}
+              options={(Object.keys(CATEGORY_LABEL) as ReportCategory[]).map((c) => ({ value: c, label: CATEGORY_LABEL[c] }))}
+              onChange={setCategory}
+            />
             <label>
               Details (optional)
               <textarea rows={3} value={text} maxLength={MAX} onChange={(e) => setText(e.target.value)} aria-describedby="rs-warn rs-count" />
