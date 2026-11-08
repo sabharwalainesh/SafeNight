@@ -14,12 +14,16 @@ export const DEMO_SESSION_HOURS = 6;
 export const DEMO_CHECKIN_MINUTES = 60;
 export const DEMO_GRANT_TTL_MINUTES = 180;
 
-// Simulated starting positions near the demo venue (Deep Ellum, Dallas) and the seeded demo resources.
-export const DEMO_LOCATIONS: Record<PersonaId, { lat: number; lng: number }> = {
-  alex: { lat: 32.7843, lng: -96.7839 },
-  sam: { lat: 32.7851, lng: -96.7826 },
-  maya: { lat: 32.7836, lng: -96.7852 },
-  jordan: { lat: 32.7858, lng: -96.7815 },
+// Simulated starting positions for the New Year's Eve demo: the group is at the Times Square
+// ball drop (Alex at the ball, Maya near 7th Ave, Jordan near 47th St) and Sam, the driver, is a
+// few blocks away near Grand Central so a ride makes sense. Fixed offsets, no randomness.
+export const DEMO_VENUE_HINT = "Times Square, New York, NY";
+export const DEMO_SESSION_NAME = "New Year's Eve";
+export const DEMO_LOCATIONS: Record<PersonaId, { lat: number; lng: number; accuracyM: number }> = {
+  alex: { lat: 40.758, lng: -73.9855, accuracyM: 22 },
+  maya: { lat: 40.757, lng: -73.9868, accuracyM: 28 },
+  jordan: { lat: 40.759, lng: -73.9845, accuracyM: 25 },
+  sam: { lat: 40.7527, lng: -73.9772, accuracyM: 33 },
 };
 
 export function isPersonaId(value: string): value is PersonaId {
@@ -93,7 +97,7 @@ function ensureContact(ctx: Ctx, owner: Identity, contact: Identity, role: 'budd
  * messaging consent runs Sam <-> Maya/Jordan. Idempotent per session name. Returns the session id.
  */
 export function setupDemoGroup(ctx: Ctx, rawName: string): bigint {
-  const name = rawName.trim() || 'Judge demo';
+  const name = rawName.trim() || DEMO_SESSION_NAME;
   const who = requireAllPersonas(ctx);
   const existing = findOpenDemoSession(ctx, name);
   if (existing) return existing.id;
@@ -103,7 +107,7 @@ export function setupDemoGroup(ctx: Ctx, rawName: string): bigint {
     id: 0n,
     organizer: who.alex,
     name,
-    venueHint: 'Deep Ellum, Dallas, TX',
+    venueHint: DEMO_VENUE_HINT,
     startsAt: ctx.timestamp,
     expiresAt,
     status: { tag: 'active' },
@@ -148,8 +152,8 @@ export function setupDemoGroup(ctx: Ctx, rawName: string): bigint {
   }
 
   for (const id of PERSONA_IDS) {
-    const { lat, lng } = DEMO_LOCATIONS[id];
-    recordLocation(ctx, session.id, who[id], lat, lng, 25, { tag: 'simulated' });
+    const { lat, lng, accuracyM } = DEMO_LOCATIONS[id];
+    recordLocation(ctx, session.id, who[id], lat, lng, accuracyM, { tag: 'simulated' });
   }
   return session.id;
 }

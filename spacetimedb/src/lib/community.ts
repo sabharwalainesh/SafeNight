@@ -57,18 +57,20 @@ export function requireDemoAllowed(ctx: Ctx) {
 
 // Clearly labeled demo resources around the demo venue (Deep Ellum, Dallas). Coordinates are plausible, not real places.
 export const DEMO_RESOURCES: { type: string; name: string; lat: number; lng: number; hours: string }[] = [
-  { type: 'campus_safety', name: 'Campus Safety Office (demo)', lat: 32.7849, lng: -96.7858, hours: '24/7' },
-  { type: 'staffed_venue', name: 'Student Union front desk (demo)', lat: 32.7861, lng: -96.7847, hours: '7:00–02:00' },
-  { type: 'medical', name: 'Urgent care clinic (demo)', lat: 32.7872, lng: -96.7821, hours: '08:00–00:00' },
-  { type: 'transit_stop', name: 'Night bus stop N1 (demo)', lat: 32.7838, lng: -96.7866, hours: 'every 20 min until 04:00' },
-  { type: 'transit_stop', name: 'Rail station, west side (demo)', lat: 32.7831, lng: -96.7803, hours: '24/7' },
-  { type: 'pickup_point', name: 'Lit rideshare pickup, main plaza (demo)', lat: 32.7846, lng: -96.7833, hours: 'always' },
-  { type: 'staffed_venue', name: 'Late-night diner with staff (demo)', lat: 32.7825, lng: -96.7849, hours: '18:00–05:00' },
+  // New Year's Eve demo scenario: Midtown Manhattan around Times Square. Fictional/demo entries.
+  { type: 'campus_safety', name: 'NYE safety help desk (demo)', lat: 40.7575, lng: -73.9858, hours: 'NYE 16:00–02:00' },
+  { type: 'staffed_venue', name: 'Marriott Marquis lobby (demo)', lat: 40.7585, lng: -73.9862, hours: '24/7' },
+  { type: 'medical', name: 'Midtown Medical Station (demo)', lat: 40.7565, lng: -73.988, hours: 'NYE 18:00–03:00' },
+  { type: 'transit_stop', name: 'Times Sq–42 St subway (demo)', lat: 40.7553, lng: -73.9872, hours: '24/7' },
+  { type: 'transit_stop', name: 'Grand Central Terminal (demo)', lat: 40.7527, lng: -73.9772, hours: '05:30–02:00' },
+  { type: 'pickup_point', name: 'W 44th St rideshare pickup (demo)', lat: 40.7566, lng: -73.985, hours: 'always' },
+  { type: 'pickup_point', name: 'W 48th St pickup (demo)', lat: 40.76, lng: -73.9845, hours: 'always' },
 ];
 
-/** Idempotent: inserts missing demo resources, updates existing ones by name. */
+/** Idempotent: inserts missing demo resources, updates existing ones by name, removes demo-seed rows no longer listed. */
 export function seedResources(ctx: Ctx): number {
   let touched = 0;
+  const wanted = new Set(DEMO_RESOURCES.map(r => r.name));
   for (const r of DEMO_RESOURCES) {
     const row = {
       type: { tag: r.type as 'campus_safety' },
@@ -83,6 +85,12 @@ export function seedResources(ctx: Ctx): number {
     if (existing) ctx.db.safetyResource.id.update({ ...existing, ...row });
     else ctx.db.safetyResource.insert({ ...row, id: 0n, createdAt: ctx.timestamp });
     touched++;
+  }
+  for (const r of [...ctx.db.safetyResource.iter()]) {
+    if (r.source === 'demo-seed' && !wanted.has(r.name)) {
+      ctx.db.safetyResource.id.delete(r.id);
+      touched++;
+    }
   }
   return touched;
 }

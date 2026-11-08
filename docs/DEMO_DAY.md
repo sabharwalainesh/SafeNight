@@ -1,5 +1,7 @@
 # Demo day setup: two phones + two laptops, one database
 
+**Scenario:** New Year's Eve in New York. Alex, Maya and Jordan are at the Times Square ball drop; Sam, the designated driver, is a few blocks away near Grand Central. All locations are simulated and labeled; the seeded safety resources are Midtown demo entries.
+
 The database runs on SpacetimeDB Maincloud (`safenight`, owner: Sohaib's spacetimedb.com login). Every device connects to `wss://maincloud.spacetimedb.com`, so nothing depends on venue Wi-Fi reaching a laptop. Health check: <https://maincloud.spacetimedb.com/v1/database/safenight/route/health> (expect `nemotronMode: "live"`).
 
 | Device | Persona | Role in the demo |
@@ -36,7 +38,7 @@ Fallback without Expo Go: the web app is a PWA. `npm run dev:phone -w web` print
 ## Run order (about 5 minutes)
 
 1. Laptop 1 (Alex) → Profile → Judge demo: all four personas show ✓ → **Reset demo group**, then **Set up demo group**.
-2. Alex → Night Out → open "Saturday night": roster, Sam's **Driver** badge, consent toggles.
+2. Alex → Night Out → open "New Year's Eve" (the session name the panel created): roster, Sam's **Driver** badge, consent toggles.
 3. Alex → Map → **Report a concern** → Sam → "May have been drinking" → Send.
 4. Phone 1 (Sam): "Do not drive" appears instantly. Deterministic, no AI.
 5. Alex → Inbox → incident: plan v1 from Nemotron, receipts, SIMULATED labels.
