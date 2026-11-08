@@ -76,7 +76,7 @@ describe('call and text policy', () => {
 });
 
 describe('resolved update template', () => {
-  const update = act({ type: 'text_group', template: 'update_resolved_by_person', target: 'group' });
+  const update = { type: 'text_group' as const, template: 'update_resolved_by_person' as const };
   it('is rejected while the incident is open', () => {
     expect(validateAction(update, ctx()).ok).toBe(false);
   });
