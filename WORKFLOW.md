@@ -251,8 +251,11 @@ _Owner: Person B (Claude Pro). Edit only this section._
 - Emergency coordination `bridge/`: Nemotron decides calls (buddy → backup → SIMULATED dispatch to a demo number; emergency numbers hard-blocked), ElevenLabs voice over the Photon 2.0 SIP line. Verified live: real Nemotron decision → real call to a teammate's phone. Texting off (`TEXT_CHANNEL=none`) because SMS on the line needs a 10DLC campaign.
 - Docs: README (modes, bridge, phones, tracks), demo script, bridge README.
 
-**In progress (2026-11-08):**
-- UI redesign from user feedback: Apple-style design system (SF typography, grouped lists, translucent 4-tab bar: Tonight / Map / Alerts / You), diagnostics moved off the home screen, one-tap "Start a hangout" (defaults: New Year's Eve, Times Square), sectioned session screen with fewer buttons, real Leaflet/OpenStreetMap map of Times Square with the four friends at preset spots for the ball drop, compact status bar with a "Need help" sheet.
+**Done (2026-11-08, UI redesign from user feedback):** Apple-style design system (SF typography scale, iOS dark/light palettes meeting 4.5:1, grouped sections, translucent 4-tab bar: Tonight / Map / Alerts / You; shared primitives in `web/src/ui/`), server/online/ping cards moved off the home screen into You → About & diagnostics, Reports moved under You. Tonight: one-tap "Start a hangout" (New Year's Eve, Times Square, NYC), join by code, sectioned session screen (People → Invite / driving → collapsed Privacy → Leave). Map: Leaflet + OpenStreetMap map of Times Square with avatar pins for Alex (Broadway & W 45th), Sam (7th Ave & W 47th), Maya (W 44th & 7th), Jordan (W 42nd & 7th) and the ball-drop marker; demo group setup seeds those spots; compact "I'm okay" / "Need help" bar (help options + emergency hold in a sheet). Web suite 117 tests green.
+
+**In progress:**
+- Apple-style pass on the remaining screens (Alerts, incident, agent, rides, coordination, You, reports, demo panel).
+- `liveactivity-demo/`: standalone hardcoded SwiftUI app showing a SafeNight Live Activity on the lock screen / Dynamic Island (scripted New Year's Eve incident, no backend), for showing what the real feature would look like.
 
 **Planned / remaining:**
 - Walk the four-device demo on live data (2 laptop tabs + 2 phones) once the module is on Maincloud; record results here.
