@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useSafety, type VisibleLocation } from '../safety/api';
 import { TIMES_SQUARE, jitter } from '../safety/mock/spots';
-import { Pill, Section } from '../../ui';
+import { Section } from '../../ui';
 import { ago } from '../../screens/incident/time';
 import { isActiveMeetup, useMeetups, type Meetup, type MeetupState } from './api';
 import { bearingDeg, distanceM, formatDistance, relativeBearing, type LatLng } from './geo';
-import { useGeolocation, useHeading } from './useDeviceSensors';
+import { primeSensors, useGeolocation, useHeading } from './useDeviceSensors';
 import './meetup.css';
 
 function useTick(ms: number) {
@@ -111,12 +111,20 @@ export function useMeetupLine(): { from: LatLng; to: LatLng } | null {
 
 /* ---------------------------------------------------------------- panel */
 
-export function MeetupPanel({ incidentId }: { incidentId: string }) {
+/** `focused`: render the cards alone (no section chrome) for the dedicated Come-to-me screen. */
+export function MeetupPanel({ incidentId, focused = false }: { incidentId: string; focused?: boolean }) {
   const mu = useMeetups();
-  return mu ? <PanelInner incidentId={incidentId} mu={mu} /> : null;
+  return mu ? <PanelInner incidentId={incidentId} mu={mu} focused={focused} /> : null;
 }
 
-function PanelInner({ incidentId, mu: { me, meetups, actions } }: { incidentId: string; mu: MeetupState }) {
+/** True when this incident is a "Come to me" request (public timeline signal). */
+export function useIsMeetupIncident(incidentId: string): boolean {
+  const safety = useSafety();
+  const incident = safety.incidents.find((i) => i.id === incidentId);
+  return !!incident?.meetupWanted || safety.timeline(incidentId).some((e) => e.kind === 'company_requested');
+}
+
+function PanelInner({ incidentId, mu: { me, meetups, actions }, focused }: { incidentId: string; mu: MeetupState; focused: boolean }) {
   const safety = useSafety();
   const incident = safety.incidents.find((i) => i.id === incidentId);
   const [busy, setBusy] = useState(false);
@@ -149,14 +157,22 @@ function PanelInner({ incidentId, mu: { me, meetups, actions } }: { incidentId: 
   const recent = mine.filter((m) => !isActiveMeetup(m)).slice(0, 3);
   if (!canOffer && !active && recent.length === 0) return null;
 
-  return (
-    <Section title="Come to me" footer={error ?? undefined}>
+  const body = (
+    <>
       {canOffer && (
-        <div className="card meetup-card">
+        <div className={`card meetup-card ${focused ? 'meetup-offer' : ''}`}>
           <p className="headline">{incident.subjectName} wants someone to come to them</p>
-          <p className="muted">Accepting shares your precise location with {incident.subjectName} until you arrive.</p>
-          <button type="button" className="btn block" disabled={busy} onClick={() => run(() => actions.offerToCome(incidentId))}>
-            I&apos;m coming
+          <p className="muted">Your precise location is shared with {incident.subjectName} only until you arrive.</p>
+          <button
+            type="button"
+            className="btn block meetup-accept"
+            disabled={busy}
+            onClick={() => {
+              primeSensors();
+              void run(() => actions.offerToCome(incidentId));
+            }}
+          >
+            Accept &amp; navigate
           </button>
         </div>
       )}
@@ -177,8 +193,11 @@ function PanelInner({ incidentId, mu: { me, meetups, actions } }: { incidentId: 
           )}
         </div>
       ))}
-    </Section>
+      {error && <p role="alert" className="footnote meetup-error">{error}</p>}
+    </>
   );
+  if (focused) return <div className="meetup-focused">{body}</div>;
+  return <Section title="Come to me">{body}</Section>;
 }
 
 function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; canCancel: boolean; busy: boolean; onCancel: () => void }) {
@@ -244,7 +263,6 @@ function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: bo
         </button>
       )}
       <MyLocationStatus />
-      {safety.myLocation?.source === 'simulated' && <Pill tone="warn">Simulated movement</Pill>}
       <div className="meetup-actions">
         <button type="button" className="btn block" disabled={busy || !target} onClick={onArrived}>
           I&apos;ve arrived

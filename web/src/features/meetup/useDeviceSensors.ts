@@ -132,6 +132,20 @@ export function useGeolocation(
   return { ...state, simulated, requestLocation };
 }
 
+let primed = false;
+/**
+ * Call from the tap that accepts a trip: asks for orientation permission (iOS needs a gesture) and one
+ * GPS fix in the same gesture, so no second prompt interrupts the compass screen.
+ */
+export function primeSensors(): void {
+  primed = true;
+  const DOE = typeof window !== 'undefined' ? (window as any).DeviceOrientationEvent : undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (DOE && typeof DOE.requestPermission === 'function') void DOE.requestPermission().catch(() => {});
+  if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+}
+
 export type HeadingState = {
   heading: number | null;
   supported: boolean;
@@ -162,6 +176,11 @@ export function useHeading(active: boolean): HeadingState {
       return false;
     }
   }, [DOE]);
+
+  // Permission was requested from the accept tap: confirm it silently (no prompt when already granted).
+  useEffect(() => {
+    if (active && primed && !granted) void requestPermission();
+  }, [active, granted, requestPermission]);
 
   useEffect(() => {
     if (!active || !supported || !granted) return;

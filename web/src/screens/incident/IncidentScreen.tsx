@@ -4,7 +4,7 @@ import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../fea
 import { AgentPanel } from '../../features/agent-panel';
 import { HomeConfirm, RidePanel } from '../../features/rides';
 import { CoordinationPanel } from '../../features/coordination';
-import { MeetupPanel } from '../../features/meetup'; // meetup feature: "Come to me" compass
+import { MeetupPanel, useIsMeetupIncident } from '../../features/meetup'; // meetup feature: "Come to me" compass
 import { Pill, Row, Section } from '../../ui';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
@@ -37,6 +37,8 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [announce, setAnnounce] = useState('');
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [details, setDetails] = useState(false); // meetup feature: focused screen hides the rest until asked
+  const isMeetup = useIsMeetupIncident(incidentId);
   const seen = useRef<number | null>(null);
   const { myConsents } = useNightOut();
   const noteRef = useRef<HTMLInputElement>(null);
@@ -117,9 +119,32 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
   const shownEvents = showAllEvents ? events : events.slice(-5);
   const primaryIsResolve = !canAck;
 
+  // meetup feature: a "Come to me" request gets one screen with one action; everything else is behind Details.
+  if (isMeetup && !closed && !details) {
+    return (
+      <div className="incident-screen incident-meetup">
+        <button type="button" className="btn plain back-link" onClick={onBack}>‹ Back</button>
+        <header className="inc-head">
+          <h2 className="large-title">Come to me</h2>
+          <p className="muted footnote">{incident.subjectName} · {ago(incident.openedAt)}</p>
+        </header>
+        <MeetupPanel incidentId={incident.id} focused />
+        <div className="inc-actions">
+          {isSubject && (
+            <button type="button" className="btn secondary block" disabled={busy} onClick={() => run(() => actions.resolveIncident(incident.id, "I'm safe"))}>
+              I&apos;m safe — close this
+            </button>
+          )}
+          <button type="button" className="btn plain small-btn" onClick={() => setDetails(true)}>Details</button>
+        </div>
+        {error && <p role="alert" className="inc-error">{error}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="incident-screen">
-      <button type="button" className="btn plain back-link" onClick={onBack}>‹ Back</button>
+      <button type="button" className="btn plain back-link" onClick={() => (isMeetup && !closed && details ? setDetails(false) : onBack())}>‹ Back</button>
       <header className="inc-head">
         <h2 className="large-title">{KIND_LABELS[incident.kind] ?? incident.kind}</h2>
         <p className="inc-sub">
