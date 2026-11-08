@@ -69,6 +69,8 @@ Two ways to run the client:
 
 In both modes no SMS is sent unless Twilio is configured on the module, and the app never books or pays for rides: ride options are deep links the person opens and confirms. Real Nemotron planning runs only when `NEMOTRON_API_KEY` is set on the module; otherwise plans and receipts are labeled SIMULATED.
 
+**Emergency coordination (optional):** the `bridge/` service lets Nemotron decide when to text the friend group over iMessage (Photon Spectrum), call a buddy (ElevenLabs voice over Photon SIP), or place a **SIMULATED dispatch call** to a demo number. Real emergency numbers are blocked in code, and nothing reaches emergency services. Run it with `npm run dev --prefix bridge`, then start the web app with `VITE_BRIDGE_URL=http://127.0.0.1:8787 VITE_BRIDGE_TOKEN=<same token> npm run dev -w web`. Without keys everything is simulated. Setup and guardrails: [bridge/README.md](bridge/README.md).
+
 `npm test -w web` runs the client suite (101 tests): the full demo flow and safety rules on mock data, axe accessibility checks on every screen, colour contrast, and the live data converters.
 
 ## Hackathon tracks
