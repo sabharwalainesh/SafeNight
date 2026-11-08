@@ -1,7 +1,7 @@
 // Device sensors: GPS (Geolocation API) for everyone in a group, heading (DeviceOrientation) for the compass.
 // iOS Safari needs an explicit, user-gesture permission request for orientation; Geolocation prompts on first use.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { distanceM, headingFromEvent, type LatLng } from './geo';
+import { distanceM, headingFromEvent, smoothHeading, type LatLng } from './geo';
 
 export type GeoState = {
   position: (LatLng & { accuracyM: number; at: number }) | null;
@@ -153,7 +153,7 @@ export function useHeading(active: boolean): HeadingState {
     };
     const onEvent = (e: DeviceOrientationEvent) => {
       const h = headingFromEvent(e as unknown as { webkitCompassHeading?: number; alpha: number | null }, screenAngle());
-      if (h !== null) setHeading(h);
+      if (h !== null) setHeading((prev) => smoothHeading(prev, h, 0.35));
     };
     // 'deviceorientationabsolute' gives true north on Android Chrome; iOS only fires 'deviceorientation'.
     const evName = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';

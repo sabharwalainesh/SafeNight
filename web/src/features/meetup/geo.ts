@@ -54,3 +54,37 @@ export function headingFromEvent(e: { webkitCompassHeading?: number; alpha: numb
   // alpha is the rotation around the z-axis, counter-clockwise from north when `absolute`.
   return ((360 - e.alpha + screenAngle) % 360 + 360) % 360;
 }
+
+export type Fix = LatLng & { accuracyM: number; at: number };
+
+/**
+ * Accuracy-weighted exponential smoothing of a position stream. A new fix moves the estimate by a
+ * weight that grows when the fix is as good as (or better than) the current estimate and shrinks when
+ * it is worse; a fix far outside the current error circle is taken at face value (a real move).
+ * Returns the new estimate; `prev` null means "first fix".
+ */
+export function fusePoint(prev: Fix | null, next: Fix): Fix {
+  if (!prev) return next;
+  const jump = distanceM(prev, next);
+  const tolerance = Math.max(15, 2 * (prev.accuracyM + next.accuracyM));
+  if (jump > tolerance && next.accuracyM <= prev.accuracyM * 1.5) return next; // moved for real
+  const ratio = (prev.accuracyM * prev.accuracyM) / (next.accuracyM * next.accuracyM + 1e-6);
+  const w = Math.min(0.9, Math.max(0.08, 0.5 * ratio));
+  const lat = prev.lat + (next.lat - prev.lat) * w;
+  const lng = prev.lng + (next.lng - prev.lng) * w;
+  // The estimate is at least as good as the better of the two inputs, never better than ~2 m.
+  const accuracyM = Math.max(2, Math.min(prev.accuracyM, next.accuracyM) * 0.9);
+  return { lat, lng, accuracyM, at: next.at };
+}
+
+/** Circular low-pass filter for headings in degrees. alpha 1 = follow instantly, 0 = frozen. */
+export function smoothHeading(prev: number | null, next: number, alpha = 0.3): number {
+  if (prev === null || Number.isNaN(prev)) return ((next % 360) + 360) % 360;
+  const d = ((next - prev + 540) % 360) - 180;
+  return (((prev + d * alpha) % 360) + 360) % 360;
+}
+
+/** 1-sigma uncertainty of the distance between two fixes, in meters. */
+export function pairUncertaintyM(a: { accuracyM: number }, b: { accuracyM: number }): number {
+  return Math.sqrt(a.accuracyM * a.accuracyM + b.accuracyM * b.accuracyM);
+}

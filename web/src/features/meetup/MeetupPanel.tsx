@@ -5,7 +5,7 @@ import { useSafety, type VisibleLocation } from '../safety/api';
 import { Section } from '../../ui';
 import { ago } from '../../screens/incident/time';
 import { isActiveMeetup, useMeetups, type Meetup, type MeetupState } from './api';
-import { bearingDeg, distanceM, formatDistance, relativeBearing, type LatLng } from './geo';
+import { bearingDeg, distanceM, formatDistance, fusePoint, pairUncertaintyM, relativeBearing, type Fix, type LatLng } from './geo';
 import { primeSensors, useGeolocation, useHeading } from './useDeviceSensors';
 import './meetup.css';
 
@@ -226,12 +226,28 @@ function ComingCard({ meetup, canCancel, busy, onCancel }: { meetup: Meetup; can
   );
 }
 
+/** Smooth a person's visible-location stream (accuracy-weighted) so the arrow does not chase GPS noise. */
+function useFusedFix(loc: VisibleLocation | null): Fix | null {
+  const ref = useRef<{ key: string; fix: Fix | null }>({ key: '', fix: null });
+  if (!loc) {
+    ref.current = { key: '', fix: null };
+    return null;
+  }
+  const key = `${loc.userId}:${loc.recordedAt}:${loc.lat}:${loc.lng}`;
+  if (ref.current.key !== key) {
+    const prev = ref.current.fix && ref.current.key.startsWith(loc.userId + ':') ? ref.current.fix : null;
+    ref.current = { key, fix: fusePoint(prev, { lat: loc.lat, lng: loc.lng, accuracyM: Math.max(1, loc.accuracyM), at: loc.recordedAt }) };
+  }
+  return ref.current.fix;
+}
+
 function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: boolean; onArrived: () => void; onStop: () => void }) {
   const safety = useSafety();
   const heading = useHeading(true);
   const geo = useGeoStatus();
-  const target = locOf(safety.locations, null, meetup.requester);
-  const mine = safety.myLocation;
+  const targetRaw = locOf(safety.locations, null, meetup.requester);
+  const target = useFusedFix(targetRaw);
+  const mine = useFusedFix(safety.myLocation);
   const bearing = mine && target ? bearingDeg(mine, target) : null;
   // Compass heading when the device gives one; otherwise GPS direction of travel while walking.
   const usedHeading = heading.heading ?? geo.course;
@@ -244,21 +260,25 @@ function Compass({ meetup, busy, onArrived, onStop }: { meetup: Meetup; busy: bo
   const rot = prev + delta;
   rotRef.current = rot;
   const dist = mine && target ? distanceM(mine, target) : null;
+  const unc = mine && target ? pairUncertaintyM(mine, target) : null;
+  // Closer than the GPS error can resolve: a direction would be noise, so say "you're here" instead.
+  const near = dist !== null && unc !== null && dist < Math.max(8, unc);
 
   return (
     <div className="card meetup-card meetup-compass">
       <p className="headline">Go to {meetup.requesterName}</p>
-      <div className="meetup-dial" aria-label={bearing === null ? 'Waiting for locations' : `Head ${Math.round(bearing)} degrees, ${formatDistance(dist ?? NaN)}`}>
+      <div className={`meetup-dial${near ? ' is-near' : ''}`} aria-label={bearing === null ? 'Waiting for locations' : near ? `Within ${formatDistance(dist ?? NaN)}, look around` : `Head ${Math.round(bearing)} degrees, ${formatDistance(dist ?? NaN)}`}>
         <svg viewBox="0 0 100 100" className="meetup-arrow" style={{ transform: `rotate(${rot}deg)` }} aria-hidden="true">
           <circle cx="50" cy="50" r="46" className="meetup-ring" />
-          <path d="M50 10 L68 62 L50 52 L32 62 Z" className="meetup-needle" />
+          {near ? <circle cx="50" cy="50" r="14" className="meetup-here" /> : <path d="M50 10 L68 62 L50 52 L32 62 Z" className="meetup-needle" />}
         </svg>
-        <div className="meetup-dist">{dist === null ? '—' : formatDistance(dist)}</div>
+        <div className="meetup-dist">{dist === null ? '—' : near ? `~${formatDistance(dist)}` : formatDistance(dist)}</div>
       </div>
       <p className="muted meetup-meta">
         {!target && 'Waiting for their location…'}
-        {target && `${meetup.requesterName}'s location updated ${ago(target.recordedAt)}`}
-        {target?.approximate && ' (approximate)'}
+        {target && near && `You are within GPS range of each other (±${Math.round(unc ?? 0)} m). Look around.`}
+        {target && !near && `${meetup.requesterName}'s location updated ${ago(target.at)} · ±${Math.round(unc ?? 0)} m`}
+        {targetRaw?.approximate && ' (approximate)'}
       </p>
       <p className="footnote">
         {heading.heading !== null
