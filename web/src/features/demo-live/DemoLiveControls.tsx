@@ -21,8 +21,10 @@ export function DemoLiveControls() {
     }
   };
 
+  const build = (import.meta.env.VITE_BUILD as string | undefined) || 'dev';
   return (
     <div className="demo-live">
+      <p className="small muted">App build {build}</p>
       <ul className="demo-personas small" aria-label="Registered demo personas">
         {PERSONAS.map((p) => (
           <li key={p.id}>
