@@ -1,8 +1,9 @@
+import { safeField } from './templates.js';
 import type { Config } from './config.js';
 import {
   latestCheckinIsEmergency, noneAcknowledged, nonSubject, isOpenish,
 } from './policy.js';
-import type { Action, IncidentSnapshot, ProposedAction } from './types.js';
+import { TEXT_TEMPLATES, type Action, type IncidentSnapshot, type ProposedAction, type TextTemplate } from './types.js';
 
 export interface DecideInput {
   incident: IncidentSnapshot;
@@ -49,7 +50,7 @@ Rules:
 - Briefly explain your reasoning in plain text, then call the tools. Do not repeat actions already taken (see history).`;
 
 const tools = [
-  { name: 'text_group', description: 'Send a short text to opted-in friends in the group.', parameters: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] } },
+  { name: 'text_group', description: 'Send a fixed-format alert to opted-in friends. You choose only the template; the server writes the text.', parameters: { type: 'object', properties: { template: { type: 'string', enum: [...TEXT_TEMPLATES] } }, required: ['template'] } },
   { name: 'call_person', description: 'Place a voice call to one participant.', parameters: { type: 'object', properties: { personaId: { type: 'string' }, reason: { type: 'string' } }, required: ['personaId', 'reason'] } },
   { name: 'dispatch_call', description: 'Place a SIMULATED dispatch demo call. Only for credible danger.', parameters: { type: 'object', properties: { reason: { type: 'string' }, summary: { type: 'string' } }, required: ['reason', 'summary'] } },
   { name: 'no_action', description: 'Do nothing now.', parameters: { type: 'object', properties: { reason: { type: 'string' } }, required: ['reason'] } },
@@ -102,7 +103,11 @@ async function callNemotron(input: DecideInput): Promise<Proposal> {
     let args: Record<string, unknown> = {};
     try { args = JSON.parse(tc.function?.arguments || '{}'); } catch { continue; }
     switch (tc.function?.name) {
-      case 'text_group': proposed.push({ type: 'text_group', message: clip(args.message, 480) }); break;
+      case 'text_group': {
+        const t = String(args.template ?? '');
+        if ((TEXT_TEMPLATES as readonly string[]).includes(t)) proposed.push({ type: 'text_group', template: t as TextTemplate });
+        break;
+      }
       case 'call_person': proposed.push({ type: 'call_person', personaId: clip(args.personaId, 30), reason: clip(args.reason) }); break;
       case 'dispatch_call': proposed.push({ type: 'dispatch_call', reason: clip(args.reason), summary: clip(args.summary) }); break;
       case 'no_action': noActionReason = clip(args.reason); break;
@@ -111,9 +116,6 @@ async function callNemotron(input: DecideInput): Promise<Proposal> {
   const reasoning = clip(msg.content || msg.reasoning_content || noActionReason || 'Model returned no explanation.', 1500);
   return { model: c.nemotronModel, simulated: false, reasoning, proposed };
 }
-
-const mapsUrl = (inc: IncidentSnapshot): string =>
-  inc.lastLocation ? ` Map: https://maps.google.com/?q=${inc.lastLocation.lat},${inc.lastLocation.lng}` : '';
 
 /** Deterministic fallback planner. Never reads free-text notes. */
 export function simulatedPlan(input: DecideInput): Proposal {
@@ -141,7 +143,7 @@ export function simulatedPlan(input: DecideInput): Proposal {
     return {
       ...base,
       reasoning: `${why}. Placing the SIMULATED dispatch demo call.`,
-      proposed: [{ type: 'dispatch_call', reason: why, summary: `${inc.subjectName}: ${inc.kind} at ${inc.venue}` }],
+      proposed: [{ type: 'dispatch_call', reason: why, summary: `${safeField(inc.subjectName, 40)}: ${safeField(inc.kind, 40)}` }],
     };
   }
 
@@ -149,11 +151,8 @@ export function simulatedPlan(input: DecideInput): Proposal {
     const what = inc.kind === 'help_requested' ? 'asked for help' : 'may be at risk of impaired driving';
     return {
       ...base,
-      reasoning: `${inc.subjectName} ${what}. Least escalation is a text to the group.`,
-      proposed: [{
-        type: 'text_group',
-        message: `SafeNight: ${inc.subjectName} ${what} (${inc.venue || 'location unknown'}).${mapsUrl(inc)} Please reply or acknowledge in the app.`,
-      }],
+      reasoning: `${safeField(inc.subjectName, 40)} ${what}. Least escalation is a text to the group.`,
+      proposed: [{ type: 'text_group', template: inc.kind === 'help_requested' ? 'help_needed' : 'driver_concern' }],
     };
   }
 

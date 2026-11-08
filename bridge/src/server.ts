@@ -8,6 +8,8 @@ import { parseInboundText, verifyElevenLabs, verifyPhoton } from './webhooks.js'
 
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 const MAX_BODY = 512 * 1024;
+const SYNC_LIMIT = 30;
+const SYNC_WINDOW_MS = 60_000;
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -35,6 +37,15 @@ function validSnapshot(x: any): x is IncidentSnapshot {
 }
 
 export function createApp(config: Config, engine: Engine) {
+  const hits = new Map<string, number[]>();
+  const limited = (ip: string): boolean => {
+    const now = Date.now();
+    const recent = (hits.get(ip) ?? []).filter((t) => now - t < SYNC_WINDOW_MS);
+    recent.push(now);
+    hits.set(ip, recent);
+    if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < SYNC_WINDOW_MS)) hits.delete(k);
+    return recent.length > SYNC_LIMIT;
+  };
   return async (req: IncomingMessage, res: ServerResponse) => {
     const origin = req.headers.origin;
     if (origin && LOCAL_ORIGIN.test(origin)) {
@@ -73,6 +84,7 @@ export function createApp(config: Config, engine: Engine) {
         if (!safeEq(String(req.headers['x-bridge-token'] ?? ''), config.bridgeToken)) return send(401, { error: 'unauthorized' });
 
         if (req.method === 'POST' && path === '/v1/incidents/sync') {
+          if (limited(req.socket.remoteAddress ?? 'unknown')) return send(429, { error: 'rate limited' });
           let body: any;
           try { body = JSON.parse(await readBody(req)); } catch { return send(400, { error: 'invalid json' }); }
           if (!validSnapshot(body?.incident)) return send(400, { error: 'invalid incident' });
@@ -99,11 +111,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const config = loadConfig();
   const engine = new Engine(config);
   setInterval(() => engine.tick(), 30_000).unref();
-  createServer(createApp(config, engine)).listen(config.port, () => {
+  engine.photon.start((m) => engine.handleInbound(m)).catch((e) => console.error(`[photon] failed to start: ${(e as Error).message}`));
+  createServer(createApp(config, engine)).listen(config.port, config.host, () => {
     const mode = (k: boolean) => (k ? 'live' : 'SIMULATED');
-    console.log(`SafeNight bridge on :${config.port}`);
+    console.log(`SafeNight bridge on ${config.host}:${config.port}`);
+    if (config.host !== '127.0.0.1' && config.host !== 'localhost') console.warn('  WARNING: BRIDGE_HOST exposes the bridge beyond this machine; protect it with a firewall/TLS');
     console.log(`  nemotron: ${config.nemotronApiKey && !config.simulateAll ? 'live' : 'simulated-planner'}`);
-    console.log(`  photon: ${mode(!!config.photonApiKey && !!config.photonProjectId && !config.simulateAll)}`);
+    console.log(`  photon: ${mode(!engine.photon.simulated)}`);
     console.log(`  elevenlabs: ${mode(!!config.elevenLabsApiKey && !!config.agentPhoneNumberId && !config.simulateAll)}`);
     if (!config.bridgeToken) console.warn('  WARNING: BRIDGE_TOKEN unset; incident routes will refuse requests');
   });

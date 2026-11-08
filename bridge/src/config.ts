@@ -1,5 +1,6 @@
 export interface Config {
   port: number;
+  host: string;
   bridgeToken: string;
   simulateAll: boolean;
   debounceMs: number;
@@ -9,8 +10,8 @@ export interface Config {
   nemotronBaseUrl: string;
   nemotronApiKey: string;
   nemotronModel: string;
-  photonApiKey: string;
   photonProjectId: string;
+  photonProjectSecret: string;
   photonWebhookSecret: string;
   elevenLabsApiKey: string;
   elevenLabsWebhookSecret: string;
@@ -36,6 +37,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return {
     port: num(env.BRIDGE_PORT, 8787),
+    host: e('BRIDGE_HOST') || '127.0.0.1',
     bridgeToken: e('BRIDGE_TOKEN'),
     simulateAll: e('SIMULATE_ALL') === '1',
     debounceMs: num(env.DEBOUNCE_MS, 1500),
@@ -45,8 +47,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     nemotronBaseUrl: e('NEMOTRON_BASE_URL') || 'https://integrate.api.nvidia.com/v1',
     nemotronApiKey: e('NEMOTRON_API_KEY'),
     nemotronModel: e('NEMOTRON_MODEL') || 'nvidia/nemotron-3-super-120b-a12b',
-    photonApiKey: e('PHOTON_API_KEY'),
     photonProjectId: e('PHOTON_PROJECT_ID'),
+    photonProjectSecret: e('PHOTON_PROJECT_SECRET'),
     photonWebhookSecret: e('PHOTON_WEBHOOK_SECRET'),
     elevenLabsApiKey: e('ELEVENLABS_API_KEY'),
     elevenLabsWebhookSecret: e('ELEVENLABS_WEBHOOK_SECRET'),

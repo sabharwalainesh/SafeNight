@@ -20,6 +20,9 @@ export interface IncidentSnapshot {
   events: { kind: string; detail: string; at: string }[];
 }
 
+export const TEXT_TEMPLATES = ['help_needed', 'driver_concern', 'escalation', 'update_resolved_by_person'] as const;
+export type TextTemplate = (typeof TEXT_TEMPLATES)[number];
+
 export type ActionType = 'text_group' | 'call_person' | 'dispatch_call';
 export type ActionStatus =
   | 'planned'
@@ -61,7 +64,7 @@ export interface Decision {
 export interface ProposedAction {
   type: ActionType;
   personaId?: string;
-  message?: string;
+  template?: TextTemplate;
   reason?: string;
   summary?: string;
 }

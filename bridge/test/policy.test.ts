@@ -69,7 +69,7 @@ describe('call and text policy', () => {
     expect(validateAction({ ...call, personaId: 'alex' }, ctx({ incident: incident({ kind: 'check-on-subject' }) })).ok).toBe(true);
   });
   it('texts only when someone opted in', () => {
-    const t = { type: 'text_group', message: 'hi' } as const;
+    const t = { type: 'text_group', template: 'help_needed' } as const;
     expect(validateAction(t, ctx()).ok).toBe(true);
     expect(validateAction(t, ctx({ optedIn: () => false })).ok).toBe(false);
   });

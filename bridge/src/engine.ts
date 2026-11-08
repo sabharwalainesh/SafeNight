@@ -4,7 +4,8 @@ import { dirname } from 'node:path';
 import type { Config } from './config.js';
 import { decide as realDecide, type DecideInput, type Proposal } from './decide.js';
 import { buildDynamicVars, placeCall } from './elevenlabs.js';
-import { sendText } from './photon.js';
+import { normalizePhone, PhotonLink } from './photon.js';
+import { renderText } from './templates.js';
 import { isOpenish, validateAction } from './policy.js';
 import type {
   Action, Decision, IncidentSnapshot, ProposedAction, Registration, Reply,
@@ -27,6 +28,7 @@ export interface EngineDeps {
   fetch?: typeof fetch;
   decide?: (i: DecideInput) => Promise<Proposal>;
   now?: () => number;
+  photon?: PhotonLink;
 }
 
 export const hashSnapshot = (s: IncidentSnapshot): string =>
@@ -40,11 +42,13 @@ export class Engine {
   private f: typeof fetch;
   private decideFn: (i: DecideInput) => Promise<Proposal>;
   private now: () => number;
+  photon: PhotonLink;
 
   constructor(public config: Config, deps: EngineDeps = {}) {
     this.f = deps.fetch ?? fetch;
     this.decideFn = deps.decide ?? realDecide;
     this.now = deps.now ?? Date.now;
+    this.photon = deps.photon ?? new PhotonLink(config);
     this.load();
   }
 
@@ -156,14 +160,19 @@ export class Engine {
     base.target = verdict.target;
 
     if (p.type === 'text_group') {
-      let sim = false; let fails = 0; let sent = 0;
+      const text = renderText(p.template!, inc, (now - this.openedAt(rec)) / 60_000);
+      let sim = false; let fails = 0; let sent = 0; const needFirst: string[] = [];
       for (const part of inc.participants.filter((x) => this.optedIn(x.personaId))) {
         const reg = this.state.registry[part.personaId]!;
-        const r = await sendText(c, this.f, { spaceId: reg.spaceId, senderId: reg.senderId, text: p.message!, idempotencyKey: `${base.id}:${part.personaId}` });
-        sim ||= r.simulated; if (r.ok) sent++; else fails++;
+        const r = await this.photon.send({ spaceId: reg.spaceId, text, name: part.displayName });
+        sim ||= r.simulated;
+        if (r.ok) sent++; else if (r.noSpace) needFirst.push(part.displayName); else fails++;
+      }
+      if (sent === 0 && fails === 0 && needFirst.length) {
+        return { ...base, status: 'blocked', detail: `Ask ${needFirst.join(', ')} to text the SafeNight line first` };
       }
       return { ...base, simulated: sim, status: sent > 0 ? 'sent' : 'failed',
-        detail: `${sim ? 'SIMULATED: ' : ''}Text to ${sent} friend(s)${fails ? `, ${fails} failed` : ''}: ${p.message}` };
+        detail: `${sim ? 'SIMULATED: ' : ''}Text to ${sent} friend(s)${fails ? `, ${fails} failed` : ''}${needFirst.length ? `; ask ${needFirst.join(', ')} to text the SafeNight line first` : ''}: ${text}` };
     }
 
     const isDispatch = p.type === 'dispatch_call';
@@ -171,7 +180,7 @@ export class Engine {
     const vars = buildDynamicVars(
       inc, isDispatch ? 'dispatch_simulated' : 'buddy',
       isDispatch ? inc.subjectName : subjectOnly?.displayName ?? verdict.target,
-      this.openedAt(rec), now, p.summary,
+      this.openedAt(rec), now,
     );
     const r = await placeCall(c, this.f, { callType: isDispatch ? 'dispatch_simulated' : 'buddy', to: verdict.number!, vars });
     const action: Action = {
@@ -228,23 +237,41 @@ export class Engine {
     return { matched: true };
   }
 
+  /** Persona registered for this inbound sender: same space AND (when known) same phone. */
+  private registrationFor(m: InboundText): Registration | undefined {
+    const phone = normalizePhone(m.phone);
+    return Object.values(this.state.registry).find((r) => {
+      if (r.spaceId !== m.spaceId) return false;
+      const rp = normalizePhone(r.phone);
+      return phone ? rp === phone : !!rp && normalizePhone(r.senderId) === rp;
+    });
+  }
+
   async handleInbound(m: InboundText): Promise<string> {
     const join = JOIN_RE.exec(m.text.trim());
     if (join) {
       const personaId = join[1]!.toLowerCase();
+      const sender = normalizePhone(m.phone);
+      const allowed = normalizePhone(this.config.personaPhones[personaId]);
+      const reject = async (why: string) => {
+        console.warn(`[join] rejected ${personaId}: ${why}`);
+        await this.photon.send({ spaceId: m.spaceId, text: `This number isn't set up for ${personaId}.` });
+        return `rejected:${personaId}`;
+      };
+      if (!allowed || !sender || sender !== allowed) return reject('phone mismatch or not configured');
+      const existing = this.state.registry[personaId];
+      if (existing && normalizePhone(existing.phone) !== sender) return reject('already registered to a different sender');
       this.state.registry[personaId] = {
-        personaId, spaceId: m.spaceId, senderId: m.senderId,
-        phone: m.phone ?? this.config.personaPhones[personaId], registeredAt: new Date(this.now()).toISOString(),
+        personaId, spaceId: m.spaceId, senderId: m.senderId, phone: sender, registeredAt: new Date(this.now()).toISOString(),
       };
       this.save();
-      await sendText(this.config, this.f, {
-        spaceId: m.spaceId, senderId: m.senderId,
-        text: `SafeNight: you're opted in as ${personaId}. You'll get alerts for your friend group. (Demo)`,
+      await this.photon.send({
+        spaceId: m.spaceId,
+        text: `SafeNight (demo): you're opted in as ${personaId}. You'll get alerts for your friend group.`,
       });
       return `registered:${personaId}`;
     }
-    const reg = Object.values(this.state.registry).find((r) => r.spaceId === m.spaceId && r.senderId === m.senderId)
-      ?? Object.values(this.state.registry).find((r) => r.senderId === m.senderId);
+    const reg = this.registrationFor(m);
     if (!reg) return 'ignored';
     this.state.replies[reg.personaId] = { personaId: reg.personaId, text: m.text.slice(0, 500), at: new Date(this.now()).toISOString() };
     this.save();

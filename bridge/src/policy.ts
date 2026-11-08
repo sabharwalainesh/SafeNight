@@ -1,4 +1,4 @@
-import type { Action, IncidentSnapshot, ProposedAction } from './types.js';
+import { TEXT_TEMPLATES, type Action, type IncidentSnapshot, type ProposedAction } from './types.js';
 
 export const EMERGENCY_PREFIXES = [
   '911', '112', '999', '000', '110', '119', '118', '100', '101', '102', '108', '933', '988',
@@ -64,11 +64,12 @@ export function latestCheckinIsEmergency(inc: IncidentSnapshot): boolean {
 
 export function validateAction(a: ProposedAction, ctx: PolicyContext): PolicyResult {
   const { incident: inc } = ctx;
-  if (!isOpenish(inc.status)) return { ok: false, reason: `Incident is ${inc.status}; no actions allowed` };
+  const resolvedUpdate = a.type === 'text_group' && a.template === 'update_resolved_by_person' && inc.status.toLowerCase() === 'resolved';
+  if (!isOpenish(inc.status) && !resolvedUpdate) return { ok: false, reason: `Incident is ${inc.status}; no actions allowed` };
   const prior = ctx.history.filter((h) => h.status !== 'blocked');
 
   if (a.type === 'text_group') {
-    if (!a.message?.trim()) return { ok: false, reason: 'Empty message' };
+    if (!a.template || !(TEXT_TEMPLATES as readonly string[]).includes(a.template)) return { ok: false, reason: 'Unknown text template' };
     const recipients = inc.participants.filter((p) => ctx.optedIn(p.personaId));
     if (recipients.length === 0) return { ok: false, reason: 'No participants have opted in by texting "join <name>"' };
     if (prior.some((h) => h.type === 'text_group' && ctx.now - h.createdAt < TEXT_COOLDOWN_MS)) {

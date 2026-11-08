@@ -1,4 +1,5 @@
 import type { Config } from './config.js';
+import { mapsLink, safeField } from './templates.js';
 import type { IncidentSnapshot } from './types.js';
 
 export const ELEVENLABS_OUTBOUND_URL = 'https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call';
@@ -18,18 +19,16 @@ export function buildDynamicVars(
   personName: string,
   openedAt: number,
   now: number,
-  summary?: string,
 ): Record<string, string | number> {
   const loc = inc.lastLocation;
+  const venue = safeField(inc.venue);
   return {
     call_type: callType,
-    person_name: personName,
-    location_text: loc
-      ? `${inc.venue || 'unknown venue'}${loc.approximate ? ' (approximate)' : ''}`
-      : inc.venue || 'location unknown',
-    maps_url: loc ? `https://maps.google.com/?q=${loc.lat},${loc.lng}` : '',
-    situation: (summary || `${inc.kind} (${inc.severity}) during ${inc.sessionName}`).slice(0, 280),
-    reporter: inc.subjectName,
+    person_name: safeField(personName, 40),
+    location_text: loc ? `${venue || 'unknown venue'}${loc.approximate ? ' (approximate)' : ''}` : venue || 'location unknown',
+    maps_url: mapsLink(inc),
+    situation: `${safeField(inc.kind, 40).replace(/_/g, ' ')} (${safeField(inc.severity, 20)})`,
+    reporter: safeField(inc.subjectName, 40),
     minutes_since: Math.max(0, Math.round((now - openedAt) / 60_000)),
     callback_note: 'Reply in the SafeNight text thread or open the SafeNight app.',
   };
