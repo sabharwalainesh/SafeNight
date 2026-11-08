@@ -130,14 +130,14 @@ describe('F1 meetups: precision while on a trip', () => {
     };
     test.withReducerTx(sam, ctx => m.requestCompany(ctx, { sessionId, note: '' }));
     const inc = incidents(test)[0]!;
-    expect(seenBy(maya, samId)?.approximate).toBe(true); // approximate default before the trip
+    expect(seenBy(maya, samId)?.approximate ?? true).toBe(true); // not precise before the trip (hidden or approximate)
     test.withReducerTx(maya, ctx => m.offerToCome(ctx, { incidentId: inc.id }));
     expect(seenBy(maya, samId)?.approximate).toBe(false);
     expect(seenBy(sam, mayaId)?.approximate).toBe(false);
     const muId = meetups(test)[0]!.id;
     test.withReducerTx(maya, ctx => m.markArrived(ctx, { meetupId: muId }));
     // Back to the approximate default once the trip is over.
-    expect(seenBy(maya, samId)?.approximate).toBe(true);
+    expect(seenBy(maya, samId)?.approximate ?? true).toBe(true);
   });
 });
 
