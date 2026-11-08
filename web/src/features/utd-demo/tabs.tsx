@@ -1,7 +1,7 @@
 // The four demo tabs: Group (people, timeline, controls, showcase), Map (live map, route, compass,
 // simulated walk), Messages (iMessage-style threads) and Help (the scripted Nemotron panel).
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { bearingDeg, formatDistance, relativeBearing } from '../meetup/geo';
+import { bearingDeg, distanceM, formatDistance, relativeBearing } from '../meetup/geo';
 import { useHeading } from '../meetup/useDeviceSensors';
 import { DemoMap, type MapPerson } from './DemoMap';
 import { freshness } from './live';
@@ -22,8 +22,9 @@ export function LiveCard({ ctx }: { ctx: DemoCtx }) {
   const { s, now } = ctx;
   const mayaOpen = s.done.includes('alert') && s.phase !== 'resolved';
   const title = s.myHelpAt !== null ? 'Help is on the way to you' : s.phase === 'resolved' ? 'Everyone is home' : mayaOpen ? 'Maya needs help' : GROUP_NAME;
+  const jordanDist = ctx.people.jordan ? Math.round(distanceM(ctx.people.jordan.pos, ctx.me.pos)) : null;
   const sub = s.myHelpAt !== null
-    ? 'Jordan is coming · group alerted'
+    ? `Jordan is coming${jordanDist !== null ? ` · ${jordanDist} m away` : ''} · group alerted`
     : s.phase === 'resolved'
       ? 'Incident resolved by Maya'
       : mayaOpen
@@ -106,13 +107,7 @@ export function GroupTab({ ctx }: { ctx: DemoCtx }) {
       <section className="card utd-card">
         <div className="utd-card-head">
           <p className="headline">Tonight&apos;s timeline</p>
-          <div className="utd-controls">
-            <button type="button" className="btn plain small-btn" onClick={() => ctx.setAutoplay(!ctx.autoplay)} aria-pressed={ctx.autoplay}>
-              {ctx.autoplay ? 'Pause' : 'Auto-play'}
-            </button>
-            <button type="button" className="btn secondary small-btn" onClick={ctx.triggerNext}>Next event</button>
-            <button type="button" className="btn plain small-btn" onClick={ctx.restart}>Restart</button>
-          </div>
+          <span className="footnote muted">{ctx.autoplay ? 'Auto-playing' : 'Paused'} · use Next event above</span>
         </div>
         {s.feed.length === 0 ? (
           <p className="muted">Waiting for the first check-ins…</p>

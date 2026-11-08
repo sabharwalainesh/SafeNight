@@ -83,12 +83,17 @@ export function UtdDemo({ onExit }: { onExit: () => void }) {
   // Live friends. Jordan walks to Maya once he says he's coming; Maya stays put until she heads home.
   const done = s.done;
   const mayaHome = PEOPLE.find((p) => p.id === 'maya')!.home;
+  const myHelpAt = s.myHelpAt;
+  const meGoalRef = useRef<LatLng>(gps.pos);
+  meGoalRef.current = gps.pos;
+  const meGoal = meGoalRef.current;
   const goals = useMemo(() => {
     const g: Partial<Record<PersonId, LatLng>> = {};
     if (done.includes('jordan_reply') && !done.includes('maya_home')) g.jordan = { lat: mayaHome.lat + 0.00012, lng: mayaHome.lng + 0.0001 };
+    if (myHelpAt !== null) g.jordan = { lat: meGoal.lat + 0.00009, lng: meGoal.lng + 0.00007 }; // ~10 m from you
     if (done.includes('maya_home')) g.maya = { lat: 32.9906, lng: -96.7533 }; // into Residence Hall West
     return g;
-  }, [done, mayaHome]);
+  }, [done, mayaHome, myHelpAt, meGoal.lat, meGoal.lng]);
   const people = useLivePeople(goals, done.includes('alert') && !done.includes('maya_home') ? ['maya'] : []);
   const mayaPos = people.maya.pos;
 
@@ -214,9 +219,22 @@ export function UtdDemo({ onExit }: { onExit: () => void }) {
             Exit demo
           </button>
         </div>
-        <span className="utd-pill" role="note">
-          DEMO · simulated people · UT Dallas
-        </span>
+        <div className="utd-top-controls">
+          <span className="utd-pill" role="note">
+            DEMO · simulated people · UT Dallas
+          </span>
+          <div className="utd-controls utd-controls--top" aria-label="Demo controls">
+            <button type="button" className="btn plain small-btn" onClick={() => setAutoplay((v) => !v)} aria-pressed={autoplay}>
+              {autoplay ? 'Pause' : 'Auto-play'}
+            </button>
+            <button type="button" className="btn secondary small-btn" onClick={triggerNext} disabled={!nextManual(s)}>
+              Next event
+            </button>
+            <button type="button" className="btn plain small-btn" onClick={restart}>
+              Restart
+            </button>
+          </div>
+        </div>
       </header>
 
       <LiveCard ctx={ctx} />

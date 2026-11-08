@@ -132,3 +132,6 @@
 .utd-live-actions { display: flex; gap: 0.4rem; }
 .utd-live-actions .btn { min-height: 36px; padding: 0 0.7rem; font-size: 0.85rem; white-space: nowrap; }
 @media (max-width: 380px) { .utd-live { grid-template-columns: 12px 1fr; } .utd-live-actions { grid-column: 1 / -1; } }
+
+.utd-top-controls { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.utd-controls--top .btn { min-height: 34px; padding: 0 0.6rem; font-size: 0.85rem; }
