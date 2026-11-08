@@ -54,6 +54,7 @@ import SetPrivacySettingsReducer from "../set_privacy_settings_reducer";
 import SetProfileReducer from "../set_profile_reducer";
 import SetProfilePhotoReducer from "../set_profile_photo_reducer";
 import SetSharingScopeReducer from "../set_sharing_scope_reducer";
+import StreamMeetupPositionReducer from "../stream_meetup_position_reducer";
 import SubmitVenueReportReducer from "../submit_venue_report_reducer";
 import VolunteerDriverReducer from "../volunteer_driver_reducer";
 import VoteVenueReportReducer from "../vote_venue_report_reducer";
@@ -106,6 +107,7 @@ export type SetPrivacySettingsParams = __Infer<typeof SetPrivacySettingsReducer>
 export type SetProfileParams = __Infer<typeof SetProfileReducer>;
 export type SetProfilePhotoParams = __Infer<typeof SetProfilePhotoReducer>;
 export type SetSharingScopeParams = __Infer<typeof SetSharingScopeReducer>;
+export type StreamMeetupPositionParams = __Infer<typeof StreamMeetupPositionReducer>;
 export type SubmitVenueReportParams = __Infer<typeof SubmitVenueReportReducer>;
 export type VolunteerDriverParams = __Infer<typeof VolunteerDriverReducer>;
 export type VoteVenueReportParams = __Infer<typeof VoteVenueReportReducer>;

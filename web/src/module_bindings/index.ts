@@ -82,6 +82,7 @@ import SetPrivacySettingsReducer from "./set_privacy_settings_reducer";
 import SetProfileReducer from "./set_profile_reducer";
 import SetProfilePhotoReducer from "./set_profile_photo_reducer";
 import SetSharingScopeReducer from "./set_sharing_scope_reducer";
+import StreamMeetupPositionReducer from "./stream_meetup_position_reducer";
 import SubmitVenueReportReducer from "./submit_venue_report_reducer";
 import VolunteerDriverReducer from "./volunteer_driver_reducer";
 import VoteVenueReportReducer from "./vote_venue_report_reducer";
@@ -103,6 +104,7 @@ import MyIncidentEventsRow from "./my_incident_events_table";
 import MyIncidentParticipantsRow from "./my_incident_participants_table";
 import MyIncidentsRow from "./my_incidents_table";
 import MyInvitesRow from "./my_invites_table";
+import MyMeetupPositionsRow from "./my_meetup_positions_table";
 import MyMeetupsRow from "./my_meetups_table";
 import MyNotificationsRow from "./my_notifications_table";
 import MyPhoneRow from "./my_phone_table";
@@ -325,6 +327,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyInvitesRow),
+  myMeetupPositions: __table({
+    name: 'my_meetup_positions',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyMeetupPositionsRow),
   myMeetups: __table({
     name: 'my_meetups',
     indexes: [
@@ -468,6 +477,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_profile", SetProfileReducer),
   __reducerSchema("set_profile_photo", SetProfilePhotoReducer),
   __reducerSchema("set_sharing_scope", SetSharingScopeReducer),
+  __reducerSchema("stream_meetup_position", StreamMeetupPositionReducer),
   __reducerSchema("submit_venue_report", SubmitVenueReportReducer),
   __reducerSchema("volunteer_driver", VolunteerDriverReducer),
   __reducerSchema("vote_venue_report", VoteVenueReportReducer),

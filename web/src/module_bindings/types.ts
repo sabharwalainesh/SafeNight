@@ -540,6 +540,19 @@ export const MeetupExpiry = __t.object("MeetupExpiry", {
 });
 export type MeetupExpiry = __Infer<typeof MeetupExpiry>;
 
+export const MeetupPosition = __t.object("MeetupPosition", {
+  id: __t.u64(),
+  meetupId: __t.u64(),
+  userId: __t.identity(),
+  lat: __t.f64(),
+  lng: __t.f64(),
+  accuracyM: __t.f32(),
+  headingDeg: __t.option(__t.f32()),
+  speedMps: __t.option(__t.f32()),
+  recordedAt: __t.timestamp(),
+});
+export type MeetupPosition = __Infer<typeof MeetupPosition>;
+
 export const MeetupRow = __t.object("MeetupRow", {
   id: __t.u64(),
   incidentId: __t.u64(),
@@ -616,6 +629,9 @@ export type MyIncidents = __Infer<typeof MyIncidents>;
 
 export const MyInvites = __t.object("MyInvites", {});
 export type MyInvites = __Infer<typeof MyInvites>;
+
+export const MyMeetupPositions = __t.object("MyMeetupPositions", {});
+export type MyMeetupPositions = __Infer<typeof MyMeetupPositions>;
 
 export const MyMeetups = __t.object("MyMeetups", {});
 export type MyMeetups = __Infer<typeof MyMeetups>;

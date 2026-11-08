@@ -17,7 +17,7 @@ import {
 import { insertGrant } from '../lib/nightout';
 import { countRecent, enforceLimit, LIMITS, MINUTE_MICROS } from '../lib/limits';
 import { isAtOrBefore, minutesAfter } from '../lib/time';
-import { findComingMeetup, MEETUP_TTL_MINUTES, revokeMeetupGrants } from '../lib/meetup';
+import { clearMeetupPositions, findComingMeetup, MEETUP_TTL_MINUTES, revokeMeetupGrants } from '../lib/meetup';
 
 /** "Come to me": ask the group for someone to physically come to the caller. */
 export const requestCompany = spacetimedb.reducer({ sessionId: t.u64(), note: t.string() }, (ctx, { sessionId, note }) => {
@@ -103,6 +103,7 @@ export const markArrived = spacetimedb.reducer({ meetupId: t.u64() }, (ctx, { me
   const mu = requireMeetupParty(ctx, meetupId);
   if (mu.status.tag !== 'coming') throw new SenderError('This meetup is not in progress');
   ctx.db.meetup.id.update({ ...mu, status: { tag: 'arrived' }, arrivedAt: ctx.timestamp });
+  clearMeetupPositions(ctx, mu.id);
   const helper = displayNameOf(ctx, mu.helper);
   const requester = displayNameOf(ctx, mu.requester);
   addEvent(ctx, mu.incidentId, 'helper_arrived', `${helper} reached ${requester}`);
@@ -131,6 +132,11 @@ export const expireMeetups = spacetimedb.reducer(
   { onSchedule: meetupExpiry },
   { arg: meetupExpiry.rowType },
   ctx => {
+    // Sweep live positions left behind by any meetup that is no longer in progress.
+    for (const p of [...ctx.db.meetupPosition.iter()]) {
+      const owner = ctx.db.meetup.id.find(p.meetupId);
+      if (!owner || owner.status.tag !== 'coming') ctx.db.meetupPosition.id.delete(p.id);
+    }
     for (const mu of ctx.db.meetup.iter()) {
       if (mu.status.tag !== 'coming') continue;
       // Also sweep trips whose incident closed before this rule existed (or by any path that missed it).
@@ -145,5 +151,37 @@ export const expireMeetups = spacetimedb.reducer(
         sendAlert(ctx, who, mu.incidentId, 'incident_update', 'The meetup timed out after an hour.');
       }
     }
+  }
+);
+
+/**
+ * Live compass stream for the two parties of a `coming` meetup. Called on every GPS fix (throttled
+ * client-side to a few per second); upserts one row so the partner's subscription gets a single row
+ * update within milliseconds. Fixes faster than ~4 Hz are dropped silently instead of erroring.
+ */
+export const streamMeetupPosition = spacetimedb.reducer(
+  {
+    meetupId: t.u64(),
+    lat: t.f64(),
+    lng: t.f64(),
+    accuracyM: t.f32(),
+    headingDeg: t.f32().optional(),
+    speedMps: t.f32().optional(),
+  },
+  (ctx, { meetupId, lat, lng, accuracyM, headingDeg, speedMps }) => {
+    const mu = requireMeetupParty(ctx, meetupId);
+    if (mu.status.tag !== 'coming' || isAtOrBefore(mu.expiresAt, ctx.timestamp)) throw new SenderError('This meetup is not in progress');
+    if (!(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) throw new SenderError('Invalid coordinates');
+    if (!(accuracyM >= 0 && accuracyM <= 10_000)) throw new SenderError('Invalid accuracy');
+    const heading = headingDeg !== undefined && headingDeg >= 0 && headingDeg < 360 ? headingDeg : undefined;
+    const speed = speedMps !== undefined && speedMps >= 0 && speedMps <= 100 ? speedMps : undefined;
+    let existing;
+    for (const p of ctx.db.meetupPosition.meetupId.filter(meetupId)) {
+      if (p.userId.isEqual(ctx.sender)) existing = p;
+    }
+    if (existing && ctx.timestamp.microsSinceUnixEpoch - existing.recordedAt.microsSinceUnixEpoch < LIMITS.meetupStreamMinIntervalMicros) return;
+    const row = { meetupId, userId: ctx.sender, lat, lng, accuracyM, headingDeg: heading, speedMps: speed, recordedAt: ctx.timestamp };
+    if (existing) ctx.db.meetupPosition.id.update({ ...row, id: existing.id });
+    else ctx.db.meetupPosition.insert({ ...row, id: 0n });
   }
 );

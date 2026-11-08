@@ -28,8 +28,14 @@ export function hasActiveMeetup(ctx: Ctx, sessionId: bigint, who: Identity): boo
   return false;
 }
 
+/** Drop the live compass positions of a meetup (it ended, or its grants were revoked). */
+export function clearMeetupPositions(ctx: Ctx, meetupId: bigint): void {
+  for (const p of [...ctx.db.meetupPosition.meetupId.filter(meetupId)]) ctx.db.meetupPosition.id.delete(p.id);
+}
+
 /** Revoke only the two location_precise grants a meetup created (requester↔helper in its session). */
-export function revokeMeetupGrants(ctx: Ctx, mu: { sessionId: bigint; requester: Identity; helper: Identity }) {
+export function revokeMeetupGrants(ctx: Ctx, mu: { id?: bigint; sessionId: bigint; requester: Identity; helper: Identity }) {
+  if (mu.id !== undefined) clearMeetupPositions(ctx, mu.id);
   for (const [subject, recipient] of [
     [mu.requester, mu.helper],
     [mu.helper, mu.requester],

@@ -6,6 +6,8 @@ export const LIMITS = {
   checkinsPerMinute: 10,
   locationsPerMinute: 30,
   meetupLocationsPerMinute: 60,
+  /** `stream_meetup_position`: fixes closer together than this are dropped (≈4 Hz max). */
+  meetupStreamMinIntervalMicros: 200_000n,
   concernsPerHour: 5,
   venueReportsPerHour: 8,
   venuesPerHour: 5,

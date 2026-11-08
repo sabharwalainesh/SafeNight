@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bearingDeg, distanceM, formatDistance, fusePoint, headingFromEvent, pairUncertaintyM, relativeBearing, smoothHeading, stepToward } from './geo';
+import { bearingDeg, distanceM, formatDistance, fusePoint, headingFromEvent, pairUncertaintyM, destination, predictPosition, smoothToward, relativeBearing, smoothHeading, stepToward } from './geo';
 
 const TS = { lat: 40.758, lng: -73.9855 }; // Times Square
 const GC = { lat: 40.7527, lng: -73.9772 }; // Grand Central
@@ -53,5 +53,28 @@ describe('fusion', () => {
   });
   it('pairUncertaintyM combines in quadrature', () => {
     expect(pairUncertaintyM({ accuracyM: 3 }, { accuracyM: 4 })).toBe(5);
+  });
+});
+
+describe('live compass prediction', () => {
+  const p = { lat: 40.758, lng: -73.9855 };
+  it('destination moves the right distance and direction', () => {
+    const east = destination(p, 90, 50);
+    expect(distanceM(p, east)).toBeCloseTo(50, 0);
+    expect(bearingDeg(p, east)).toBeCloseTo(90, 0);
+  });
+  it('predicts along course at speed, capped, and stays put when still', () => {
+    const fix = { ...p, headingDeg: 0, speedMps: 1.5 };
+    expect(distanceM(p, predictPosition(fix, 2000))).toBeCloseTo(3, 0);
+    expect(distanceM(p, predictPosition(fix, 60_000))).toBeCloseTo(4.5, 0);
+    expect(predictPosition({ ...fix, speedMps: 0.2 }, 2000)).toEqual(p);
+    expect(predictPosition({ ...fix, headingDeg: null }, 2000)).toEqual(p);
+  });
+  it('smoothing converges without overshoot', () => {
+    const target = destination(p, 45, 20);
+    const half = smoothToward(p, target, 350);
+    const d = distanceM(p, half);
+    expect(d).toBeGreaterThan(10);
+    expect(d).toBeLessThan(20);
   });
 });

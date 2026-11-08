@@ -2,7 +2,7 @@
 .meetup-card .headline { margin: 0; }
 .meetup-compass { justify-items: center; text-align: center; }
 .meetup-dial { position: relative; width: 180px; height: 180px; display: grid; place-items: center; }
-.meetup-arrow { width: 180px; height: 180px; transition: transform 0.25s ease-out; }
+.meetup-arrow { width: 180px; height: 180px; transition: transform 0.12s linear; will-change: transform; }
 .meetup-ring { fill: var(--surface-2); stroke: var(--border); stroke-width: 2; }
 .meetup-needle { fill: var(--accent); }
 .meetup-dist { position: absolute; bottom: -4px; font-size: 28px; font-weight: 700; background: var(--surface-2); padding: 0 0.5rem; border-radius: 999px; }
@@ -25,3 +25,13 @@
 @keyframes meetup-pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.35); opacity: 0.45; } }
 .meetup-dial.is-near .meetup-arrow { transition: none; }
 @media (prefers-reduced-motion: reduce) { .meetup-here { animation: none; } }
+/* Live stream freshness: green pulsing dot while updates arrive, amber when lagging, grey when stale. */
+.meetup-live { display: inline-flex; align-items: center; gap: 0.35rem; font-variant-numeric: tabular-nums; }
+.meetup-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted, #8e8e93); flex: none; }
+.meetup-live--live .meetup-live-dot { background: var(--ok, #30d158); animation: meetup-live-pulse 1.2s ease-out infinite; }
+.meetup-live--lag .meetup-live-dot { background: var(--warn, #ff9f0a); }
+@keyframes meetup-live-pulse { 0% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.6); } 100% { box-shadow: 0 0 0 8px rgba(48, 209, 88, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .meetup-arrow { transition: none; }
+  .meetup-live--live .meetup-live-dot { animation: none; }
+}

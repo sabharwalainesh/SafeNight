@@ -88,3 +88,29 @@ export function smoothHeading(prev: number | null, next: number, alpha = 0.3): n
 export function pairUncertaintyM(a: { accuracyM: number }, b: { accuracyM: number }): number {
   return Math.sqrt(a.accuracyM * a.accuracyM + b.accuracyM * b.accuracyM);
 }
+
+/** Point `meters` from `from` along `bearing` (flat-earth step; accurate for the short hops we predict). */
+export function destination(from: LatLng, bearing: number, meters: number): LatLng {
+  const b = rad(bearing);
+  const dLat = (meters * Math.cos(b)) / R;
+  const dLng = (meters * Math.sin(b)) / (R * Math.cos(rad(from.lat)));
+  return { lat: from.lat + deg(dLat), lng: from.lng + deg(dLng) };
+}
+
+export type LiveFix = LatLng & { headingDeg: number | null; speedMps: number | null };
+
+/**
+ * Dead reckoning between stream updates: move the last fix along its GPS course at its speed for
+ * `ageMs` (capped at `maxMs`, so a dropped connection never runs the dot away). Still/unknown → as is.
+ */
+export function predictPosition(fix: LiveFix, ageMs: number, maxMs = 3000): LatLng {
+  const { headingDeg, speedMps } = fix;
+  if (headingDeg === null || speedMps === null || speedMps < 0.5 || !(ageMs > 0)) return { lat: fix.lat, lng: fix.lng };
+  return destination(fix, headingDeg, speedMps * (Math.min(ageMs, maxMs) / 1000));
+}
+
+/** Exponential smoothing step toward `target` for a frame of `dtMs` (time constant `tauMs`). */
+export function smoothToward(cur: LatLng, target: LatLng, dtMs: number, tauMs = 350): LatLng {
+  const a = 1 - Math.exp(-Math.max(0, dtMs) / tauMs);
+  return { lat: cur.lat + (target.lat - cur.lat) * a, lng: cur.lng + (target.lng - cur.lng) * a };
+}

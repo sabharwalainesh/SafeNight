@@ -46,7 +46,7 @@ import {
   venueReportVote,
 } from './tables/community';
 import { demoPersona, demoSession } from './tables/demo';
-import { meetup, meetupExpiry } from './tables/meetup';
+import { meetup, meetupExpiry, meetupPosition } from './tables/meetup';
 
 // Private: single row recording who published the database (module owner).
 export const config = table(
@@ -141,6 +141,7 @@ export const spacetimedb = schema(
     demoSession,
     meetup,
     meetupExpiry,
+    meetupPosition,
   },
   {
     env: {

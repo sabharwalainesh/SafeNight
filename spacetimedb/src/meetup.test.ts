@@ -301,3 +301,77 @@ describe('F1 meetups: arrive, cancel, expire, limits, view', () => {
     expect(last([...test.db.auditEvent.iter()]).resource).toContain('meetup_expiry');
   });
 });
+
+describe('live compass stream: stream_meetup_position', () => {
+  const stream = (test: Harness, who: TestAuth, meetupId: bigint, lat = 40.7581, extra: { headingDeg?: number; speedMps?: number } = {}) =>
+    test.withReducerTx(who, ctx => m.streamMeetupPosition(ctx, { meetupId, lat, lng: -73.9855, accuracyM: 6, ...extra }));
+  const trip = () => {
+    const s = setup();
+    request(s.test, s.sam, s.sessionId);
+    offer(s.test, s.alex, incidents(s.test)[0]!.id);
+    return { ...s, meetupId: meetups(s.test)[0]!.id };
+  };
+  const positions = (test: Harness) => [...test.db.meetupPosition.iter()];
+  const tick = (test: Harness, ms: number) => test.clock.advance(TimeDuration.fromMillis(ms));
+
+  it('upserts one row per party and shows it only to the trip partner', () => {
+    const { test, alex, sam, maya, outsider, id, meetupId } = trip();
+    stream(test, alex, meetupId, 40.7581, { headingDeg: 90, speedMps: 1.4 });
+    tick(test, 300);
+    stream(test, alex, meetupId, 40.7582);
+    expect(positions(test)).toHaveLength(1);
+    const seen = m.myMeetupPositions(test.viewContext(sam));
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.userId.isEqual(id(alex))).toBe(true);
+    expect(seen[0]!.lat).toBeCloseTo(40.7582);
+    expect(m.myMeetupPositions(test.viewContext(alex))).toHaveLength(0); // own row is not echoed
+    for (const who of [maya, outsider]) expect(m.myMeetupPositions(test.viewContext(who))).toHaveLength(0);
+  });
+
+  it('drops fixes faster than ~4 Hz without erroring', () => {
+    const { test, alex, meetupId } = trip();
+    stream(test, alex, meetupId, 40.1);
+    tick(test, 50);
+    stream(test, alex, meetupId, 40.2);
+    expect(positions(test)[0]!.lat).toBeCloseTo(40.1);
+    tick(test, 200);
+    stream(test, alex, meetupId, 40.3);
+    expect(positions(test)[0]!.lat).toBeCloseTo(40.3);
+  });
+
+  it('rejects non-parties and bad input; ignores out-of-range heading/speed', () => {
+    const { test, alex, maya, meetupId } = trip();
+    expect(() => stream(test, maya, meetupId)).toThrow(/requester or helper/);
+    expect(() => stream(test, alex, meetupId, 123)).toThrow(/Invalid coordinates/);
+    stream(test, alex, meetupId, 40.1, { headingDeg: 400, speedMps: -3 });
+    expect(positions(test)[0]!.headingDeg).toBeUndefined();
+    expect(positions(test)[0]!.speedMps).toBeUndefined();
+  });
+
+  it('hides the stream once the partner revokes precise sharing, and clears it when the trip ends', () => {
+    const { test, alex, sam, meetupId } = trip();
+    stream(test, alex, meetupId);
+    tick(test, 300);
+    stream(test, sam, meetupId);
+    for (const g of activeGrants(test, test.viewContext(alex).sender, test.viewContext(sam).sender)) {
+      test.withReducerTx(alex, ctx => m.revokeConsent(ctx, { grantId: g.id }));
+    }
+    expect(m.myMeetupPositions(test.viewContext(sam))).toHaveLength(0);
+    expect(m.myMeetupPositions(test.viewContext(alex))).toHaveLength(1);
+    run(test, sam, ctx => m.markArrived(ctx, { meetupId }));
+    expect(positions(test)).toHaveLength(0);
+    expect(() => stream(test, alex, meetupId)).toThrow(/not in progress/);
+  });
+
+  it('cancel and expiry clear positions', () => {
+    const { test, alex, meetupId } = trip();
+    stream(test, alex, meetupId);
+    run(test, alex, ctx => m.cancelMeetup(ctx, { meetupId, reason: '' }));
+    expect(positions(test)).toHaveLength(0);
+    const t2 = trip();
+    stream(t2.test, t2.alex, t2.meetupId);
+    advance(t2.test, 61);
+    runExpiry(t2.test);
+    expect(positions(t2.test)).toHaveLength(0);
+  });
+});

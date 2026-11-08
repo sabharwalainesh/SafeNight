@@ -1,6 +1,6 @@
 // "Come to me" meetups: a requester asks a friend to physically come to them; a helper accepts and
 // follows a live compass. Rows come from the module's `my_meetups` view (participants only).
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react';
 import { dataSource } from '../../lib/dataSource';
 import { SenderError } from 'spacetimedb';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
@@ -30,6 +30,21 @@ export type MeetupActions = {
   offerToCome(incidentId: string): Promise<void>;
   markArrived(meetupId: string): Promise<void>;
   cancelMeetup(meetupId: string, reason: string): Promise<void>;
+  /** Live compass stream (party of a `coming` meetup only). Fire-and-forget; the server drops >4 Hz. */
+  streamPosition(meetupId: string, fix: { lat: number; lng: number; accuracyM: number; headingDeg: number | null; speedMps: number | null }): Promise<void>;
+};
+
+/** My trip partner's latest streamed fix. `receivedAt` is this device's clock (immune to server/phone clock skew). */
+export type LivePosition = {
+  meetupId: string;
+  userId: UserId;
+  lat: number;
+  lng: number;
+  accuracyM: number;
+  headingDeg: number | null;
+  speedMps: number | null;
+  recordedAt: EpochMs;
+  receivedAt: EpochMs;
 };
 
 function toError(e: unknown): Error {
@@ -45,7 +60,9 @@ async function wrap<T>(f: () => Promise<T>): Promise<T> {
   }
 }
 
-export type MeetupState = { me: UserId; meetups: Meetup[]; ready: boolean; actions: MeetupActions };
+export type MeetupState = { me: UserId; meetups: Meetup[]; ready: boolean; actions: MeetupActions; /** Partner fixes keyed by `${meetupId}:${userId}`. */ live: Record<string, LivePosition> };
+
+export const liveKey = (meetupId: string, userId: UserId) => `${meetupId}:${userId}`;
 
 const Ctx = createContext<MeetupState | null>(null);
 
@@ -74,6 +91,34 @@ function useMeetupsLive(): MeetupState {
   const rOffer = useReducer(reducers.offerToCome);
   const rArrived = useReducer(reducers.markArrived);
   const rCancel = useReducer(reducers.cancelMeetup);
+  const rStream = useReducer(reducers.streamMeetupPosition);
+  const [posRows] = useTable(tables.myMeetupPositions);
+  const received = useRef(new Map<string, { recordedAt: number; receivedAt: number }>());
+  const live = useMemo<Record<string, LivePosition>>(() => {
+    const out: Record<string, LivePosition> = {};
+    const now = Date.now();
+    for (const r of posRows) {
+      const meetupId = idStr(r.meetupId);
+      const userId = identityStr(r.userId);
+      const key = liveKey(meetupId, userId);
+      const recordedAt = tsMs(r.recordedAt);
+      const prev = received.current.get(key);
+      const receivedAt = prev && prev.recordedAt === recordedAt ? prev.receivedAt : now;
+      received.current.set(key, { recordedAt, receivedAt });
+      out[key] = {
+        meetupId,
+        userId,
+        lat: r.lat,
+        lng: r.lng,
+        accuracyM: r.accuracyM,
+        headingDeg: r.headingDeg ?? null,
+        speedMps: r.speedMps ?? null,
+        recordedAt,
+        receivedAt,
+      };
+    }
+    return out;
+  }, [posRows]);
 
   const meetups = useMemo<Meetup[]>(
     () =>
@@ -105,12 +150,23 @@ function useMeetupsLive(): MeetupState {
       offerToCome: (incidentId) => wrap(() => rOffer({ incidentId: BigInt(incidentId) })),
       markArrived: (meetupId) => wrap(() => rArrived({ meetupId: BigInt(meetupId) })),
       cancelMeetup: (meetupId, reason) => wrap(() => rCancel({ meetupId: BigInt(meetupId), reason })),
+      streamPosition: (meetupId, f) =>
+        wrap(() =>
+          rStream({
+            meetupId: BigInt(meetupId),
+            lat: f.lat,
+            lng: f.lng,
+            accuracyM: f.accuracyM,
+            headingDeg: f.headingDeg ?? undefined,
+            speedMps: f.speedMps ?? undefined,
+          }),
+        ),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sessionId],
   );
 
-  return { me, meetups, ready, actions };
+  return { me, meetups, ready, actions, live };
 }
 
 export const isActiveMeetup = (m: Meetup, now = Date.now()) => m.status === 'coming' && m.expiresAt > now;

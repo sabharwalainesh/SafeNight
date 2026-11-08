@@ -1,7 +1,7 @@
 import { t, type Infer } from 'spacetimedb/server';
 import { spacetimedb } from '../schema';
 import type { Identity } from 'spacetimedb';
-import { meetup, MeetupStatus } from '../tables/meetup';
+import { meetup, meetupPosition, MeetupStatus } from '../tables/meetup';
 
 const meetupRow = t.row('MeetupRow', {
   id: t.u64().primaryKey(),
@@ -48,3 +48,26 @@ export const myMeetups = spacetimedb.view({ name: 'my_meetups', public: true }, 
   }
   return rows;
 });
+
+// Per-user: the live compass position of my trip partner, for meetups in progress where I am the
+// requester or helper, and only while the partner's precise-location grant to me is unrevoked.
+export const myMeetupPositions = spacetimedb.view(
+  { name: 'my_meetup_positions', public: true },
+  t.array(meetupPosition.rowType),
+  ctx => {
+    const out: Infer<typeof meetupPosition.rowType>[] = [];
+    const mine = [...ctx.db.meetup.requester.filter(ctx.sender), ...ctx.db.meetup.helper.filter(ctx.sender)];
+    for (const mu of mine) {
+      if (mu.status.tag !== 'coming') continue;
+      const partner = mu.requester.isEqual(ctx.sender) ? mu.helper : mu.requester;
+      const granted = [...ctx.db.consentGrant.bySubjectRecipient.filter([partner, ctx.sender])].some(
+        g => g.sessionId === mu.sessionId && g.scope.tag === 'location_precise' && g.revokedAt === undefined
+      );
+      if (!granted) continue;
+      for (const p of ctx.db.meetupPosition.meetupId.filter(mu.id)) {
+        if (p.userId.isEqual(partner)) out.push(p);
+      }
+    }
+    return out;
+  }
+);

@@ -25,6 +25,10 @@ export function useGeolocation(
   post: Poster,
   intervalMs = 2000,
   maxQuietMs = 15000,
+  /** Every raw fix (used by the live compass stream). */
+  onFix?: (pos: GeolocationPosition) => void,
+  /** 0 during a trip: never hand back a cached fix. */
+  maximumAgeMs = 1000,
 ): GeoState & { requestLocation: () => void } {
   const [state, setState] = useState<GeoState>({
     position: null,
@@ -35,6 +39,8 @@ export function useGeolocation(
   const lastPost = useRef<{ at: number; lat: number; lng: number } | null>(null);
   const postRef = useRef(post);
   postRef.current = post;
+  const fixRef = useRef(onFix);
+  fixRef.current = onFix;
   const [attempt, setAttempt] = useState(0);
   // From a user gesture: ask for one fix (this is what makes iOS show the permission prompt in some
   // home-screen web apps) and re-arm the watch.
@@ -59,6 +65,7 @@ export function useGeolocation(
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         if (cancelled) return;
+        fixRef.current?.(pos);
         const { latitude, longitude, accuracy, heading: course, speed } = pos.coords;
         const moving = typeof speed === 'number' && speed > 0.7 && typeof course === 'number' && !Number.isNaN(course);
         setState((st) => ({
@@ -84,13 +91,13 @@ export function useGeolocation(
           permission: err.code === err.PERMISSION_DENIED ? 'denied' : st.permission,
         }));
       },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 },
+      { enableHighAccuracy: true, maximumAge: maximumAgeMs, timeout: 20000 },
     );
     return () => {
       cancelled = true;
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [active, intervalMs, maxQuietMs, attempt]);
+  }, [active, intervalMs, maxQuietMs, maximumAgeMs, attempt]);
 
   return { ...state, requestLocation };
 }
