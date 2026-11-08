@@ -267,17 +267,14 @@ _Owner: Person B (Claude Pro). Edit only this section._
 - When A's bindings land: write adapters implementing `NightOutApi`, `SafetyApi`, `AgentApi`, `ReportsApi`, `ProfileApi` and swap them for the mock providers in `web/src/App.tsx`; screens should not change. Then run every gate against the local server.
 
 **Blockers / needs from A**
-- Nemotron model: `nvidia/nemotron-3-super-120b-a12b` (the module default) returns 404 for our NIM key; `nvidia/nemotron-3.5-lightning-30b-a3b` works with tool calling (reasoning comes back in `reasoning_content`). Please switch the module's `NEMOTRON_MODEL` default or set it at publish.
-- Hosting: the four-device demo needs the module on Maincloud (or a laptop server reachable on Wi-Fi); please confirm who runs `spacetime login` + publish.
-- Bridge (proposal): feed incidents to `bridge/` server-side (a bridge identity + outbox view, or a procedure POSTing snapshots), so the browser no longer holds `VITE_BRIDGE_TOKEN`; record bridge text/call outcomes back as receipts. Agree whether `bridge/` stays B-owned or moves to A.
-- **PRIVACY (urgent): `user_profile` is `public: true` and includes `phoneE164`, so every client receives every user's phone number.** Please move the phone into an owner-only table/view (e.g. `my_profile` filtered on sender). Until then the live Profile tab hides phone entry and the client drops other users' numbers.
-- C4-A (small): contact reordering is four non-atomic reducer calls (remove + re-add); an atomic `reorder_trusted_contacts` reducer would avoid a half-updated ladder.
-- C3-A: the UI expects receipts with a short `resultText`, notification delivery states, `ride_plan` options parsed with `source`/`fetchedAt`, and job `followupDueAt`/`followupExpectedFrom`. Please validate ride deep links server-side against the same allowlist (https Uber/Lyft hosts or `uber:`/`lyft:`), since options come from model output. Demo reducers (`demo_fire_followup`, reset, group setup) are needed for the judge panel.
-- C4-A: the UI needs a `submit_venue_report` reducer, a `delete_my_data` reducer covering every table, and somewhere to store privacy defaults (not in the C1/C4 contract yet).
-- C2-A: the UI expects `visible_locations` rows to carry display name and an `approximate` flag, incidents to include participants with display names, and `safety_alert` event rows to be delivered to the recipient tab via `onInsert`. The UI keeps alert dismissals client-side.
-- C3-A (small): `my_agent_jobs` has no follow-up deadline/recipient, so the live UI cannot show the "follow-up in m:ss" countdown; please expose `followupDueAt` and `followupExpectedFrom` (from the open `followup_timer`). Ride option URLs are allowlisted client-side to Uber/Lyft and `www.google.com/maps/`; please keep server-side URLs within that set.
-- CI (A owns `.github/workflows/ci.yml`): please add `npm test -w web` to the workflow; the web suite needs no server.
-- C1-A (done; small follow-ups): a `leftAt` column on `my_rosters` rows, and `left_session` added to the documented `DriverEndReason` in ARCHITECTURE §6.
+
+Open:
+- **Hosting (blocks the four-device demo):** publish the module to Maincloud (`spacetime login` + `spacetime publish safenight`) or agree on a laptop server reachable on Wi-Fi. Phones and laptop tabs must share one live database; mock data only syncs inside one browser.
+- **Bridge server-side feed (proposal):** today the incident screen POSTs snapshots to `bridge/` with a browser-held `VITE_BRIDGE_TOKEN` (demo-only, bridge bound to 127.0.0.1). Production path: the module feeds the bridge (a bridge identity + outbox view, or a procedure POSTing snapshots) and records bridge call/text outcomes as receipts on the incident timeline.
+- **ElevenLabs post-call webhook (optional):** an `/webhooks/elevenlabs` HTTP handler in the module (HMAC `elevenlabs-signature`) would record call outcomes on Maincloud without a laptop tunnel.
+- **Voice in the agent tool list (optional):** the module's `send_approved_message` is SMS/in-app only; the voice escalation (buddy call → backup → SIMULATED dispatch to a demo number) currently lives entirely in `bridge/`. If you want it in Nemotron's module-side plan, add a `request_call` tool whose execution the bridge picks up.
+
+Done by A (thanks): phone numbers moved to private `user_phone` / `myPhone` (B adapter updated), working default Nemotron model, atomic `reorder_trusted_contacts` (B adapter updated), `leftAt`, `followupDueAt`/`followupExpectedFrom`, `resultText`, demo persona/group/reset reducers, `submit_venue_report`, `delete_my_data`, privacy settings, ride-link allowlist, `npm test -w web` in CI, ownership rows for `bridge/`, `video/`, `mobile/`.
 
 ---
 

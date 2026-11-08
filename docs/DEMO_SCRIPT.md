@@ -28,6 +28,8 @@ Personas: **Alex** (organizer), **Sam** (designated driver), **Maya** (primary b
 9. **Sam or Jordan** taps **Confirm pickup** (only the rider or the buddy who acknowledged can). The incident moves to waiting for Sam's confirmation.
 10. **Sam, Inbox**: open the incident and tap **I'm home safe**, then confirm. The incident resolves, attributed to Sam.
 
+**Optional, with the bridge running (live calls):** after step 2, show the **Emergency coordination** panel on the incident. Nemotron's reasoning appears, then a **call to the buddy's real phone** (ElevenLabs voice over the Photon line). If nobody presses "I'm on it", it calls the backup, and for an urgent, unacknowledged incident it places the **SIMULATED DISPATCH** call to the teammate playing the dispatcher. The agent opens with "This is a SafeNight demo. This is a simulated dispatch call, not a real emergency." Point out that Nemotron proposes and the policy decides: calling the person in trouble is blocked, dispatch only goes to the demo number, and real emergency numbers are hard-blocked.
+
 ## Safety rules to call out
 
 - The no-driving warning is deterministic and fires on the report, independent of the agent.
