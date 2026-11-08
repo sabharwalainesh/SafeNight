@@ -256,6 +256,8 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 - 2026-11-08 — **Phone-ready demo + live bridge check.** PWA (manifest, icons, app-shell service worker that never touches SpacetimeDB/bridge traffic), "Who is this phone?" persona picker for home-screen launches, install hint, `npm run dev:phone -w web` (LAN URLs), and a four-device demo guide in `docs/DEMO_SCRIPT.md` (2 laptop tabs + 2 phones; needs live data). Bridge verified against real services: Photon Spectrum and ElevenLabs credentials accepted, buddy agent and imported Photon SIP number found, and a real Nemotron decision (`nvidia/nemotron-3.5-lightning-30b-a3b`) chose the least-escalation group text, correctly blocked because nobody had opted in. Fixed: bridge now loads `bridge/.env`; default model switched because `nemotron-3-super-120b-a12b` returns 404 on our NIM account. Gate: web 112 tests, bridge 52 tests.
 
+- 2026-11-08 — **Live call verified end to end.** Bridge (calls-only, `TEXT_CHANNEL=none`) + real Nemotron (`nemotron-3.5-lightning-30b-a3b`) + ElevenLabs over the Photon 2.0 SIP line `+16179580190`: Nemotron first chose to call the subject, policy blocked it, Nemotron re-planned and called the organizer, the phone rang and the Buddy agent spoke (reached voicemail, 9 s). Earlier SIP 403 was a wrong digest password (SIP trace: 407 challenge → correct user/realm/SHA-256 → 403); fixed by resetting the Photon outbound password. SMS on that line is blocked until a 10DLC campaign exists, so texting stays off.
+
 **In progress**
 - Nothing.
 
