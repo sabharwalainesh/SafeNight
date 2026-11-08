@@ -66,6 +66,8 @@ export function validateAction(a: ProposedAction, ctx: PolicyContext): PolicyRes
   const { incident: inc } = ctx;
   const resolvedUpdate = a.type === 'text_group' && a.template === 'update_resolved_by_person' && inc.status.toLowerCase() === 'resolved';
   if (!isOpenish(inc.status) && !resolvedUpdate) return { ok: false, reason: `Incident is ${inc.status}; no actions allowed` };
+  // The "closed" update may only go out once the incident really is resolved.
+  if (a.type === 'text_group' && a.template === 'update_resolved_by_person' && !resolvedUpdate) return { ok: false, reason: 'Incident is not resolved' };
   const prior = ctx.history.filter((h) => h.status !== 'blocked');
 
   if (a.type === 'text_group') {

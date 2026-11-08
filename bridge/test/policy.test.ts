@@ -74,3 +74,13 @@ describe('call and text policy', () => {
     expect(validateAction(t, ctx({ optedIn: () => false })).ok).toBe(false);
   });
 });
+
+describe('resolved update template', () => {
+  const update = act({ type: 'text_group', template: 'update_resolved_by_person', target: 'group' });
+  it('is rejected while the incident is open', () => {
+    expect(validateAction(update, ctx()).ok).toBe(false);
+  });
+  it('is allowed once the incident is resolved', () => {
+    expect(validateAction(update, ctx({ incident: incident({ status: 'resolved' }) })).ok).toBe(true);
+  });
+});

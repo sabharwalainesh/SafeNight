@@ -243,7 +243,8 @@ export class Engine {
     return Object.values(this.state.registry).find((r) => {
       if (r.spaceId !== m.spaceId) return false;
       const rp = normalizePhone(r.phone);
-      return phone ? rp === phone : !!rp && normalizePhone(r.senderId) === rp;
+      // Match the inbound sender against this registration, never the registration against itself.
+      return phone ? rp === phone : !!rp && (normalizePhone(m.senderId) === rp || m.senderId === r.senderId);
     });
   }
 

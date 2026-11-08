@@ -2,10 +2,15 @@ import type { IncidentSnapshot, TextTemplate } from './types.js';
 
 /** Remove URLs, phone-like digit runs, control chars and newlines from incident text, then clip. */
 export function safeField(v: unknown, n = 80): string {
+  // Allowlist, not blocklist: after NFKC (folds fullwidth/ideographic dots), keep
+  // only letters, digits, spaces and a few harmless marks. No '.', '/', ':' or '@',
+  // so nothing in a name or venue can form a link, handle or domain.
   return String(v ?? '')
+    .normalize('NFKC')
     .replace(/(https?:\/\/|www\.)\S*/gi, ' ')
-    .replace(/\S+\.(com|net|org|io|co|app|ly|me|xyz)\b\S*/gi, ' ')
-    .replace(/\+?\d[\d\s().-]{5,}\d/g, ' ')
+    .replace(/\S+\.\S+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s',&()-]/gu, ' ')
+    .replace(/\+?\d[\d\s()-]{5,}\d/g, ' ')
     .replace(/[\p{Cc}\p{Zl}\p{Zp}]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -35,7 +40,7 @@ export function renderText(t: TextTemplate, inc: IncidentSnapshot, minutesSince:
     case 'help_needed': body = `${who} asked for help${loc}`; break;
     case 'driver_concern': body = `${who} may be at risk driving${loc}`; break;
     case 'escalation': body = `${who} still needs help and nobody has responded after ${mins} min${loc}`; break;
-    case 'update_resolved_by_person': body = `${who} says they are OK. This update came from them.`; break;
+    case 'update_resolved_by_person': body = `${who}'s alert was closed in SafeNight.`; break;
   }
   return `${TEXT_PREFIX} ${body} ${TEXT_SUFFIX}`;
 }
