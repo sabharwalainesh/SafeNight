@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
-import { SenderError } from 'spacetimedb';
-import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
-import { reducers, tables } from './module_bindings';
+import { useState, type ReactNode } from 'react';
+import { useSpacetimeDB } from 'spacetimedb/react';
 import { PERSONAS, personaHref, type Persona } from './personas';
-import { relativeTime, shortIdentity } from './lib/format';
+import { LargeTitle, Row, Section } from './ui';
+import { Diagnostics } from './features/diagnostics';
 import { CurrentSessionProvider } from './features/night-out/currentSession';
 import { NightOutProvider } from './features/night-out/NightOutProvider';
 import { AgentProvider } from './features/agent/AgentProvider';
@@ -21,27 +20,65 @@ import { NightOutTab } from './screens/night-out';
 import { ProfileScreen } from './screens/profile';
 import { ReportsScreen } from './screens/reports';
 
-type TabId = 'night' | 'map' | 'reports' | 'inbox' | 'profile';
+type TabId = 'night' | 'map' | 'inbox' | 'profile';
+type SubRoute = 'reports' | 'diagnostics' | undefined;
 
-const TABS: { id: TabId; label: string; icon: string; chunk: string; blurb: string }[] = [
-  { id: 'night', label: 'Night Out', icon: '◐', chunk: 'C1', blurb: 'Create or join a Night Out, roster, roles, driver acceptance, consent.' },
-  { id: 'map', label: 'Map', icon: '◎', chunk: 'C2', blurb: 'Consented friend locations, staleness, status actions, warnings.' },
-  { id: 'reports', label: 'Reports', icon: '▤', chunk: 'C4', blurb: 'Venue-level observations with freshness and moderation labels.' },
-  { id: 'inbox', label: 'Inbox', icon: '✉', chunk: 'C2', blurb: 'Alerts, acknowledgments, incident updates, agent receipts.' },
-  { id: 'profile', label: 'Profile', icon: '●', chunk: 'C4', blurb: 'Trusted contacts, backup ladder, privacy defaults, data controls.' },
+const icon = (d: ReactNode) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    {d}
+  </svg>
+);
+const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
+  { id: 'night', label: 'Tonight', icon: icon(<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />) },
+  {
+    id: 'map',
+    label: 'Map',
+    icon: icon(
+      <>
+        <path d="M12 21s7-6.2 7-11.5a7 7 0 1 0-14 0C5 14.8 12 21 12 21z" />
+        <circle cx="12" cy="9.5" r="2.5" />
+      </>,
+    ),
+  },
+  {
+    id: 'inbox',
+    label: 'Alerts',
+    icon: icon(
+      <>
+        <path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" />
+        <path d="M10 21h4" />
+      </>,
+    ),
+  },
+  {
+    id: 'profile',
+    label: 'You',
+    icon: icon(
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" />
+      </>,
+    ),
+  },
 ];
 
 type Props = { persona: Persona; host: string; dbName: string };
 
 export default function App({ persona, host, dbName }: Props) {
   const [tab, setTab] = useState<TabId>('night');
+  const [sub, setSub] = useState<SubRoute>(undefined);
+  /** Tab-local router: switch tab, optionally to a sub-screen (only the You tab has any). */
+  const navigate = (t: TabId, s?: SubRoute) => {
+    setTab(t);
+    setSub(s);
+  };
   // Incident to open when jumping to the Inbox from a warning banner; the key remounts the Inbox.
   const [inboxTarget, setInboxTarget] = useState<{ id: string; n: number } | null>(null);
   const openIncident = (id: string) => {
     setInboxTarget(prev => ({ id, n: (prev?.n ?? 0) + 1 }));
-    setTab('inbox');
+    navigate('inbox');
   };
-  const { isActive, identity, connectionError } = useSpacetimeDB();
+  const { isActive, connectionError } = useSpacetimeDB();
 
   const connState: 'connected' | 'connecting' | 'disconnected' = isActive
     ? 'connected'
@@ -52,14 +89,13 @@ export default function App({ persona, host, dbName }: Props) {
   return (
     <div className="app" style={{ ['--accent' as string]: persona.accent }}>
       <header className="topbar">
-        <div className="wordmark" aria-label="SafeNight">
-          SafeNight
-        </div>
+        <LargeTitle>{TABS.find(t => t.id === tab)!.label}</LargeTitle>
         <div className="topbar-right">
-          <ConnectionBadge state={connState} error={connectionError} />
-          <PersonaChip persona={persona} identityText={shortIdentity(identity)} />
+          <PersonaChip persona={persona} />
         </div>
       </header>
+
+      {connState !== 'connected' && <ConnectionBanner state={connState} error={connectionError} />}
 
       <InstallHint />
 
@@ -74,9 +110,6 @@ export default function App({ persona, host, dbName }: Props) {
       <main className="content">
         <DemoPersonaRegistrar />
         <NoDrivingBanner onViewIncident={openIncident} />
-        <RuntimeStrip />
-        <OnlineCard />
-        <PingCard persona={persona} connected={isActive} />
         {tab === 'night' ? (
           <NightOutTab />
         ) : tab === 'map' ? (
@@ -86,19 +119,26 @@ export default function App({ persona, host, dbName }: Props) {
           </>
         ) : tab === 'inbox' ? (
           <InboxScreen key={inboxTarget?.n ?? 0} initialIncidentId={inboxTarget?.id} />
-        ) : tab === 'reports' ? (
-          <ReportsScreen />
-        ) : tab === 'profile' ? (
+        ) : sub === 'reports' ? (
           <>
-            <ProfileScreen />
-            <DemoPanel />
+            <BackButton onClick={() => navigate('profile')} />
+            <ReportsScreen />
+          </>
+        ) : sub === 'diagnostics' ? (
+          <>
+            <BackButton onClick={() => navigate('profile')} />
+            <Diagnostics persona={persona} host={host} dbName={dbName} />
           </>
         ) : (
-          <TabPanel tab={tab} />
+          <>
+            <ProfileScreen />
+            <Section title="More">
+              <Row label="Venue reports" chevron onClick={() => navigate('profile', 'reports')} />
+              <Row label="About & diagnostics" chevron onClick={() => navigate('profile', 'diagnostics')} />
+            </Section>
+            <DemoPanel />
+          </>
         )}
-        <p className="muted small">
-          Server {host} · database {dbName}
-        </p>
       </main>
       </ProfileProvider>
       </ReportsProvider>
@@ -115,7 +155,7 @@ export default function App({ persona, host, dbName }: Props) {
             type="button"
             className={t.id === tab ? 'tab active' : 'tab'}
             aria-current={t.id === tab ? 'page' : undefined}
-            onClick={() => setTab(t.id)}
+            onClick={() => navigate(t.id)}
           >
             <span aria-hidden="true" className="tab-icon">
               {t.icon}
@@ -128,17 +168,23 @@ export default function App({ persona, host, dbName }: Props) {
   );
 }
 
-function ConnectionBadge({ state, error }: { state: 'connected' | 'connecting' | 'disconnected'; error?: Error }) {
-  const label = state === 'connected' ? 'Connected' : state === 'connecting' ? 'Connecting…' : 'Disconnected';
+function ConnectionBanner({ state, error }: { state: 'connecting' | 'disconnected' | 'connected'; error?: Error }) {
   return (
-    <span className={`conn conn-${state}`} role="status" title={error?.message ?? label}>
-      <span aria-hidden="true" className="dot" />
-      {label}
-    </span>
+    <div className={`conn-banner conn-${state}`} role="status" title={error?.message}>
+      Reconnecting…
+    </div>
   );
 }
 
-function PersonaChip({ persona, identityText }: { persona: Persona; identityText: string }) {
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="btn plain back-link" onClick={onClick}>
+      ‹ You
+    </button>
+  );
+}
+
+function PersonaChip({ persona }: { persona: Persona }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="persona-wrap">
@@ -150,9 +196,8 @@ function PersonaChip({ persona, identityText }: { persona: Persona; identityText
         aria-label={`Current persona ${persona.name}, ${persona.roleHint}. Switch persona`}
         onClick={() => setOpen(o => !o)}
       >
-        <span className="swatch" aria-hidden="true" />
-        <span>
-          <strong>{persona.name}</strong> <span className="muted small">{identityText}</span>
+        <span className="avatar" aria-hidden="true">
+          {persona.name.slice(0, 1)}
         </span>
       </button>
       {open && (
@@ -179,116 +224,4 @@ function PersonaChip({ persona, identityText }: { persona: Persona; identityText
       )}
     </div>
   );
-}
-
-function RuntimeStrip() {
-  const [rows, ready] = useTable(tables.runtimeStatus);
-  const status = rows[0];
-  if (!ready || !status) {
-    return (
-      <div className="strip" aria-busy="true">
-        <span className="badge">Loading backend status…</span>
-      </div>
-    );
-  }
-  const nemotronLive = status.nemotronMode === 'live';
-  const messagingLive = status.messagingMode === 'live';
-  return (
-    <div className="strip" role="group" aria-label="Backend status">
-      <span className={nemotronLive ? 'badge live' : 'badge sim'}>
-        Nemotron: {status.nemotronMode} <span className="muted">({status.nemotronModel})</span>
-      </span>
-      <span className={messagingLive ? 'badge live' : 'badge sim'}>Messaging: {status.messagingMode}</span>
-      <span className="badge">env: {status.appEnv}</span>
-      <span className="badge muted">module {status.moduleVersion}</span>
-    </div>
-  );
-}
-
-function OnlineCard() {
-  const [members, ready] = useTable(tables.onlineMembers);
-  const now = useNow(15_000);
-  return (
-    <section className="card" aria-labelledby="online-heading">
-      <h2 id="online-heading">
-        Online now <span className="count">{ready ? members.length : '…'}</span>
-      </h2>
-      {!ready ? (
-        <p className="muted">Subscribing…</p>
-      ) : members.length === 0 ? (
-        <p className="muted">Nobody connected.</p>
-      ) : (
-        <ul className="list">
-          {members.map(m => (
-            <li key={m.identity.toHexString()}>
-              <code>{shortIdentity(m.identity)}</code>
-              <span className="muted small">
-                {m.connectionCount} conn · seen {relativeTime(m.lastSeenAt, now)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function PingCard({ persona, connected }: { persona: Persona; connected: boolean }) {
-  const ping = useReducer(reducers.ping);
-  const [result, setResult] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const onPing = async () => {
-    setBusy(true);
-    setResult(null);
-    try {
-      await ping({ note: `ping from ${persona.id}` });
-      setResult({ kind: 'ok', text: `Backend acknowledged ping from ${persona.name}.` });
-    } catch (err) {
-      const text =
-        err instanceof SenderError
-          ? `Rejected: ${err.message}`
-          : `Failed: ${err instanceof Error ? err.message : String(err)}`;
-      setResult({ kind: 'err', text });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <section className="card" aria-labelledby="ping-heading">
-      <h2 id="ping-heading">Backend check</h2>
-      <p className="muted small">Calls the <code>ping</code> reducer, which writes an audit row.</p>
-      <button type="button" className="btn" onClick={onPing} disabled={!connected || busy}>
-        {busy ? 'Pinging…' : 'Ping backend'}
-      </button>
-      {result && (
-        <p className={result.kind === 'ok' ? 'result ok' : 'result err'} role="status">
-          {result.kind === 'ok' ? '✓ ' : '✕ '}
-          {result.text}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function TabPanel({ tab }: { tab: TabId }) {
-  const t = TABS.find(x => x.id === tab)!;
-  return (
-    <section className="card placeholder" aria-live="polite">
-      <h2>{t.label}</h2>
-      <p>{t.blurb}</p>
-      <p className="muted small">Arrives in chunk {t.chunk}.</p>
-    </section>
-  );
-}
-
-/** Re-render on an interval so relative times stay fresh. */
-function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
 }

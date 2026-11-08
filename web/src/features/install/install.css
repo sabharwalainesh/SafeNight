@@ -4,15 +4,15 @@
   max-width: 560px; margin: 0 auto;
   padding: calc(1.5rem + env(safe-area-inset-top)) 1.2rem calc(1.5rem + env(safe-area-inset-bottom));
 }
-.picker h1 { margin: 0; font-size: 1.8rem; }
-.picker-list { display: grid; gap: 0.7rem; margin-top: 0.6rem; }
+.picker h1 { margin: 0; font-size: 34px; line-height: 41px; font-weight: 700; }
+.picker-list { display: grid; gap: 0.6rem; margin-top: 0.6rem; }
 .picker-btn {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
   min-height: 4.2rem; padding: 0.8rem 1rem; text-align: left;
-  background: var(--surface); border: 2px solid var(--accent); border-radius: 14px;
+  background: var(--surface); border: 0; border-radius: var(--radius);
 }
-.picker-name { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
-.picker-role { opacity: 0.8; }
+.picker-name { font-size: 22px; font-weight: 700; color: var(--accent); }
+.picker-role { color: var(--muted); }
 
 /* Install hint */
 .install-hint { display: flex; gap: 0.7rem; align-items: center; justify-content: space-between; margin: 0.6rem 1rem 0; }
