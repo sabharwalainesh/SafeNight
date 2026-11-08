@@ -134,7 +134,7 @@ describe('C4 prompt injection', () => {
         ]),
     });
     expect(requests).toHaveLength(1);
-    const rs = receipts(s.test);
+    const rs = receipts(s.test).filter(r => r.source === 'model'); // the policy safety net adds its own labeled follow-up receipt
     expect(rs).toHaveLength(5);
     expect(rs.every(r => r.status.tag === 'rejected')).toBe(true);
     expect(rs.map(r => r.rejectReason)).toEqual([
@@ -393,11 +393,11 @@ describe('C4 agent additions', () => {
 
   it('runtime_status reads the module_meta row (so republishing refreshes it) and ensure_schedules upserts it', () => {
     const s = setup();
-    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.6.0-c5');
+    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.7.0-c3b');
     s.test.db.moduleMeta.id.update({ id: 0, moduleVersion: '9.9.9-test', publishedAt: NOW });
     expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('9.9.9-test');
     s.test.withReducerTx(s.alex, ctx => m.ensureSchedules(ctx, {}));
-    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.6.0-c5');
+    expect(m.runtimeStatus(s.test.anonymousViewContext())[0]!.moduleVersion).toBe('0.7.0-c3b');
     expect(s.test.db.venueReportExpiry.count()).toBe(1n);
     expect(s.test.db.retentionSweep.count()).toBe(1n);
   });

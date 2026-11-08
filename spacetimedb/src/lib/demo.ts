@@ -103,7 +103,7 @@ export function setupDemoGroup(ctx: Ctx, rawName: string): bigint {
     id: 0n,
     organizer: who.alex,
     name,
-    venueHint: 'Student Union, campus (demo)',
+    venueHint: 'Deep Ellum, Dallas, TX',
     startsAt: ctx.timestamp,
     expiresAt,
     status: { tag: 'active' },

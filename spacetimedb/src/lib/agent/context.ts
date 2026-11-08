@@ -32,7 +32,44 @@ export type AgentContext = {
   ridePlan?: { id: string; status: string; chosenOption: string };
   openFollowups: number;
   untrustedNotes: string[];
+  /** Deterministic hints for the current event; the prompt describes the same expectations. */
+  nextStepHints: string[];
 };
+
+/** What a good plan does for each wake event. Shared by the prompt and the context so the model sees one story. */
+export function nextStepHintsFor(event: string): string[] {
+  switch (event) {
+    case 'incident_opened':
+      return [
+        'send_approved_message(buddy_alert) to the highest-priority participant with canMessage=true and alreadyContacted=false',
+        'request_human_confirmation from that same person',
+        'schedule_followup(2)',
+        'update_incident_state(assistance_underway)',
+        'if nobody has canMessage=true: hand_off',
+      ];
+    case 'buddy_nonresponse':
+    case 'buddy_declined':
+      return [
+        'send_approved_message(backup_alert) to the next participant with canMessage=true and alreadyContacted=false',
+        'request_human_confirmation from that person and schedule_followup(2)',
+        'if nobody is left: hand_off',
+      ];
+    case 'buddy_acknowledged':
+      return [
+        'get_transport_options first',
+        'after the tool result arrives: propose_ride_plan for the subject with options "from_transport_lookup"',
+        'update_incident_state(transport_pending)',
+        'send_approved_message(ride_options_ready) to the participant who acknowledged',
+      ];
+    case 'ride_booked':
+      return ['send_approved_message(ride_booked) to the acknowledged helper', 'schedule_followup(5)'];
+    case 'pickup_confirmed':
+    case 'transport_options_ready':
+      return ['no action unless something is missing; the person confirms home themselves'];
+    default:
+      return ['no automated action is expected for this event'];
+  }
+}
 
 type Job = NonNullable<ReturnType<Ctx['db']['agentJob']['id']['find']>>;
 type Incident = NonNullable<ReturnType<Ctx['db']['incident']['id']['find']>>;
@@ -144,6 +181,7 @@ export function buildContext(ctx: Ctx, job: Job, incident: Incident, event: stri
     ridePlan,
     openFollowups,
     untrustedNotes: untrustedNotes.slice(0, 5),
+    nextStepHints: nextStepHintsFor(event),
   };
 }
 

@@ -19,4 +19,5 @@ export default __t.row({
   model: __t.string(),
   simulated: __t.bool(),
   createdAt: __t.timestamp().name("created_at"),
+  rounds: __t.u8(),
 });

@@ -36,6 +36,7 @@ export const AgentAction = __t.object("AgentAction", {
   idempotencyKey: __t.string(),
   at: __t.timestamp(),
   resultText: __t.string(),
+  source: __t.string(),
 });
 export type AgentAction = __Infer<typeof AgentAction>;
 
@@ -95,6 +96,7 @@ export const AgentPlan = __t.object("AgentPlan", {
   model: __t.string(),
   simulated: __t.bool(),
   createdAt: __t.timestamp(),
+  rounds: __t.u8(),
 });
 export type AgentPlan = __Infer<typeof AgentPlan>;
 

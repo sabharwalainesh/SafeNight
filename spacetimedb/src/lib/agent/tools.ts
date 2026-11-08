@@ -7,6 +7,8 @@ export const MAX_FOLLOWUP_MINUTES = 30;
 export const MAX_OPEN_FOLLOWUPS = 3;
 export const DEFAULT_FOLLOWUP_MINUTES = 2;
 export const MAX_TOOL_CALLS_PER_PLAN = 8;
+/** Maximum model round-trips per wake in the agent_step tool loop. */
+export const MAX_ROUNDS = 3;
 
 export const UPDATE_STATES = ['acknowledged', 'assistance_underway', 'transport_pending'] as const;
 

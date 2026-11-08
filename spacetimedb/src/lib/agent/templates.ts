@@ -8,6 +8,7 @@ export const TEMPLATES = {
     "{primaryName} hasn't responded. {subjectName} may need a hand getting home. Can you step in?",
   ack_request: "Please tap Acknowledge in SafeNight so {subjectName}'s group knows someone is on it.",
   ride_booked: "{subjectName}'s ride is booked. Please keep an eye out until they confirm they're home.",
+  ride_options_ready: 'Ride options for {subjectName} are ready in SafeNight. Please help them pick one and book it.',
   organizer_handoff: 'No safety buddy responded for {subjectName}. Please take over coordination.',
   incident_update: 'Update about {subjectName}: {detail}',
 } as const;

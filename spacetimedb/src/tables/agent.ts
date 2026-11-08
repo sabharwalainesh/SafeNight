@@ -54,6 +54,8 @@ export const agentPlan = table(
     model: t.string(),
     simulated: t.bool(),
     createdAt: t.timestamp(),
+    // Number of model round-trips that produced this plan version (tool loop). Added in C3-A.2 with a default.
+    rounds: t.u8().default(1),
   }
 );
 
@@ -74,6 +76,8 @@ export const agentAction = table(
     at: t.timestamp(),
     // Short human summary of the result (≤ 120 chars); empty for rejected calls. Added in C4 with a default.
     resultText: t.string().default(''),
+    // 'model' (Nemotron or the simulated planner proposed it) or 'policy' (deterministic safety net). Added in C3-A.2.
+    source: t.string().default('model'),
   }
 );
 

@@ -64,6 +64,9 @@ const job = (test: Harness) => [...test.db.agentJob.iter()][0]!;
 const wakes = (test: Harness) => [...test.db.agentWake.iter()];
 const notifications = (test: Harness) => [...test.db.notification.iter()];
 const receipts = (test: Harness) => [...test.db.agentAction.iter()].sort((a, b) => Number(a.id - b.id));
+/** Receipts the planner (model or simulated) proposed; policy safety-net receipts carry source 'policy'. */
+const modelReceipts = (test: Harness) => receipts(test).filter(r => r.source === 'model');
+const emptyReply = (model = 'nvidia/test-model') => reply(200, { model, choices: [{ message: { role: 'assistant', content: 'Nothing more to do.', tool_calls: [] } }] });
 const timers = (test: Harness) => [...test.db.followupTimer.iter()];
 const events = (test: Harness, incidentId: bigint) => [...test.db.incidentEvent.incidentId.filter(incidentId)].map(e => e.kind);
 
@@ -186,6 +189,7 @@ describe('C3 agent job lifecycle', () => {
       env: { NEMOTRON_API_KEY: 'test-key', NEMOTRON_MODEL: 'nvidia/test-model' },
       responder: (_req, body) => {
         bodies.push(body);
+        if (bodies.length > 1) return emptyReply(); // round 2 sees the read-tool result and has nothing to add
         return nemotronReply([
           { name: 'get_group_context', args: {} },
           { name: 'send_approved_message', args: { recipient: maya, template: 'buddy_alert', vars: { subjectName: 'ignored' } } },
@@ -194,7 +198,11 @@ describe('C3 agent job lifecycle', () => {
         ]);
       },
     });
-    expect(run.requests).toEqual(['https://integrate.api.nvidia.com/v1/chat/completions']);
+    // get_group_context is a read tool, so the loop asks the model once more with its result
+    expect(run.requests).toEqual(['https://integrate.api.nvidia.com/v1/chat/completions', 'https://integrate.api.nvidia.com/v1/chat/completions']);
+    const second = JSON.parse(bodies[1]!);
+    expect(second.messages.map((x: { role: string }) => x.role)).toEqual(['system', 'user', 'assistant', 'tool', 'tool', 'tool', 'tool']);
+    expect(JSON.parse(second.messages[3].content).result.participants.length).toBeGreaterThan(0); // get_group_context result
     const sent = JSON.parse(bodies[0]!);
     expect(sent.model).toBe('nvidia/test-model');
     expect(sent.tool_choice).toBe('auto');
@@ -227,12 +235,16 @@ describe('C3 agent job lifecycle', () => {
           { name: 'send_approved_message', args: { recipient: s.id(s.maya).toHexString(), template: 'free_text', vars: {} } },
         ]),
     });
-    const rs = receipts(s.test);
+    const rs = modelReceipts(s.test);
     expect(rs.map(r => [r.tool, r.status.tag])).toEqual([
       ['send_approved_message', 'rejected'],
       ['call_911', 'rejected'],
       ['send_approved_message', 'rejected'],
     ]);
+    // the default follow-up the policy adds is labeled as such
+    const policy = receipts(s.test).filter(r => r.source === 'policy');
+    expect(policy.map(r => r.tool)).toEqual(['schedule_followup']);
+    expect(policy[0]!.resultText.startsWith('Policy:')).toBe(true);
     expect(rs[0]!.rejectReason).toContain('recipient_not_authorized');
     expect(rs[1]!.rejectReason).toBe('tool_not_allowed');
     expect(rs[2]!.rejectReason).toContain('template must be one of');
@@ -367,7 +379,7 @@ describe('C3 escalation and acknowledgment', () => {
       env: { NEMOTRON_API_KEY: 'k' },
       responder: () => nemotronReply([{ name: 'send_approved_message', args: { recipient: s.id(s.maya).toHexString(), template: 'backup_alert', vars: {} } }]),
     });
-    const last = receipts(s.test)[receipts(s.test).length - 1]!;
+    const last = modelReceipts(s.test)[modelReceipts(s.test).length - 1]!;
     expect(last.planVersion).toBe(2);
     expect(last.status.tag).toBe('rejected');
     expect(last.rejectReason).toContain('recipient_not_authorized');
@@ -426,16 +438,19 @@ describe('C3 transport and closure', () => {
     expect(m.myRidePlans(s.test.viewContext(s.outsider))).toHaveLength(0);
   });
 
-  it('transport lookup failure is a failed receipt with provider links only, nothing invented', () => {
+  it('transport lookup failure is a partial receipt with pickup-aware provider links only, nothing invented', () => {
     const s = ackedWithLocation();
     const replies = [nominatim, reply(503)];
     runPendingWakes(s.test, { responder: () => replies.shift() ?? new Error('unexpected request') });
     const transport = receipts(s.test).find(r => r.tool === 'get_transport_options')!;
-    expect(transport.status.tag).toBe('failed');
+    expect(transport.status.tag).toBe('executed');
     const result = JSON.parse(transport.resultJson);
-    expect(result.status).toBe('failed');
+    expect(result.status).toBe('partial');
     expect(result.error).toBe('osrm_http_503');
     expect(result.options.every((o: { source: string }) => o.source === 'provider_link')).toBe(true);
+    expect(result.options.find((o: { label: string }) => o.label === 'Uber').url).toContain('pickup[latitude]=40.75');
+    expect(result.options.some((o: { source: string }) => o.source === 'osrm')).toBe(false);
+    expect(transport.resultText).toContain('Lookup failed (osrm_http_503)');
     // the ride plan still exists with the provider links, so a human can book
     expect([...s.test.db.ridePlan.iter()]).toHaveLength(1);
     expect(job(s.test).status.tag).toBe('transport_pending');
@@ -555,5 +570,187 @@ describe('hand-off never targets the suspected driver', () => {
     // Event-table rows are gone after commit, so check the recipient rule directly.
     const takers = test.withReducerTx(alex, ctx => handoffRecipients(ctx as never, incident).map(i => i.toHexString()));
     expect(takers).toEqual([id(alex).toHexString()]);
+  });
+});
+
+
+describe('C3-A.2 tool loop and policy safety net', () => {
+  const NEMOTRON = 'https://integrate.api.nvidia.com/v1/chat/completions';
+  const nominatim = reply(200, [{ lat: '40.7', lon: '-74.0', display_name: 'Downtown' }]);
+  const osrm = reply(200, { routes: [{ duration: 840, distance: 6200 }] });
+
+  function ackedWithLocation() {
+    const s = setup();
+    s.test.withReducerTx(s.sam, ctx => m.setSharingScope(ctx, { sessionId: s.sessionId, scope: { tag: 'approximate' } }));
+    s.test.withReducerTx(s.sam, ctx => m.postLocation(ctx, { sessionId: s.sessionId, lat: 40.75, lng: -73.99, accuracyM: 20, source: { tag: 'simulated' } }));
+    reportDriverConcern(s);
+    runPendingWakes(s.test);
+    const jobId = job(s.test).id;
+    s.test.withReducerTx(s.maya, ctx => m.acknowledgeAssistance(ctx, { jobId }));
+    return s;
+  }
+
+  /** Scripted responder: Nemotron turns in order; Nominatim/OSRM answered by host. */
+  function scripted(turns: (TestHttpResponse | Error)[]) {
+    const bodies: string[] = [];
+    const responder: Responder = (req, body) => {
+      if (req.uri.includes('nominatim')) return nominatim;
+      if (req.uri.includes('router.project-osrm')) return osrm;
+      bodies.push(body);
+      return turns.shift() ?? new Error('unexpected Nemotron request');
+    };
+    return { responder, bodies };
+  }
+  const nemotronRequests = (requests: string[]) => requests.filter(u => u === NEMOTRON);
+
+  it('(a) multi-round: a read tool result is fed back and the second round proposes the ride plan', () => {
+    const s = ackedWithLocation();
+    const sam = s.id(s.sam).toHexString();
+    const script = scripted([
+      nemotronReply([{ name: 'get_transport_options', args: { pickupArea: 'venue' } }]),
+      nemotronReply([
+        { name: 'propose_ride_plan', args: { riderId: sam, options: 'from_transport_lookup' } },
+        { name: 'update_incident_state', args: { state: 'transport_pending' } },
+      ]),
+    ]);
+    const run = runPendingWakes(s.test, { env: { NEMOTRON_API_KEY: 'k' }, responder: script.responder });
+    expect(nemotronRequests(run.requests)).toHaveLength(2);
+    // round 2 carries the assistant tool call and a `tool` message with the transport result
+    const second = JSON.parse(script.bodies[1]!);
+    const roles = second.messages.map((x: { role: string }) => x.role);
+    expect(roles).toEqual(['system', 'user', 'assistant', 'tool']);
+    const toolMsg = JSON.parse(second.messages[3].content);
+    expect(toolMsg.result.status).toBe('ok');
+    expect(toolMsg.result.options.some((o: { source: string }) => o.source === 'osrm')).toBe(true);
+    const plans = [...s.test.db.agentPlan.iter()].sort((a, b) => a.version - b.version);
+    const plan = plans[plans.length - 1]!;
+    expect(plan.rounds).toBe(2);
+    expect(plan.simulated).toBe(false);
+    const steps = JSON.parse(plan.stepsJson) as { name: string; round: number }[];
+    expect(steps.map(x => [x.name, x.round])).toEqual([['get_transport_options', 1], ['propose_ride_plan', 2], ['update_incident_state', 2]]);
+    expect([...s.test.db.ridePlan.iter()]).toHaveLength(1);
+    expect(job(s.test).status.tag).toBe('transport_pending');
+    const mine = modelReceipts(s.test).filter(r => r.planVersion === plan.version);
+    expect(mine.map(r => [r.tool, r.status.tag])).toEqual([['get_transport_options', 'executed'], ['propose_ride_plan', 'executed'], ['update_incident_state', 'executed']]);
+    expect(receipts(s.test).filter(r => r.source === 'policy' && r.planVersion === plan.version)).toHaveLength(0);
+  });
+
+  it('(b) policy proposes the ride plan when the model stops after the transport lookup', () => {
+    const s = ackedWithLocation();
+    const script = scripted([nemotronReply([{ name: 'get_transport_options', args: {} }]), emptyReply()]);
+    const run = runPendingWakes(s.test, { env: { NEMOTRON_API_KEY: 'k' }, responder: script.responder });
+    expect(nemotronRequests(run.requests)).toHaveLength(2);
+    const version = job(s.test).planVersion;
+    const policy = receipts(s.test).filter(r => r.source === 'policy' && r.planVersion === version);
+    expect(policy.map(r => [r.tool, r.status.tag])).toEqual([['propose_ride_plan', 'executed'], ['update_incident_state', 'executed']]);
+    expect(policy.every(r => r.resultText.startsWith('Policy:'))).toBe(true);
+    const plan = [...s.test.db.ridePlan.iter()][0]!;
+    expect(plan.riderId.isEqual(s.id(s.sam))).toBe(true);
+    expect(JSON.parse(plan.optionsJson).options.some((o: { source: string }) => o.source === 'osrm')).toBe(true); // the fetched options, not a fallback
+    expect(job(s.test).status.tag).toBe('transport_pending');
+  });
+
+  it('(b2) policy falls back to pickup-aware provider links when no lookup ran at all', () => {
+    const s = ackedWithLocation();
+    runPendingWakes(s.test, { env: { NEMOTRON_API_KEY: 'k' }, responder: () => emptyReply() });
+    const plan = [...s.test.db.ridePlan.iter()][0]!;
+    const options = JSON.parse(plan.optionsJson);
+    expect(options.status).toBe('provider_links_only');
+    expect(options.options.every((o: { source: string }) => o.source === 'provider_link')).toBe(true);
+    expect(options.options.find((o: { label: string }) => o.label === 'Lyft').url).toContain('pickup[longitude]=-73.99');
+    expect(job(s.test).status.tag).toBe('transport_pending');
+  });
+
+  it('(c) policy adds the missing confirmation request when the model only sent a message', () => {
+    const s = setup();
+    reportDriverConcern(s);
+    const maya = s.id(s.maya).toHexString();
+    runPendingWakes(s.test, {
+      env: { NEMOTRON_API_KEY: 'k' },
+      responder: () => nemotronReply([{ name: 'send_approved_message', args: { recipient: maya, template: 'buddy_alert', vars: {} } }]),
+    });
+    const policy = receipts(s.test).filter(r => r.source === 'policy');
+    expect(policy.map(r => r.tool)).toEqual(['request_human_confirmation', 'schedule_followup']);
+    expect(JSON.parse(policy[0]!.argsJson).userId).toBe(maya);
+    expect(notifications(s.test).map(n => n.template).sort()).toEqual(['ack_request', 'buddy_alert']);
+    expect(timers(s.test)).toHaveLength(1);
+    expect(timers(s.test)[0]!.expectedFrom.isEqual(s.id(s.maya))).toBe(true);
+    expect(job(s.test).status.tag).toBe('waiting_for_ack');
+  });
+
+  it('(d) MAX_ROUNDS caps a model that only keeps reading', () => {
+    const s = setup();
+    reportDriverConcern(s);
+    const run = runPendingWakes(s.test, {
+      env: { NEMOTRON_API_KEY: 'k' },
+      responder: () => nemotronReply([{ name: 'get_group_context', args: {} }]),
+    });
+    expect(nemotronRequests(run.requests)).toHaveLength(3);
+    const plan = [...s.test.db.agentPlan.iter()][0]!;
+    expect(plan.rounds).toBe(3);
+    expect(modelReceipts(s.test).filter(r => r.tool === 'get_group_context')).toHaveLength(3);
+    expect(events(s.test, job(s.test).incidentId)).toContain('rounds_exhausted');
+    // the step still ends in a safe state with a follow-up
+    expect(job(s.test).status.tag).toBe('waiting_for_ack');
+    expect(timers(s.test)).toHaveLength(1);
+  });
+
+  it('(d2) a repeated outward round is not executed twice', () => {
+    const s = setup();
+    reportDriverConcern(s);
+    const maya = s.id(s.maya).toHexString();
+    const same = () =>
+      nemotronReply([
+        { name: 'get_group_context', args: {} },
+        { name: 'send_approved_message', args: { recipient: maya, template: 'buddy_alert', vars: {} } },
+      ]);
+    const run = runPendingWakes(s.test, { env: { NEMOTRON_API_KEY: 'k' }, responder: () => same() });
+    expect(nemotronRequests(run.requests)).toHaveLength(2);
+    expect(notifications(s.test).filter(n => n.template === 'buddy_alert')).toHaveLength(1);
+    expect(events(s.test, job(s.test).incidentId)).toContain('no_progress');
+  });
+
+  it('(e) private reasoning in the model reply is discarded, never stored', () => {
+    const s = setup();
+    reportDriverConcern(s);
+    const maya = s.id(s.maya).toHexString();
+    const SECRET = 'SECRET-REASONING-TOKEN-7731';
+    runPendingWakes(s.test, {
+      env: { NEMOTRON_API_KEY: 'k' },
+      responder: () =>
+        reply(200, {
+          model: 'nvidia/test-model',
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content: 'Ask Maya to help.',
+                reasoning_content: `${SECRET} the user might be lying about everything`,
+                tool_calls: [{ id: 'c1', type: 'function', function: { name: 'send_approved_message', arguments: JSON.stringify({ recipient: maya, template: 'buddy_alert', vars: {} }) } }],
+              },
+            },
+          ],
+        }),
+    });
+    const everything = JSON.stringify({
+      plans: [...s.test.db.agentPlan.iter()],
+      receipts: [...s.test.db.agentAction.iter()],
+      events: [...s.test.db.incidentEvent.iter()],
+      notifications: [...s.test.db.notification.iter()],
+    }, (_k, v) => (typeof v === 'bigint' ? String(v) : v));
+    expect(everything).not.toContain(SECRET);
+    expect([...s.test.db.agentPlan.iter()][0]!.summary).toBe('Ask Maya to help.');
+  });
+
+  it('(f) the simulated planner path is unchanged: one round, model-source receipts, simulated flags', () => {
+    const s = setup();
+    reportDriverConcern(s);
+    runPendingWakes(s.test);
+    const plan = [...s.test.db.agentPlan.iter()][0]!;
+    expect(plan.rounds).toBe(1);
+    expect(plan.model).toBe('simulated-planner');
+    const rs = receipts(s.test);
+    expect(rs.every(r => r.source === 'model' && r.simulated === true)).toBe(true);
+    expect(rs.map(r => r.tool)).toEqual(['get_group_context', 'send_approved_message', 'request_human_confirmation', 'update_incident_state', 'schedule_followup']);
   });
 });

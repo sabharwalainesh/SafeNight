@@ -22,7 +22,13 @@ export type SegmentInput = {
   transportReceiptId?: bigint;
   /** Who the plan last asked to confirm (hex); follow-up timers expect this person. */
   confirmationTarget?: string;
+  /** 'model' (default) or 'policy' for the deterministic safety net; stored on every receipt. */
+  source?: ReceiptSource;
+  /** Prefix for receipt indices so policy receipts never collide with model receipts of the same version. */
+  indexPrefix?: string;
 };
+
+export type ReceiptSource = 'model' | 'policy';
 
 export type SegmentOutcome = {
   nextIndex: number;
@@ -40,7 +46,7 @@ type Incident = NonNullable<ReturnType<Ctx['db']['incident']['id']['find']>>;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-function receipt(
+export function receipt(
   ctx: Ctx,
   jobId: bigint,
   planVersion: number,
@@ -51,10 +57,12 @@ function receipt(
   result: unknown,
   rejectReason: string,
   simulated: boolean,
-  resultText = ''
+  resultText = '',
+  source: ReceiptSource = 'model'
 ) {
   const key = `${jobId}:${planVersion}:${index}:${tool}`;
   if (ctx.db.agentAction.idempotencyKey.find(key)) return undefined;
+  const text = status === 'rejected' ? '' : source === 'policy' && !resultText.startsWith('Policy:') ? `Policy: ${resultText}` : resultText;
   return ctx.db.agentAction.insert({
     id: 0n,
     jobId,
@@ -67,13 +75,15 @@ function receipt(
     simulated,
     idempotencyKey: key,
     at: ctx.timestamp,
-    resultText: status === 'rejected' ? '' : resultText.slice(0, 120),
+    resultText: text.slice(0, 120),
+    source,
   });
 }
 
 /** Short human summary for a receipt (≤ 120 chars). */
 export function summarizeTransport(result: TransportResult): string {
-  if (result.status === 'failed') return `Transport lookup failed (${result.error ?? 'unknown'}); provider links only`;
+  if (result.status === 'failed') return `Transport lookup failed (${result.error ?? 'unknown'}); nothing usable`;
+  if (result.status === 'partial') return `Lookup failed (${result.error ?? 'unknown'}); ${result.options.length} pickup-aware provider links`;
   if (result.status === 'ok') {
     const route = result.options.find(o => o.source === 'osrm');
     return `Route ~${route?.durationMinutes ?? '?'} min, ${route?.distanceKm ?? '?'} km; ${result.options.length} options`;
@@ -113,33 +123,44 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
     completeTransportReceipt(ctx, input.transportReceiptId, input.transport);
   }
   const sim = input.simulated;
+  const src: ReceiptSource = input.source ?? 'model';
+  const pfx = input.indexPrefix ?? '';
+  const rec = (
+    index: number,
+    tool: string,
+    args: unknown,
+    status: 'proposed' | 'rejected' | 'executed' | 'failed',
+    result: unknown,
+    rejectReason: string,
+    resultText = ''
+  ) => receipt(ctx, input.jobId, input.planVersion, `${pfx}${index}`, tool, args, status, result, rejectReason, sim, resultText, src);
 
   for (let i = input.startIndex; i < input.calls.length; i++) {
     const call = input.calls[i]!;
     const job = ctx.db.agentJob.id.find(input.jobId);
     if (!job || isTerminalJob(job.status.tag)) {
-      receipt(ctx, input.jobId, input.planVersion, i, call.name, call.args, 'rejected', {}, 'job_closed', sim);
+      rec(i, call.name, call.args, 'rejected', {}, 'job_closed');
       out.stopped = true;
       break;
     }
     if (job.planVersion !== input.planVersion) {
-      receipt(ctx, input.jobId, input.planVersion, i, call.name, call.args, 'rejected', {}, 'stale_plan', sim);
+      rec(i, call.name, call.args, 'rejected', {}, 'stale_plan');
       out.stopped = true;
       break;
     }
     const incident = ctx.db.incident.id.find(job.incidentId);
     if (!incident || !isOpenStatus(incident.status.tag)) {
-      receipt(ctx, input.jobId, input.planVersion, i, call.name, call.args, 'rejected', {}, 'incident_closed', sim);
+      rec(i, call.name, call.args, 'rejected', {}, 'incident_closed');
       out.stopped = true;
       break;
     }
     if (!isToolName(call.name)) {
-      receipt(ctx, input.jobId, input.planVersion, i, call.name, call.args, 'rejected', {}, 'tool_not_allowed', sim);
+      rec(i, call.name, call.args, 'rejected', {}, 'tool_not_allowed');
       continue;
     }
     const validated = validateArgs(call.name, call.args ?? {});
     if (!validated.ok) {
-      receipt(ctx, input.jobId, input.planVersion, i, call.name, call.args, 'rejected', {}, `invalid_args: ${validated.reason}`, sim);
+      rec(i, call.name, call.args, 'rejected', {}, `invalid_args: ${validated.reason}`);
       continue;
     }
     const args = validated.args;
@@ -156,13 +177,13 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
             canMessage: recipientAllowed(ctx, incident, p.userId),
           });
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { incident: incident.status.tag, participants }, '', sim,
+        rec(i, call.name, args, 'executed', { incident: incident.status.tag, participants }, '',
           `${participants.length} participants, ${participants.filter(p => p.canMessage).length} reachable; incident ${incident.status.tag}`);
         break;
       }
       case 'get_recent_checkins': {
         if (args.userId !== incident.subject.toHexString()) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'only the incident subject\'s check-ins are readable', sim);
+          rec(i, call.name, args, 'rejected', {}, 'only the incident subject\'s check-ins are readable');
           break;
         }
         const windowMicros = BigInt(args.windowMinutes as number) * 60_000_000n;
@@ -171,13 +192,13 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           const age = ctx.timestamp.microsSinceUnixEpoch - c.createdAt.microsSinceUnixEpoch;
           if (age <= windowMicros) kinds.push({ kind: c.kind.tag, minutesAgo: Number(age / 60_000_000n) });
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { checkins: kinds }, '', sim,
+        rec(i, call.name, args, 'executed', { checkins: kinds }, '',
           kinds.length ? `${kinds.length} check-ins; latest ${kinds[0]!.kind} ${kinds[0]!.minutesAgo} min ago` : 'No recent check-ins');
         break;
       }
       case 'get_last_shared_location': {
         if (args.userId !== incident.subject.toHexString()) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'only the incident subject\'s location age is readable', sim);
+          rec(i, call.name, args, 'rejected', {}, 'only the incident subject\'s location age is readable');
           break;
         }
         let result: unknown = { available: false };
@@ -192,12 +213,12 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           };
         }
         const loc = result as { available: boolean; ageMinutes?: number };
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', result, '', sim,
+        rec(i, call.name, args, 'executed', result, '',
           loc.available ? `Last shared location is ${loc.ageMinutes} min old (rounded)` : 'No shared location available');
         break;
       }
       case 'get_transport_options': {
-        const row = receipt(ctx, job.id, input.planVersion, i, call.name, args, 'proposed', {}, '', false);
+        const row = rec(i, call.name, args, 'proposed', {}, '');
         if (row) {
           let pickup: TransportInput['pickup'] = null;
           for (const loc of ctx.db.latestLocation.bySessionUser.filter([incident.sessionId, incident.subject])) {
@@ -220,12 +241,12 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
         const targetHex = (call.name === 'send_approved_message' ? args.recipient : args.userId) as string;
         const target = Identity.fromString(targetHex);
         if (!recipientAllowed(ctx, incident, target)) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'recipient_not_authorized: not a participant with messaging consent from the subject', sim);
+          rec(i, call.name, args, 'rejected', {}, 'recipient_not_authorized: not a participant with messaging consent from the subject');
           break;
         }
         const template = call.name === 'send_approved_message' ? (args.template as string) : 'ack_request';
         if (!isTemplateName(template)) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'unknown_template', sim);
+          rec(i, call.name, args, 'rejected', {}, 'unknown_template');
           break;
         }
         const vars = { ...((args.vars as Record<string, string> | undefined) ?? {}), subjectName };
@@ -262,7 +283,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           addEvent(ctx, incident.id, 'message_queued', `${template} queued for ${targetName} via ${channel}`, channel !== 'sms');
           if (out.confirmationTarget === undefined) out.confirmationTarget = targetHex;
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { notificationId: String(n.id), channel }, '', sim,
+        rec(i, call.name, args, 'executed', { notificationId: String(n.id), channel }, '',
           call.name === 'request_human_confirmation' ? `Asked ${targetName} to confirm` : `${template} queued for ${targetName} via ${channel}`);
         break;
       }
@@ -270,7 +291,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
         let open = 0;
         for (const _t of ctx.db.followupTimer.jobId.filter(job.id)) open++;
         if (open >= MAX_OPEN_FOLLOWUPS) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'too_many_open_followups', sim);
+          rec(i, call.name, args, 'rejected', {}, 'too_many_open_followups');
           break;
         }
         const expectedHex = out.confirmationTarget;
@@ -285,7 +306,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           tier: job.escalationTier,
         });
         out.scheduledFollowup = true;
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { timerId: String(timer.scheduledId), minutes }, '', sim,
+        rec(i, call.name, args, 'executed', { timerId: String(timer.scheduledId), minutes }, '',
           `Follow-up in ${minutes} min`);
         break;
       }
@@ -295,14 +316,14 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
         const from = incident.status.tag;
         const allowedFrom = target === 'acknowledged' ? ['open'] : ['open', 'acknowledged', 'assistance_underway'];
         if (!allowedFrom.includes(from)) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, `invalid_transition: ${from} -> ${target}`, sim);
+          rec(i, call.name, args, 'rejected', {}, `invalid_transition: ${from} -> ${target}`);
           break;
         }
         if (from !== target) {
           ctx.db.incident.id.update({ ...incident, status: { tag: target } });
           addEvent(ctx, incident.id, 'state_updated', `Agent set status ${target}`, sim);
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { from, to: target }, '', sim, `Status ${from} → ${target}`);
+        rec(i, call.name, args, 'executed', { from, to: target }, '', `Status ${from} → ${target}`);
         break;
       }
       case 'propose_ride_plan': {
@@ -310,7 +331,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
         let isParticipant = false;
         for (const _p of ctx.db.incidentParticipant.byIncidentUser.filter([incident.id, rider])) isParticipant = true;
         if (!isParticipant) {
-          receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'rider_not_participant', sim);
+          rec(i, call.name, args, 'rejected', {}, 'rider_not_participant');
           break;
         }
         let options: unknown;
@@ -318,7 +339,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
         const fetchedAtMs = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
         if (args.options === 'from_transport_lookup') {
           if (!input.transport) {
-            receipt(ctx, job.id, input.planVersion, i, call.name, args, 'rejected', {}, 'no_transport_lookup_in_plan', sim);
+            rec(i, call.name, args, 'rejected', {}, 'no_transport_lookup_in_plan');
             break;
           }
           const clean = sanitizeOptions(input.transport.options);
@@ -363,7 +384,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
             sendAlert(ctx, p.userId, incident.id, 'incident_update', `Ride options for ${subjectName} are ready. Someone needs to book and confirm.`);
           }
         }
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { ridePlanId: String(planId), droppedLinks: dropped }, '', sim,
+        rec(i, call.name, args, 'executed', { ridePlanId: String(planId), droppedLinks: dropped }, '',
           `Ride plan #${planId} proposed${dropped ? `; ${dropped} link(s) dropped by the allowlist` : ''}`);
         break;
       }
@@ -377,7 +398,7 @@ export function executeSegment(ctx: Ctx, input: SegmentInput): SegmentOutcome {
           sendAlert(ctx, who, incident.id, 'incident_update', `SafeNight could not reach a helper for ${subjectName}. Please take over coordination.`);
         }
         out.handedOff = true;
-        receipt(ctx, job.id, input.planVersion, i, call.name, args, 'executed', { reason }, '', sim, `Handed off to the organizer: ${reason}`);
+        rec(i, call.name, args, 'executed', { reason }, '', `Handed off to the organizer: ${reason}`);
         out.stopped = true;
         out.nextIndex = input.calls.length;
         return out;

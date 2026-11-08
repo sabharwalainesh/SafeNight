@@ -29,4 +29,5 @@ export default __t.row({
   idempotencyKey: __t.string().name("idempotency_key"),
   at: __t.timestamp(),
   resultText: __t.string().name("result_text"),
+  source: __t.string(),
 });
