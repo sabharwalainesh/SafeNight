@@ -65,7 +65,7 @@ const toMember = (r: Row): SessionMember => ({
   displayName: r.displayName,
   role: tagToSnake(r.role.tag) as SessionMember['role'],
   joinedAt: tsMs(r.joinedAt),
-  leftAt: r.active ? null : tsMs(r.joinedAt), // best-effort: row has no leftAt
+  leftAt: optTsMs(r.leftAt),
   sharingScope: tagToSnake(r.sharingScope.tag) as SharingScope,
 });
 

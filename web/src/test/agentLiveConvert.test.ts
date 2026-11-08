@@ -34,6 +34,8 @@ describe('agent live converters', () => {
     const base = { id: 5n, jobId: 1n, planVersion: 1, tool: 'send_approved_message', argsJson: '{"template":"buddy_alert"}', status: { tag: 'Executed' }, resultJson: '{}', rejectReason: '', simulated: true, at: ts(9) };
     const a = toAction(base);
     expect(a).toMatchObject({ status: 'executed', args: { template: 'buddy_alert' }, resultText: 'send approved message: executed', at: 9 });
+    expect(toAction({ ...base, resultText: 'Sent to Maya' }).resultText).toBe('Sent to Maya');
+    expect(toAction({ ...base, resultText: '' }).resultText).toBe('send approved message: executed');
     const bad = toAction({ ...base, argsJson: 'oops', resultJson: 'oops', status: { tag: 'Rejected' }, rejectReason: 'stale_plan' });
     expect(bad.args).toEqual({});
     expect(bad.resultText).toBe('send approved message rejected: stale_plan');

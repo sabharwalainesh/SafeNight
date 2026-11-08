@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { JOB_STATUS_LABELS, useAgent } from '../agent/api';
 import { useNightOut } from '../night-out/api';
 import { useSafety } from '../safety/api';
+import { DemoLiveControls } from '../demo-live/DemoLiveControls';
 import './demo-panel.css';
 
 const TIER_LABELS = ['Primary buddy', 'Backup buddy', 'Organizer'];
@@ -45,18 +46,19 @@ export function DemoPanel() {
         <h2>Judge demo</h2>
         <span className="badge sim">{agent.mocked ? 'MOCK' : 'LIVE'}</span>
       </div>
+      {!agent.mocked && <DemoLiveControls />}
       <div className="demo-row">
-        <button type="button" className="demo-btn primary" disabled={busy || !mockedNightOut || !agent.mocked} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
-          Set up demo group
-        </button>
-        {!agent.mocked ? (
-          <span className="small muted">Create the session from the Night Out tab and join from each persona tab</span>
-        ) : (
-          !mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>
+        {agent.mocked && (
+          <>
+            <button type="button" className="demo-btn primary" disabled={busy || !mockedNightOut} onClick={() => void run('Demo group is ready', () => agent.demo.setupGroup())}>
+              Set up demo group
+            </button>
+            {!mockedNightOut && <span className="small muted">Group setup needs the demo reducer from the backend (live mode)</span>}
+          </>
         )}
         {!confirming ? (
           <button type="button" className="demo-btn danger" disabled={busy} onClick={() => setConfirming(true)}>
-            Reset demo
+            {agent.mocked ? 'Reset demo' : 'Wipe all demo data'}
           </button>
         ) : (
           <>
@@ -76,7 +78,7 @@ export function DemoPanel() {
                 );
               }}
             >
-              Yes, erase all demo data
+              {agent.mocked ? 'Yes, erase all demo data' : 'Yes, wipe all demo data'}
             </button>
             <button type="button" className="demo-btn" onClick={() => setConfirming(false)}>
               Cancel
@@ -86,7 +88,7 @@ export function DemoPanel() {
       </div>
       {!agent.mocked && <p className="small muted">Wipes every demo row on the server; venues and resources stay.</p>}
       {msg && (
-        <div className={`result ${msg.ok ? 'ok' : 'err'}`} role="status">
+        <div className={`result ${msg.ok ? 'ok' : 'err'}`} role={msg.ok ? 'status' : 'alert'}>
           {msg.text}
         </div>
       )}

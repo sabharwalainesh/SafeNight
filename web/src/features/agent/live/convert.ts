@@ -52,6 +52,7 @@ export type ActionRowLike = {
   status: Tag;
   resultJson: string;
   rejectReason: string;
+  resultText?: string;
   simulated: boolean;
   at: Timestamp;
 };
@@ -188,7 +189,7 @@ export function toAction(r: ActionRowLike): AgentAction {
     tool: r.tool,
     args: isObj(args) ? args : {},
     status: st,
-    resultText: resultText(r.tool, st, r.resultJson, r.rejectReason),
+    resultText: r.resultText ? r.resultText : resultText(r.tool, st, r.resultJson, r.rejectReason),
     rejectReason: r.rejectReason,
     simulated: r.simulated,
     at: tsMs(r.at),
