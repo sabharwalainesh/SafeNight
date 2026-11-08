@@ -33,12 +33,17 @@ export function MeetupTracker() {
 function TrackerInner({ mu: { me, meetups } }: { mu: MeetupState }) {
   const safety = useSafety();
   const active = meetups.find((m) => isActiveMeetup(m) && (m.helper === me || m.requester === me));
+  // A requester starts sharing real position as soon as they ask for company (this is also when the
+  // phone asks for location permission), so the helper's compass points at where they really are.
+  const waiting = safety.incidents.some(
+    (i) => i.subject === me && !['resolved', 'cancelled', 'handed_off'].includes(i.status) && safety.timeline(i.id).some((e) => e.kind === 'company_requested'),
+  );
   const other = active ? (active.helper === me ? active.requester : active.helper) : null;
   const otherLoc = other ? locOf(safety.locations, null, other) : null;
   const from: LatLng | null = safety.myLocation ?? { lat: jitter(TIMES_SQUARE.lat), lng: jitter(TIMES_SQUARE.lng) };
   // Only the helper walks; the requester's simulated position stays put (target = itself).
   const target: LatLng | null = active?.helper === me ? otherLoc : from;
-  useGeolocation(!!active, safety.actions.postLocation, 2000, { from, target });
+  useGeolocation(!!active || waiting, safety.actions.postLocation, 2000, { from, target });
   return null;
 }
 

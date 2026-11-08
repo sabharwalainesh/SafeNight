@@ -26,7 +26,13 @@ export function NoDrivingBanner({ onViewIncident }: { onViewIncident?: (incident
         <ul role="status" className="status-toasts">
           {others.map((a) => (
             <li key={a.id} className="status-toast">
-              <span>{a.message}</span>
+              {onViewIncident && a.incidentId ? (
+                <button type="button" className="status-toast-body" onClick={() => onViewIncident(a.incidentId)}>
+                  {a.message} <span className="muted">· Open</span>
+                </button>
+              ) : (
+                <span>{a.message}</span>
+              )}
               <button type="button" className="status-toast-x" aria-label="Dismiss" onClick={() => dismissAlert(a.id)}>
                 ×
               </button>
