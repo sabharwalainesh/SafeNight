@@ -14,6 +14,16 @@ A standalone, hardcoded iOS demo of the SafeNight Live Activity (lock screen car
 
 The Dynamic Island needs an iPhone 14 Pro or newer. Older iPhones show only the lock screen card.
 
+## Buttons
+
+The same three buttons appear in the app and on the lock screen card and the expanded Dynamic Island (iOS 17+ interactive Live Activities; no long-press needed for the lock screen card).
+
+- **Check in**: card becomes "Check-in time" (orange).
+- **I'm good**: card becomes "You're checked in" (green). If a help flow is open, the alert stays open: "I'm good" never closes it, only Sam's "home" does.
+- **Need help**: runs the scripted flow (Maya asked, Jordan on the way, ride booked, picked up, Sam is home), advancing every 6 seconds. The buttons hide at the final "home" stage.
+
+Lock-screen taps run inside the app process, so keep the app running (backgrounded is fine) for the auto-advance to continue.
+
 ## Simulator
 
 Download an iOS simulator runtime (Xcode > Settings > Components), choose an iPhone 14 Pro or newer simulator, and Run. Long-press the island to expand it.

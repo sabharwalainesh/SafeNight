@@ -11,6 +11,8 @@
 		400DAA9C318931227C858C7D /* IncidentAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC927AFED79F01E3B3909D57 /* IncidentAttributes.swift */; };
 		6CD2E63438D1A53E4095948E /* SafeNightLiveWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7746AB9110E017011F0A674B /* SafeNightLiveWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		703BF05DE956436E8B6ABB24 /* IncidentAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC927AFED79F01E3B3909D57 /* IncidentAttributes.swift */; };
+		7A295389AAE5FF175717DA1F /* DemoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1BAC936C541EFDE1B3564C /* DemoEngine.swift */; };
+		8B14856999657611B4B4E2F7 /* DemoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1BAC936C541EFDE1B3564C /* DemoEngine.swift */; };
 		F71D444E20482D6F2BCBA0A6 /* SafeNightLiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959E93E0A5EE96E14C0D4A8C /* SafeNightLiveApp.swift */; };
 /* End PBXBuildFile section */
 
@@ -43,6 +45,7 @@
 		7F198DD541A1A9243D86DC42 /* SafeNightLiveWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeNightLiveWidget.swift; sourceTree = "<group>"; };
 		959E93E0A5EE96E14C0D4A8C /* SafeNightLiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeNightLiveApp.swift; sourceTree = "<group>"; };
 		A87A739CECA87D0A8D7EA14C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CC1BAC936C541EFDE1B3564C /* DemoEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoEngine.swift; sourceTree = "<group>"; };
 		DC927AFED79F01E3B3909D57 /* IncidentAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentAttributes.swift; sourceTree = "<group>"; };
 		E35ECC7E9E88DC4F482A87AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FA77471DAAE683B8008786FC /* SafeNightLive.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SafeNightLive.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -89,6 +92,7 @@
 		A809F7858438F7188854DF02 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				CC1BAC936C541EFDE1B3564C /* DemoEngine.swift */,
 				DC927AFED79F01E3B3909D57 /* IncidentAttributes.swift */,
 			);
 			path = Shared;
@@ -169,6 +173,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A295389AAE5FF175717DA1F /* DemoEngine.swift in Sources */,
 				703BF05DE956436E8B6ABB24 /* IncidentAttributes.swift in Sources */,
 				1EC2DD96FAE0F2FEDB9CBE7C /* SafeNightLiveWidget.swift in Sources */,
 			);
@@ -178,6 +183,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8B14856999657611B4B4E2F7 /* DemoEngine.swift in Sources */,
 				400DAA9C318931227C858C7D /* IncidentAttributes.swift in Sources */,
 				F71D444E20482D6F2BCBA0A6 /* SafeNightLiveApp.swift in Sources */,
 			);
