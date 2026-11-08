@@ -56,19 +56,32 @@ Every simulated plan, message, and receipt carries `simulated: true` in the data
 
 ## Demo
 
-Follow the [judge demo script](docs/DEMO_SCRIPT.md) (~5 minutes, four tabs: `?as=alex`, `?as=sam`, `?as=maya`, `?as=jordan`). Every client feature currently runs on **local mock data** (MOCK DATA badges) with a **simulated** deterministic planner and simulated messaging; no SMS is sent and the app never books or pays for rides. Tabs: Night Out, Map, Reports, Inbox, Profile. The judge demo panel (Set up demo group, Advance timer, Reset demo) lives in Profile.
+Follow the [judge demo script](docs/DEMO_SCRIPT.md) (~5 minutes, four tabs in one browser: `?as=alex`, `?as=sam`, `?as=maya`, `?as=jordan`). Tabs: Night Out, Map, Reports, Inbox, Profile; the judge demo panel lives in Profile.
+
+Two ways to run the client:
+
+| Mode | Command | Data |
+| --- | --- | --- |
+| Mock | `npm run dev -w web` | Local mock data shared between tabs (MOCK DATA badges) and a deterministic simulated planner. No server needed. "Set up demo group" builds the whole demo group in one click. |
+| Live | `npm run dev:live -w web` | Every tab reads and writes the SpacetimeDB module (needs `spacetime start` and the module published; see above). Create the session in Night Out and join from each persona tab. "Advance timer" and "Reset demo" call the module's demo reducers. |
+
+Each tab can also be switched on its own with `VITE_NIGHTOUT_SOURCE`, `VITE_SAFETY_SOURCE`, `VITE_AGENT_SOURCE`, `VITE_REPORTS_SOURCE` or `VITE_PROFILE_SOURCE` set to `live`.
+
+In both modes no SMS is sent unless Twilio is configured on the module, and the app never books or pays for rides: ride options are deep links the person opens and confirms. Real Nemotron planning runs only when `NEMOTRON_API_KEY` is set on the module; otherwise plans and receipts are labeled SIMULATED.
+
+`npm test -w web` runs the client suite (101 tests): the full demo flow and safety rules on mock data, axe accessibility checks on every screen, colour contrast, and the live data converters.
 
 ## Hackathon tracks
 
 | Item | Status | Where |
 | --- | --- | --- |
-| Client UI for the full SOS flow (group, consent, map, reports, inbox, timeline) | Implemented on mock data | `web/src/features/` |
-| Deterministic no-driving warning, independent of AI | Implemented in the mock client; module version In progress (A) | `web/`, `spacetimedb/` |
-| Track 1: agent plan, tool receipts, nonresponse escalation | Simulated planner only | Mock in `web/`; real version Planned (C3-A) |
-| Track 1: real Nemotron calls from a scheduled procedure | In progress (A); needs `NEMOTRON_API_KEY` | `spacetimedb/` |
-| Track 1: real messaging and ride-info APIs | Planned; currently simulated | `spacetimedb/` |
-| Track 2: SpacetimeDB module (roles, consent, incidents, timers) | In progress (A), C1-C4 tables being built | `spacetimedb/` |
-| Track 2: client reading/writing live SpacetimeDB data | Planned; client is on mock data today | `web/src/module_bindings` |
-| Public GitHub submission | Planned | See [track requirements](docs/HACKATHON_TRACK_REQUIREMENTS.md) |
+| Client UI for the full SOS flow (group, consent, map, reports, inbox, agent timeline, rides, profile) | Implemented | `web/src/screens/`, `web/src/features/` |
+| Client on live SpacetimeDB data for every tab | Implemented; live run by Person B still to do | `web/src/features/*/live/` |
+| Deterministic no-driving warning, in the same transaction as the concern report | Implemented in the module | `spacetimedb/` |
+| Track 1: event-triggered agent (scheduled procedure), versioned plans, validated tool calls, receipts, nonresponse escalation | Implemented in the module | `spacetimedb/` |
+| Track 1: real Nemotron calls | Implemented; runs only with `NEMOTRON_API_KEY`, simulated planner otherwise | `spacetimedb/` |
+| Track 1: external APIs | Transport lookup via Nominatim/OSRM implemented; messaging simulated unless Twilio is configured | `spacetimedb/` |
+| Track 2: SpacetimeDB as the backend (tables, reducers, views, schedules, procedures, RLS) | Implemented (C0-C4); deployment in progress (C5) | `spacetimedb/` |
+| Public GitHub submission | Not yet: the repository must be public before submission | See [track requirements](docs/HACKATHON_TRACK_REQUIREMENTS.md) |
 
-No track is claimed as satisfied yet; the real-backend and real-Nemotron items are unverified until they land.
+Known gap: phone numbers currently sit in the public `user_profile` table, so the live client hides phone entry until the module keeps them private. No track is claimed as satisfied until the live four-tab demo has been recorded end to end.
