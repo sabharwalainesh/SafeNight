@@ -6,18 +6,20 @@ import { identityStr, snakeToTag, tagToSnake, tsMs } from '../../night-out/live/
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = any;
 
-// `user_profile` is a public table, so other users' rows reach every client.
-// Only keep a phone number for the caller's own row; never carry anyone else's.
-export function toProfile(r: Row, me?: string): UserProfile {
-  const userId = identityStr(r.identity);
+// `user_profile` is public; its deprecated phoneE164 is never read. The caller's
+// phone comes from the private `my_phone` row and is passed in.
+export function toProfile(r: Row, phone = ''): UserProfile {
   return {
-    userId,
+    userId: identityStr(r.identity),
     displayName: r.displayName,
     avatarEmoji: r.avatarEmoji,
     phoneVerified: !!r.phoneVerified,
-    phone: me !== undefined && userId === me ? (r.phoneE164 ?? '') : '',
+    phone,
   };
 }
+
+/** Phone from the caller's own `my_phone` row (or ''). */
+export const toPhone = (r: Row | undefined | null): string => r?.phoneE164 ?? '';
 
 const ROLES: ContactRole[] = ['buddy', 'backup_buddy', 'emergency'];
 export function toRole(tag: string): ContactRole {
@@ -77,4 +79,15 @@ export function planMove(sorted: TrustedContact[], id: string, dir: 'up' | 'down
   const j = dir === 'up' ? i - 1 : i + 1;
   if (j < 0 || j >= sorted.length) return null;
   return { a: sorted[i], b: sorted[j], aPriority: j + 1, bPriority: i + 1 };
+}
+
+/** New full id order after moving one contact a step; null when out of range. */
+export function reorderIds(sorted: TrustedContact[], id: string, dir: 'up' | 'down'): bigint[] | null {
+  const i = sorted.findIndex((c) => c.id === id);
+  if (i < 0) throw new Error('Contact not found');
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= sorted.length) return null;
+  const ids = sorted.map((c) => BigInt(c.id));
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  return ids;
 }

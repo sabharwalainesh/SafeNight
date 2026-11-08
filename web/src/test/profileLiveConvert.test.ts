@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Identity, Timestamp } from 'spacetimedb';
-import { planMove, privacyArgs, sortContacts, toContact, toPrivacy, toProfile } from '../features/profile/live/convert';
+import { planMove, reorderIds, toPhone, privacyArgs, sortContacts, toContact, toPrivacy, toProfile } from '../features/profile/live/convert';
 import { DEFAULT_PRIVACY } from '../features/profile/api';
 
 const ida = new Identity('00000000000000000000000000000000000000000000000000000000000000aa');
@@ -8,18 +8,20 @@ const idb = new Identity('000000000000000000000000000000000000000000000000000000
 const ts = (ms: number) => Timestamp.fromDate(new Date(ms));
 
 describe('profile live converters', () => {
-  it('profile row', () => {
-    expect(toProfile({ identity: ida, displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, createdAt: ts(1), phoneE164: '+15551234567' }, ida.toHexString())).toEqual({
-      userId: ida.toHexString(),
-      displayName: 'Maya',
-      avatarEmoji: 'x',
-      phoneVerified: false,
-      phone: '+15551234567',
-    });
+  it('profile row ignores deprecated phoneE164; phone comes from myPhone', () => {
+    const row = { identity: ida, displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, createdAt: ts(1), phoneE164: '+19999999999' };
+    expect(toProfile(row)).toEqual({ userId: ida.toHexString(), displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, phone: '' });
+    expect(toProfile(row, toPhone({ identity: ida, phoneE164: '+15551234567' })).phone).toBe('+15551234567');
+    expect(toPhone(undefined)).toBe('');
   });
 
-  it('drops other users\' phone numbers', () => {
-    expect(toProfile({ identity: ida, displayName: 'Maya', avatarEmoji: 'x', phoneVerified: false, createdAt: ts(1), phoneE164: '+15551234567' }, 'someone-else').phone).toBe('');
+  it('reorderIds builds the full swapped bigint order', () => {
+    const mk = (id: string, priority: number) => ({ id, owner: 'o', contact: id, contactName: id, role: 'buddy' as const, messagingConsent: false, priority, createdAt: 0 });
+    const list = sortContacts([mk('7', 1), mk('8', 2), mk('9', 3)]);
+    expect(reorderIds(list, '8', 'up')).toEqual([8n, 7n, 9n]);
+    expect(reorderIds(list, '8', 'down')).toEqual([7n, 9n, 8n]);
+    expect(reorderIds(list, '7', 'up')).toBeNull();
+    expect(() => reorderIds(list, '1', 'up')).toThrow();
   });
 
   it('contact maps role and name', () => {

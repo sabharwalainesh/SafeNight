@@ -1,9 +1,10 @@
 import { createElement, useMemo, type ReactNode } from 'react';
 import { Identity, SenderError } from 'spacetimedb';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
+import { identityStr } from '../../night-out/live/convert';
 import { reducers, tables } from '../../../module_bindings';
 import { ProfileContext, type ContactRole, type ProfileActions, type ProfileApi, type TrustedContact } from '../api';
-import { planMove, privacyArgs, roleTag, sortContacts, toContact, toPrivacy, toProfile } from './convert';
+import { privacyArgs, roleTag, sortContacts, toContact, toPrivacy, toProfile, toPhone, reorderIds } from './convert';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = any;
@@ -28,16 +29,19 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
 
   const [profileRows, pReady] = useTable(tables.userProfile);
   const [contactRows, cReady] = useTable(tables.myContacts);
+  const [phoneRows, phReady] = useTable(tables.myPhone);
   const [privacyRows, vReady] = useTable(tables.myPrivacySettings);
 
   const rSetProfile = useReducer(reducers.setProfile);
   const rSetPhone = useReducer(reducers.setPhone);
+  const rReorder = useReducer(reducers.reorderTrustedContacts);
   const rAdd = useReducer(reducers.addTrustedContact);
   const rRemove = useReducer(reducers.removeTrustedContact);
   const rPrivacy = useReducer(reducers.setPrivacySettings);
   const rDelete = useReducer(reducers.deleteMyData);
 
-  const profiles = (profileRows as Row[]).map(r => toProfile(r, me));
+  const myPhone = toPhone((phoneRows as Row[])[0]);
+  const profiles = (profileRows as Row[]).map(r => toProfile(r, identityStr(r.identity) === me ? myPhone : ''));
   const nameOf = (id: string) => profiles.find((p) => p.userId === id)?.displayName;
   const contacts = sortContacts((contactRows as Row[]).map((r) => toContact(r, nameOf)));
 
@@ -54,13 +58,8 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
       removeTrustedContact: (id) => wrap(() => rRemove({ id: BigInt(id) })),
       moveContact: (id, dir) =>
         wrap(async () => {
-          const m = planMove(ref.contacts, id, dir);
-          if (!m) return;
-          // No reorder reducer: remove both rungs, then re-add with swapped priorities.
-          await rRemove({ id: BigInt(m.a.id) });
-          await rRemove({ id: BigInt(m.b.id) });
-          await add(m.a.contact, m.a.role, m.a.messagingConsent, m.aPriority);
-          await add(m.b.contact, m.b.role, m.b.messagingConsent, m.bPriority);
+          const ids = reorderIds(ref.contacts, id, dir);
+          if (ids) await rReorder({ contactIds: ids });
         }),
       setPrivacyDefaults: (p) => wrap(() => rPrivacy(privacyArgs(p))),
       deleteMyData: () => wrap(() => rDelete()),
@@ -70,7 +69,7 @@ export function ProfileLiveProvider(props: { children?: ReactNode }) {
 
   const api: ProfileApi = {
     me,
-    ready: !!identity && pReady && cReady && vReady,
+    ready: !!identity && pReady && cReady && vReady && phReady,
     mocked: false,
     profile: profiles.find((p) => p.userId === me) ?? null,
     contacts,

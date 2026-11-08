@@ -80,7 +80,7 @@ export function ProfileScreen() {
     void attempt(
       async () => {
         await actions.setProfile(name, emoji);
-        if (api.mocked && phone.trim() !== (profile?.phone ?? '')) await actions.setPhone(phone.trim());
+        if (phone.trim() !== (profile?.phone ?? '')) await actions.setPhone(phone.trim());
       },
       setProfMsg,
       'Profile saved.',
@@ -130,18 +130,11 @@ export function ProfileScreen() {
             Display name
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} autoComplete="nickname" />
           </label>
-          {api.mocked ? (
-            <label>
-              Phone (optional)
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" placeholder="+15551234567" inputMode="tel" />
-              <span className="muted small">International format (E.164), like +15551234567. Leave empty for none.</span>
-            </label>
-          ) : (
-            // The backend currently stores phone numbers in a public table, so
-            // collecting one here would expose it to every user. Re-enable once
-            // the number lives in an owner-only table.
-            <p className="muted small">Phone numbers are turned off until the server keeps them private.</p>
-          )}
+          <label>
+            Phone (optional)
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" placeholder="+15551234567" inputMode="tel" />
+            <span className="muted small">International format (E.164), like +15551234567. Leave empty for none. Only you and SafeNight's server can see this number.</span>
+          </label>
           <fieldset>
             <legend>Avatar</legend>
             <div className="emoji-group" role="radiogroup" aria-label="Avatar emoji">
