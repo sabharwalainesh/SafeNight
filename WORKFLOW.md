@@ -167,8 +167,11 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-07 — **C5-A complete.** Judge demo helpers `demo_register_persona`, `demo_setup_group` (idempotent four-persona group with accepted driver, contacts, consent matrix, simulated locations), `demo_reset_group`, `demo_personas` view; `scripts/demo_driver_incident.mts` uses them. README backend section and submission checklist updated with evidence. **Live browser walk on B's UI in live mode passed:** Alex's concern on the Map tab produced Sam's "Do not drive" banner within a second via the RLS-filtered event table. Fixed from that walk: hand-off alerts now never target the incident subject (organizer-is-driver case goes to the reporter or another participant), with a regression test. 73/73 module tests, 93/93 web tests, demo script PASS, module `0.6.0-c5` published locally.
 
+- 2026-11-07 — **Nemotron is live.** Key + model published to the local DB environment (`--env-only`); health route and `runtime_status` report `live`. First real run: plans v1–v3 from `nemotron-3.5-super` (`simulated=false`), correct primary → backup adaptation; the model returns one tool call per response, so the transport stage stalled after `get_transport_options`.
+
 **In progress**
-- Nothing on the module. Waiting on: `NEMOTRON_API_KEY` (planner is simulated until then), decision on Maincloud vs laptop for judging, repo made public. B: adapters for `AgentApi`/`ReportsApi`/`ProfileApi`, flip providers to live, refresh README Demo and Hackathon tracks sections.
+- C3-A.2 live tuning: multi-round tool loop inside `agent_step` (tool results fed back to the model, max 3 rounds), labeled deterministic policy receipts (`source: policy`) that guarantee the transport stage ends in a proposed ride plan, geocodable demo venue, pickup coordinates in ride deep links.
+- Still waiting on: `NEMOTRON_API_KEY` (planner is simulated until then), decision on Maincloud vs laptop for judging, repo made public. B: adapters for `AgentApi`/`ReportsApi`/`ProfileApi`, flip providers to live, refresh README Demo and Hackathon tracks sections.
 
 **For B: wiring `NightOutApi` to the live bindings (C1-A is live on the local server)**
 - `useTable(tables.mySessions)` → `NightSession[]` (already excludes sessions you left). Map `id`/`sessionId` bigint → `String(id)`, `Identity` → `identity.toHexString()`, `Timestamp` → `ts.toDate().getTime()`, enum tags PascalCase → snake_case (`'LocationPrecise'` → `'location_precise'`; a tiny `tagToSnake()` helper covers all enums).
