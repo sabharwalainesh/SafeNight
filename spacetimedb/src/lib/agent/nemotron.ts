@@ -76,7 +76,7 @@ export function callNemotron(ctx: PCtx, apiKey: string, model: string | undefine
       temperature: 0.2,
       max_tokens: MAX_TOKENS,
     }),
-    timeout: TimeDuration.fromMillis(20_000),
+    timeout: TimeDuration.fromMillis(40_000),
   });
   if (response.status !== 200) throw new Error(`nemotron_http_${response.status}`);
   const data = response.json();

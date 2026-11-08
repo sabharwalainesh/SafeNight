@@ -9,7 +9,7 @@ const DB = process.env.SPACETIMEDB_DB_NAME ?? 'safenight';
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const short = (hex: string) => hex.slice(0, 8);
 
-async function waitFor<T>(label: string, fn: () => T | undefined, ms = 15_000): Promise<T> {
+async function waitFor<T>(label: string, fn: () => T | undefined, ms = 45_000): Promise<T> {
   const start = Date.now();
   while (Date.now() - start < ms) {
     const v = fn();
@@ -86,7 +86,7 @@ console.log(`   Sam's alerts: ${JSON.stringify(sam.alerts)}`);
 const jobRow = () => [...alex.conn.db.myAgentJobs.iter()].find(j => j.incidentId === incident.id);
 const job = await waitFor('agent job', jobRow);
 console.log(`2. Agent job #${job.id} status=${job.status.tag}; waiting for the first plan...`);
-await waitFor('plan v1', () => ([...alex.conn.db.myAgentPlans.iter()].some(p => p.jobId === job.id) ? true : undefined), 20_000);
+await waitFor('plan v1', () => ([...alex.conn.db.myAgentPlans.iter()].some(p => p.jobId === job.id) ? true : undefined), 75_000);
 await sleep(1500);
 const printState = (label: string) => {
   const j = jobRow()!;
@@ -104,7 +104,7 @@ if (!mayaGotAlert) throw new Error('expected Maya (priority 1) to be contacted f
 
 console.log('\n3. Maya does not respond. Firing the follow-up timer now (demo control)...');
 await alex.conn.reducers.demoFireFollowup({ jobId: job.id });
-await waitFor('plan v2', () => ([...alex.conn.db.myAgentPlans.iter()].some(p => p.jobId === job.id && p.version === 2) ? true : undefined), 20_000);
+await waitFor('plan v2', () => ([...alex.conn.db.myAgentPlans.iter()].some(p => p.jobId === job.id && p.version === 2) ? true : undefined), 75_000);
 await sleep(1500);
 printState('after escalation');
 const jordanGotAlert = [...jordan.conn.db.myNotifications.iter()].some(n => n.template === 'backup_alert');
@@ -112,7 +112,7 @@ if (!jordanGotAlert) throw new Error('expected Jordan (backup) to be contacted a
 
 console.log('\n4. Jordan acknowledges...');
 await jordan.conn.reducers.acknowledgeAssistance({ jobId: job.id });
-const ride = await waitFor('ride plan', () => [...alex.conn.db.myRidePlans.iter()].find(r => r.incidentId === incident.id), 30_000);
+const ride = await waitFor('ride plan', () => [...alex.conn.db.myRidePlans.iter()].find(r => r.incidentId === incident.id), 90_000);
 await sleep(1000);
 printState('after acknowledgment');
 const options = JSON.parse(ride.optionsJson);

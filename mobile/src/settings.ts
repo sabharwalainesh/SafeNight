@@ -2,7 +2,7 @@
 export type PersonaId = 'sam' | 'alex' | 'maya' | 'jordan';
 export const PERSONA_IDS: readonly PersonaId[] = ['alex', 'sam', 'maya', 'jordan'];
 
-export const DEFAULT_HOST = process.env.EXPO_PUBLIC_SPACETIMEDB_HOST ?? 'ws://11.80.0.178:3000';
+export const DEFAULT_HOST = process.env.EXPO_PUBLIC_SPACETIMEDB_HOST ?? 'wss://maincloud.spacetimedb.com';
 export const DEFAULT_DB = process.env.EXPO_PUBLIC_SPACETIMEDB_DB_NAME ?? 'safenight';
 
 /** Accepts "host:3000", "http(s)://host", "ws(s)://host/" and returns a ws(s):// URL without a trailing slash. */

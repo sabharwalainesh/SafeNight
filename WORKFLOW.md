@@ -183,8 +183,13 @@ _Owner: Person A (Claude Max). Edit only this section._
 
 - 2026-11-08 — **`mobile/` Expo app (SDK 58) for Expo Go.** Native screens for Night Out, Map, Inbox/incident (agent panel, receipts, ride stepper, home confirm), Profile (judge demo panel); persona + server picker on first launch, token per persona/host. Reuses B's five `api.ts` contracts and `live/` adapters plus the generated bindings through Metro `watchFolders` and a resolver that pins one `spacetimedb` and one `react`; localStorage shim over AsyncStorage; `withCompression('none')`. Verified: typecheck, iOS + Android `expo export` bundles, 5 unit tests, live web-mode run against the LAN server (setup group, roster, map, check-in). Not verified on a physical phone yet. See `mobile/README.md`.
 
+- 2026-11-08 — **Maincloud is live.** Database `safenight` on `wss://maincloud.spacetimedb.com` (owner: Sohaib's spacetimedb.com login), module 0.8.1, Nemotron key + model set, `APP_ENV=demo`, schedules armed, resources seeded; health route reports live. RLS proof PASS against Maincloud; demo script run showed Nemotron plan v1 live and a labeled fallback when one model call exceeded the 20 s HTTP timeout → timeout raised to 40 s and the script's waits lengthened. Device guide: `docs/DEMO_DAY.md` (2 phones in Expo Go + 2 laptops, all on Maincloud). Mobile default server is Maincloud.
+
 **In progress**
-- Phone test in Expo Go (user's phones) and Maincloud publish once the user runs `spacetime login`. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
+- Phone test in Expo Go over the Metro tunnel (user runs `npx expo start --tunnel` in `mobile/`).
+
+**For B**
+- Point your laptop at Maincloud: append `VITE_SPACETIMEDB_HOST=wss://maincloud.spacetimedb.com` and `VITE_SPACETIMEDB_DB_NAME=safenight` to `web/.env.local` (see `docs/DEMO_DAY.md`). Only Sohaib's login can publish the module there; ask A for module changes. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
 
 **Previously in progress (done)**
 - C3-A.2 live tuning: multi-round tool loop inside `agent_step` (tool results fed back to the model, max 3 rounds), labeled deterministic policy receipts (`source: policy`) that guarantee the transport stage ends in a proposed ride plan, geocodable demo venue, pickup coordinates in ride deep links.
