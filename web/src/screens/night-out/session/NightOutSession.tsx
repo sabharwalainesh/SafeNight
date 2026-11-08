@@ -22,11 +22,13 @@ const SCOPES: { id: ConsentScope; label: string }[] = [
 const scopeLabel = (s: ConsentScope) => SCOPES.find(x => x.id === s)?.label ?? s;
 
 const SHARING: { id: SharingScope; label: string }[] = [
-  { id: 'none', label: 'Not sharing' },
-  { id: 'approximate', label: 'Approximate' },
+  { id: 'none', label: 'None' },
+  { id: 'approximate', label: 'Approx' },
   { id: 'precise', label: 'Precise' },
 ];
-const sharingLabel = (s: SharingScope) => SHARING.find(x => x.id === s)?.label ?? s;
+const sharingLabel = (s: SharingScope) =>
+  s === 'none' ? 'Not sharing' : s === 'approximate' ? 'Sharing approx' : 'Sharing precise';
+const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
 function relFuture(at: EpochMs, now: number): string {
   const diff = at - now;
@@ -63,15 +65,25 @@ export function NightOutSession({ sessionId, onBack }: Props) {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [newInvite, setNewInvite] = useState<Invite | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [sheet, setSheet] = useState(false);
+  const [privOpen, setPrivOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const privRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (sheet) sheetRef.current?.focus();
+  }, [sheet]);
+  useEffect(() => {
+    if (privOpen) privRef.current?.focus();
+  }, [privOpen]);
 
-  const mockBadge = api.mocked ? <span className="badge sim">MOCK DATA — C1-A pending</span> : null;
+  const mockBadge = api.mocked ? <span className="badge sim">MOCK</span> : null;
 
   if (!roster) {
     return (
-      <section className="card nos-session">
+      <section className="nos-session">
         {mockBadge}
         <p>You are not in this session</p>
-        <button type="button" className="btn" onClick={onBack}>Back</button>
+        <button type="button" className="nos-back" onClick={onBack}>‹ Tonight</button>
       </section>
     );
   }
@@ -85,6 +97,7 @@ export function NightOutSession({ sessionId, onBack }: Props) {
   const openDriver = drivers.find(d => d.endedAt === null) ?? null;
   const nameOf = (id: string) => members.find(m => m.userId === id)?.displayName ?? id;
   const others = active.filter(m => m.userId !== me);
+  const orderedActive = [...active.filter(m => m.userId === me), ...others];
 
   async function run(fn: () => Promise<unknown>, after?: () => void) {
     // Ignore input while an action is in flight; disabling the fieldsets instead would drop keyboard focus.
@@ -118,135 +131,102 @@ export function NightOutSession({ sessionId, onBack }: Props) {
     );
   const sharedWithMe = myConsents.filter(g => g.recipient === me && g.sessionId === sessionId && activeGrant(g));
   const activeInvites = invites.filter(i => i.revokedAt === null && i.expiresAt > now && i.uses < i.maxUses);
+  const shownInvite = newInvite && activeInvites.some(i => i.id === newInvite.id) ? newInvite : (activeInvites[0] ?? null);
 
   function driverState(userId: string): string | null {
     if (!openDriver || openDriver.driverId !== userId) return null;
-    return openDriver.acceptedAt === null ? 'Volunteered — awaiting acceptance' : 'Driver';
+    return openDriver.acceptedAt === null ? 'Volunteered, awaiting acceptance' : 'Driver ✓';
   }
+  const iAmDriver = !!openDriver && openDriver.driverId === me;
 
   const endDriver = (reason: DriverEndReason) => {
     if (openDriver) void run(() => actions.endDriverRole(openDriver.id, reason));
   };
   const cancel = () => setConfirm(null);
 
+  function toggleInvite() {
+    if (sheet) {
+      setSheet(false);
+      return;
+    }
+    setSheet(true);
+    setCopied(null);
+    if (activeInvites.length === 0) {
+      void run(async () => {
+        setNewInvite(await actions.createInvite(sessionId, 60, 6));
+      });
+    }
+  }
+
   return (
     <div className="nos-session">
-      <section className="card nos-head" aria-labelledby="nos-title">
-        <div><button type="button" className="btn secondary" onClick={onBack}>← Back</button></div>
-        <h2 id="nos-title">{session.name}</h2>
-        <p className="muted">{session.venueHint}</p>
-        <div className="nos-row">
-          <span className="badge">{session.status}</span>
-          <span className="badge">Ends {relFuture(session.expiresAt, now)}</span>
-          {mockBadge}
-        </div>
-      </section>
+      <header className="nos-head">
+        <button type="button" className="nos-back" onClick={onBack}>‹ Tonight</button>
+        <h2 id="nos-title">{session.name}{mockBadge}</h2>
+        <p>
+          {session.venueHint ? `${session.venueHint} · ` : ''}
+          {session.status === 'ended' || session.status === 'expired' ? session.status : 'until'} {clock(session.expiresAt)}
+        </p>
+      </header>
 
       {error && <div className="result err" role="alert">{error}</div>}
 
-      <section className="card" aria-labelledby="nos-roster">
-        <h2 id="nos-roster">Roster</h2>
-        <ul className="list nos-members">
-          {active.map(m => {
-            const ds = driverState(m.userId);
+      <section aria-labelledby="nos-roster">
+        <h3 id="nos-roster" className="nos-label">People</h3>
+        <ul className="nos-group">
+          {orderedActive.map(m => {
+            const sub = [
+              m.userId === me ? 'You' : null,
+              m.role === 'organizer' ? 'Organizer' : null,
+              driverState(m.userId),
+              sharingLabel(m.sharingScope),
+            ].filter(Boolean).join(' · ');
             return (
-              <li key={m.id}>
-                <span className="nos-name">{m.displayName}{m.userId === me ? ' (you)' : ''}</span>
-                {m.role === 'organizer' && <span className="badge">Organizer</span>}
-                <span className="badge">{sharingLabel(m.sharingScope)}</span>
-                {ds && <span className="badge">{ds}</span>}
+              <li key={m.id} className="nos-person">
+                <span className="nos-avatar" aria-hidden="true">{m.displayName.charAt(0).toUpperCase()}</span>
+                <span className="nos-pm">
+                  <span className="nos-name">{m.displayName}</span>
+                  <span className="nos-sub">{sub}</span>
+                </span>
               </li>
             );
           })}
         </ul>
         {departed.length > 0 && (
-          <details className="nos-left">
-            <summary>Left ({departed.length})</summary>
-            <ul className="list">
-              {departed.map(m => (
-                <li key={m.id}><span className="muted">{m.displayName}</span><span className="badge">Left</span></li>
-              ))}
-            </ul>
-          </details>
+          <p className="nos-sub" style={{ margin: '0.4rem 0 0 0.4rem' }}>
+            Left: {departed.map(m => m.displayName).join(', ')}
+          </p>
         )}
       </section>
 
-      {isOrganizer && (
-        <section className="card" aria-labelledby="nos-invite">
-          <h2 id="nos-invite">Invite</h2>
-          <button
-            type="button"
-            className="btn"
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                setNewInvite(await actions.createInvite(sessionId, 60, 6));
-                setCopied(null);
-              })
-            }
-          >
-            Create invite (60 min, 6 uses)
-          </button>
-          {newInvite && (
-            <div>
-              <p className="nos-code"><span className="sr-only">Invite code </span>{newInvite.code}</p>
-              <p className="muted small">
-                Expires {relFuture(newInvite.expiresAt, now)} · {newInvite.uses}/{newInvite.maxUses} uses
-              </p>
-              <button type="button" className="btn secondary" onClick={() => void copy(newInvite.code)}>Copy code</button>
-              <p className="small" role="status">{copied ?? ''}</p>
-            </div>
-          )}
-          <h3>Active invites</h3>
-          {activeInvites.length === 0 ? (
-            <p className="muted small">No active invites.</p>
-          ) : (
-            <ul className="list">
-              {activeInvites.map(i => (
-                <li key={i.id}>
-                  <span>
-                    <code>{i.code}</code>{' '}
-                    <span className="muted small">{i.uses}/{i.maxUses} uses · expires {relFuture(i.expiresAt, now)}</span>
-                  </span>
-                  <button type="button" className="btn secondary" disabled={busy} onClick={() => void run(() => actions.revokeInvite(i.id))}>
-                    Revoke<span className="sr-only"> {i.code}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      <section className="card" aria-labelledby="nos-driver">
-        <h2 id="nos-driver">Driver</h2>
-        {!openDriver && (
-          <>
-            <p className="muted">No driver yet.</p>
-            <button type="button" className="btn" disabled={busy || !meMember} onClick={() => void run(() => actions.volunteerDriver(sessionId))}>
-              I can drive tonight
+      <section aria-label="Actions">
+        <div className="nos-primary">
+          {isOrganizer && (
+            <button type="button" className="btn" disabled={busy} aria-expanded={sheet} onClick={toggleInvite}>
+              Invite
             </button>
-          </>
-        )}
-        {openDriver && (
-          <p>
-            {nameOf(openDriver.driverId)}: {driverState(openDriver.driverId)}
-          </p>
-        )}
-        {openDriver && openDriver.driverId === me && openDriver.acceptedAt === null && (
-          <>
-            <p className="muted small">
-              Volunteering does not make you the driver. Nobody is relying on you until you explicitly accept the role.
-            </p>
+          )}
+          {!openDriver && (
+            <button type="button" className="btn secondary" disabled={busy || !meMember} onClick={() => void run(() => actions.volunteerDriver(sessionId))}>
+              I'll drive
+            </button>
+          )}
+          {openDriver && iAmDriver && openDriver.acceptedAt === null && (
             <button type="button" className="btn" disabled={busy} onClick={() => void run(() => actions.acceptDriverRole(openDriver.id))}>
-              Accept driver role
+              Accept driving
             </button>
-          </>
+          )}
+          {openDriver && iAmDriver && openDriver.acceptedAt !== null && (
+            <span className="nos-pill">You're the driver</span>
+          )}
+        </div>
+        {openDriver && iAmDriver && openDriver.acceptedAt === null && (
+          <p className="nos-sub">Volunteering does not make you the driver. Nobody is relying on you until you accept.</p>
         )}
-        {openDriver && openDriver.driverId === me && openDriver.acceptedAt !== null && (
+        {openDriver && iAmDriver && openDriver.acceptedAt !== null && (
           <>
-            <button type="button" className="btn secondary" disabled={busy} onClick={() => setConfirm('driver-quit')}>
-              I can no longer drive
+            <button type="button" className="nos-link" disabled={busy} onClick={() => setConfirm('driver-quit')}>
+              Can't drive anymore
             </button>
             <ConfirmStep
               show={confirm === 'driver-quit'}
@@ -258,13 +238,11 @@ export function NightOutSession({ sessionId, onBack }: Props) {
             />
           </>
         )}
-        {openDriver && isOrganizer && openDriver.driverId !== me && (
+        {openDriver && isOrganizer && !iAmDriver && (
           <>
-            <div className="nos-actions">
-              <button type="button" className="btn secondary" disabled={busy} onClick={() => setConfirm('driver-remove')}>
-                Remove driver
-              </button>
-            </div>
+            <button type="button" className="nos-link" disabled={busy} onClick={() => setConfirm('driver-remove')}>
+              Remove driver
+            </button>
             <ConfirmStep
               show={confirm === 'driver-remove'}
               busy={busy}
@@ -275,76 +253,111 @@ export function NightOutSession({ sessionId, onBack }: Props) {
             />
           </>
         )}
-      </section>
-
-      <section className="card" aria-labelledby="nos-sharing">
-        <h2 id="nos-sharing">My sharing</h2>
-        <fieldset disabled={!meMember} aria-busy={busy}>
-          <legend>What I share with this session</legend>
-          {SHARING.map(s => (
-            <label key={s.id} className="nos-check">
-              <input
-                type="radio"
-                name={`sharing-${sessionId}`}
-                checked={(meMember?.sharingScope ?? 'none') === s.id}
-                onChange={() => void run(() => actions.setSharingScope(sessionId, s.id))}
-              />
-              {s.label}
-            </label>
-          ))}
-        </fieldset>
-      </section>
-
-      <section className="card" aria-labelledby="nos-consent">
-        <h2 id="nos-consent">Consent</h2>
-        <p className="muted small">Each toggle grants that person access for 5 hours. Turn it off to revoke.</p>
-        {others.length === 0 && <p className="muted">No other members yet.</p>}
-        {others.map(m => (
-          <fieldset key={m.id} aria-busy={busy}>
-            <legend>Share with {m.displayName}</legend>
-            {SCOPES.map(sc => {
-              const grant = myGrant(m.userId, sc.id);
-              return (
-                <label key={sc.id} className="nos-check">
-                  <input
-                    type="checkbox"
-                    checked={!!grant}
-                    onChange={() =>
-                      void run(() => (grant ? actions.revokeConsent(grant.id) : actions.grantConsent(m.userId, sessionId, sc.id, 300)))
-                    }
-                  />
-                  {sc.label}
-                </label>
-              );
-            })}
-          </fieldset>
-        ))}
-        <h3>Shared with you</h3>
-        {sharedWithMe.length === 0 ? (
-          <p className="muted small">Nobody is sharing with you yet.</p>
-        ) : (
-          <ul className="list">
-            {sharedWithMe.map(g => (
-              <li key={g.id}>
-                <span>{nameOf(g.subject)}: {scopeLabel(g.scope)}</span>
-                <span className="muted small">expires {relFuture(g.expiresAt, now)}</span>
-              </li>
-            ))}
-          </ul>
+        {isOrganizer && sheet && (
+          <div className="nos-sheet" role="group" aria-label="Invite code" tabIndex={-1} ref={sheetRef}>
+            {shownInvite ? (
+              <>
+                <p className="nos-code"><span className="sr-only">Invite code </span>{shownInvite.code}</p>
+                <p className="nos-sub">
+                  Expires {relFuture(shownInvite.expiresAt, now)} · {shownInvite.uses}/{shownInvite.maxUses} uses
+                </p>
+                <div className="nos-actions">
+                  <button type="button" className="btn" onClick={() => void copy(shownInvite.code)}>Copy</button>
+                  <button type="button" className="btn secondary" disabled={busy} onClick={() => void run(() => actions.revokeInvite(shownInvite.id))}>
+                    Revoke<span className="sr-only"> {shownInvite.code}</span>
+                  </button>
+                </div>
+                <p className="nos-sub" role="status">{copied ?? ''}</p>
+              </>
+            ) : (
+              <p className="nos-sub" role="status">Creating invite…</p>
+            )}
+            <button type="button" className="nos-link" onClick={() => setSheet(false)}>Done</button>
+          </div>
         )}
       </section>
 
-      <section className="card" aria-labelledby="nos-leave">
-        <h2 id="nos-leave">{isOrganizer ? 'End session' : 'Leave session'}</h2>
+      <section aria-label="Privacy">
+        <h3 className="nos-label">Privacy</h3>
+        <button
+          type="button"
+          className="nos-disc"
+          aria-expanded={privOpen}
+          aria-controls="nos-priv"
+          onClick={() => setPrivOpen(o => !o)}
+        >
+          <span>What I share</span>
+          <span className="nos-sub">{sharingLabel(meMember?.sharingScope ?? 'none')} {privOpen ? '⌃' : '›'}</span>
+        </button>
+        {privOpen && (
+          <div id="nos-priv" className="nos-privbody" tabIndex={-1} ref={privRef} role="group" aria-label="Sharing settings">
+            <fieldset className="nos-fs" disabled={!meMember} aria-busy={busy}>
+              <legend>My location</legend>
+              <div className="nos-seg">
+                {SHARING.map(s => (
+                  <label key={s.id}>
+                    <input
+                      type="radio"
+                      name={`sharing-${sessionId}`}
+                      checked={(meMember?.sharingScope ?? 'none') === s.id}
+                      onChange={() => void run(() => actions.setSharingScope(sessionId, s.id))}
+                    />
+                    {s.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <p className="nos-sub">Each toggle grants that person access for 5 hours. Turn it off to revoke.</p>
+            {others.length === 0 && <p className="nos-sub">No other members yet.</p>}
+            {others.map(m => (
+              <fieldset key={m.id} className="nos-fs" aria-busy={busy}>
+                <legend>Share with {m.displayName}</legend>
+                {SCOPES.map(sc => {
+                  const grant = myGrant(m.userId, sc.id);
+                  return (
+                    <label key={sc.id} className="nos-check">
+                      <input
+                        type="checkbox"
+                        checked={!!grant}
+                        onChange={() =>
+                          void run(() => (grant ? actions.revokeConsent(grant.id) : actions.grantConsent(m.userId, sessionId, sc.id, 300)))
+                        }
+                      />
+                      {sc.label}
+                    </label>
+                  );
+                })}
+              </fieldset>
+            ))}
+            <div>
+              <p className="nos-name">Shared with you</p>
+              {sharedWithMe.length === 0 ? (
+                <p className="nos-sub">Nobody is sharing with you yet.</p>
+              ) : (
+                <ul className="list">
+                  {sharedWithMe.map(g => (
+                    <li key={g.id}>
+                      <span>{nameOf(g.subject)}: {scopeLabel(g.scope)}</span>
+                      <span className="nos-sub">expires {relFuture(g.expiresAt, now)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <footer className="nos-footer">
         {isOrganizer ? (
           <>
-            <button type="button" className="btn danger" disabled={busy} onClick={() => setConfirm('end')}>
-              End session for everyone
+            <button type="button" className="nos-destroy" disabled={busy} onClick={() => setConfirm('end')}>
+              End hangout for everyone
             </button>
             <ConfirmStep
               show={confirm === 'end'}
               busy={busy}
-              text="This ends the session for all members and stops all sharing."
+              text="This ends the hangout for all members and stops all sharing."
               label="Yes, end it"
               onYes={() => void run(() => actions.endSession(sessionId), onBack)}
               onCancel={cancel}
@@ -352,20 +365,20 @@ export function NightOutSession({ sessionId, onBack }: Props) {
           </>
         ) : (
           <>
-            <button type="button" className="btn danger" disabled={busy || !meMember} onClick={() => setConfirm('leave')}>
-              Leave session
+            <button type="button" className="nos-destroy" disabled={busy || !meMember} onClick={() => setConfirm('leave')}>
+              Leave hangout
             </button>
             <ConfirmStep
               show={confirm === 'leave'}
               busy={busy}
-              text="You will leave this session and stop sharing with it."
+              text="You will leave this hangout and stop sharing with it."
               label="Yes, leave"
               onYes={() => void run(() => actions.leaveSession(sessionId), onBack)}
               onCancel={cancel}
             />
           </>
         )}
-      </section>
+      </footer>
     </div>
   );
 }
