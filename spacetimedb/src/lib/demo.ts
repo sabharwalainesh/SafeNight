@@ -1,4 +1,5 @@
 import { SenderError } from 'spacetimedb/server';
+import { closeMeetupsForIncident } from './meetup';
 import { ScheduleAt, type Identity } from 'spacetimedb';
 import type { Ctx } from './auth';
 import { openDriverAssignment, sessionIsOpen } from './auth';
@@ -177,6 +178,7 @@ export function resetDemoGroup(ctx: Ctx): number {
           simulated: true,
         });
         closeJobForIncident(ctx, inc.id, 'cancelled', 'demo_reset');
+        closeMeetupsForIncident(ctx, inc.id);
       }
       closeSession(ctx, session.id, 'ended');
       clearSessionExpiry(ctx, session.id);

@@ -1,4 +1,5 @@
 import { SenderError, t } from 'spacetimedb/server';
+import { closeMeetupsForIncident } from '../lib/meetup';
 import type { Identity } from 'spacetimedb';
 import { spacetimedb } from '../schema';
 import { followupTimer } from '../tables/agent';
@@ -169,6 +170,7 @@ export const confirmHome = spacetimedb.reducer({ incidentId: t.u64() }, (ctx, { 
   const me = displayNameOf(ctx, ctx.sender);
   addEvent(ctx, incidentId, 'resolved', `${me} confirmed they are home`);
   closeJobForIncident(ctx, incidentId, 'resolved', 'home_confirmed');
+  closeMeetupsForIncident(ctx, incidentId);
   completeRidePlans(ctx, incidentId);
   for (const p of participantsOf(ctx, incidentId)) {
     if (!p.userId.isEqual(ctx.sender)) sendAlert(ctx, p.userId, incidentId, 'incident_update', `${me} confirmed they are home.`);

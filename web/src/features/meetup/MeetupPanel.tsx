@@ -135,7 +135,8 @@ function PanelInner({ incidentId, mu: { me, meetups, actions }, focused }: { inc
   const mine = meetups.filter((m) => m.incidentId === incidentId);
   const active = mine.find(isActiveMeetup);
   const isRequester = incident.subject === me;
-  const anyActiveOfMine = meetups.some((m) => isActiveMeetup(m) && m.helper === me);
+  const otherTrip = meetups.find((m) => isActiveMeetup(m) && m.helper === me && m.incidentId !== incidentId);
+  const anyActiveOfMine = !!otherTrip;
   const closed = ['resolved', 'cancelled', 'handed_off'].includes(incident.status);
 
   const run = async (f: () => Promise<void>) => {
@@ -155,7 +156,8 @@ function PanelInner({ incidentId, mu: { me, meetups, actions }, focused }: { inc
   const alreadyArrived = mine.some((m) => m.helper === me && m.status === 'arrived');
   const canOffer = !isRequester && !closed && wanted && !active && !anyActiveOfMine && !alreadyArrived;
   const recent = mine.filter((m) => !isActiveMeetup(m)).slice(0, 3);
-  if (!canOffer && !active && recent.length === 0) return null;
+  const blockedByOtherTrip = !isRequester && !closed && wanted && !active && !!otherTrip;
+  if (!canOffer && !active && recent.length === 0 && !blockedByOtherTrip) return null;
 
   const body = (
     <>
@@ -173,6 +175,15 @@ function PanelInner({ incidentId, mu: { me, meetups, actions }, focused }: { inc
             }}
           >
             Accept &amp; navigate
+          </button>
+        </div>
+      )}
+      {blockedByOtherTrip && otherTrip && (
+        <div className={`card meetup-card ${focused ? 'meetup-offer' : ''}`}>
+          <p className="headline">{incident.subjectName} wants someone to come to them</p>
+          <p className="muted">You are still on your way to {otherTrip.requesterName}. Finish or stop that trip first.</p>
+          <button type="button" className="btn block meetup-accept" disabled={busy} onClick={() => run(() => actions.cancelMeetup(otherTrip.id, 'switched to another request'))}>
+            Stop that trip
           </button>
         </div>
       )}

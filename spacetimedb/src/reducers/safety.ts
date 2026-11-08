@@ -1,4 +1,5 @@
 import { SenderError, t } from 'spacetimedb/server';
+import { closeMeetupsForIncident } from '../lib/meetup';
 import { spacetimedb } from '../schema';
 import {
   CheckinKind,
@@ -83,6 +84,7 @@ export const checkIn = spacetimedb.reducer(
         ctx.db.incident.id.update({ ...open, status: { tag: 'resolved' }, resolvedAt: ctx.timestamp, resolvedBy: ctx.sender });
         addEvent(ctx, open.id, 'resolved', `${me} confirmed they are home`);
         closeJobForIncident(ctx, open.id, 'resolved', 'home_confirmed');
+        closeMeetupsForIncident(ctx, open.id);
         completeRidePlans(ctx, open.id);
         for (const p of participantsOf(ctx, open.id)) {
           if (!p.userId.isEqual(ctx.sender)) sendAlert(ctx, p.userId, open.id, 'incident_update', `${me} confirmed they are home.`);
@@ -233,6 +235,7 @@ export const resolveIncident = spacetimedb.reducer({ incidentId: t.u64(), note: 
   const me = displayNameOf(ctx, ctx.sender);
   addEvent(ctx, incidentId, 'resolved', clean || `Resolved by ${me}`);
   closeJobForIncident(ctx, incidentId, 'resolved', 'resolved_by_human');
+  closeMeetupsForIncident(ctx, incidentId);
   audit(ctx, 'resolve_incident', `incident:${incidentId}`);
   for (const other of participantsOf(ctx, incidentId)) {
     if (!other.userId.isEqual(ctx.sender)) sendAlert(ctx, other.userId, incidentId, 'incident_update', `${me} resolved the incident.`);
@@ -253,6 +256,7 @@ export const cancelIncident = spacetimedb.reducer({ incidentId: t.u64(), reason:
   const me = displayNameOf(ctx, ctx.sender);
   addEvent(ctx, incidentId, 'cancelled', clean || `Cancelled by ${me}`);
   closeJobForIncident(ctx, incidentId, 'cancelled', 'cancelled_by_subject');
+  closeMeetupsForIncident(ctx, incidentId);
   for (const other of participantsOf(ctx, incidentId)) {
     if (!other.userId.isEqual(ctx.sender)) sendAlert(ctx, other.userId, incidentId, 'incident_update', `${me} cancelled their request.`);
   }

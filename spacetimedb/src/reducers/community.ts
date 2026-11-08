@@ -1,4 +1,5 @@
 import { SenderError, t } from 'spacetimedb/server';
+import { closeMeetupsForIncident } from '../lib/meetup';
 import { spacetimedb } from '../schema';
 import { SharingScope } from '../tables/nightout';
 import {
@@ -256,6 +257,7 @@ export const deleteMyData = spacetimedb.reducer(ctx => {
       ctx.db.incident.id.update({ ...inc, status: { tag: 'cancelled' }, resolvedAt: ctx.timestamp, resolvedBy: me });
       addEvent(ctx, inc.id, 'cancelled', '');
       closeJobForIncident(ctx, inc.id, 'cancelled', 'subject_deleted_data');
+      closeMeetupsForIncident(ctx, inc.id);
       for (const p of participantsOf(ctx, inc.id)) {
         if (!p.userId.isEqual(me)) sendAlert(ctx, p.userId, inc.id, 'incident_update', 'The person this request was about withdrew it and deleted their data.');
       }

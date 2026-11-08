@@ -115,6 +115,26 @@ describe('F1 meetups: request_company', () => {
   });
 });
 
+describe('F1 meetups: closing the incident closes its trips', () => {
+  it('resolving the incident cancels a coming meetup, revokes its grants, and frees the helper for the next request', () => {
+    const { test, sam, maya, id, sessionId } = setup();
+    request(test, sam, sessionId);
+    const inc = incidents(test)[0]!;
+    offer(test, maya, inc.id);
+    expect(meetups(test)[0]!.status.tag).toBe('coming');
+    run(test, sam, ctx => m.resolveIncident(ctx, { incidentId: inc.id, note: 'all good' }));
+    expect(meetups(test)[0]!.status.tag).toBe('cancelled');
+    expect(activeGrants(test, id(sam), id(maya))).toHaveLength(0);
+    expect(activeGrants(test, id(maya), id(sam))).toHaveLength(0);
+    // Sam asks again; Maya is no longer "on her way" and can accept.
+    advance(test, 2);
+    request(test, sam, sessionId);
+    const inc2 = incidents(test).find(i => i.id !== inc.id)!;
+    offer(test, maya, inc2.id);
+    expect(meetups(test).filter(mu => mu.status.tag === 'coming')).toHaveLength(1);
+  });
+});
+
 describe('F1 meetups: offer_to_come', () => {
   it('creates one coming meetup, grants precise location both ways for 60 min, acknowledges, alerts both', () => {
     const { test, sam, maya, jordan, id, sessionId } = setup();

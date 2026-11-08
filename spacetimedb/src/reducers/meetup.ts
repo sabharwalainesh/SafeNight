@@ -132,9 +132,14 @@ export const expireMeetups = spacetimedb.reducer(
   { arg: meetupExpiry.rowType },
   ctx => {
     for (const mu of ctx.db.meetup.iter()) {
-      if (mu.status.tag !== 'coming' || !isAtOrBefore(mu.expiresAt, ctx.timestamp)) continue;
+      if (mu.status.tag !== 'coming') continue;
+      // Also sweep trips whose incident closed before this rule existed (or by any path that missed it).
+      const inc = ctx.db.incident.id.find(mu.incidentId);
+      const orphaned = !inc || !isOpenStatus(inc.status.tag);
+      if (!orphaned && !isAtOrBefore(mu.expiresAt, ctx.timestamp)) continue;
       ctx.db.meetup.id.update({ ...mu, status: { tag: 'cancelled' } });
       revokeMeetupGrants(ctx, mu);
+      if (orphaned) continue;
       addEvent(ctx, mu.incidentId, 'meetup_cancelled', 'expired');
       for (const who of [mu.requester, mu.helper]) {
         sendAlert(ctx, who, mu.incidentId, 'incident_update', 'The meetup timed out after an hour.');

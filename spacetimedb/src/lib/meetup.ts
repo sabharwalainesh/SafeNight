@@ -41,3 +41,19 @@ export function revokeMeetupGrants(ctx: Ctx, mu: { sessionId: bigint; requester:
     }
   }
 }
+
+/**
+ * An incident that closes (resolved, cancelled, handed off, demo reset) takes its in-progress meetups
+ * with it: status cancelled, the two precise-location grants revoked. Otherwise the helper would stay
+ * "on their way" forever and could never accept the next request.
+ */
+export function closeMeetupsForIncident(ctx: Ctx, incidentId: bigint): number {
+  let n = 0;
+  for (const mu of ctx.db.meetup.incidentId.filter(incidentId)) {
+    if (mu.status.tag !== 'coming') continue;
+    ctx.db.meetup.id.update({ ...mu, status: { tag: 'cancelled' } });
+    revokeMeetupGrants(ctx, mu);
+    n++;
+  }
+  return n;
+}
