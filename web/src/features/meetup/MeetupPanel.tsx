@@ -91,7 +91,8 @@ function PanelInner({ incidentId, mu: { me, meetups, actions } }: { incidentId: 
 
   // The view row keeps `meetupWanted` private; the timeline's `company_requested` event is the public signal.
   const wanted = !!incident.meetupWanted || safety.timeline(incidentId).some((e) => e.kind === 'company_requested');
-  const canOffer = !isRequester && !closed && wanted && !active && !anyActiveOfMine;
+  const alreadyArrived = mine.some((m) => m.helper === me && m.status === 'arrived');
+  const canOffer = !isRequester && !closed && wanted && !active && !anyActiveOfMine && !alreadyArrived;
   const recent = mine.filter((m) => !isActiveMeetup(m)).slice(0, 3);
   if (!canOffer && !active && recent.length === 0) return null;
 

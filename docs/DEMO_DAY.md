@@ -52,10 +52,11 @@ Fallback without Expo Go: the web app is a PWA. `npm run dev:phone -w web` print
 7. Laptop 2 (Jordan) → Inbox → incident → **I'm on it**. Plan v3 (two rounds) proposes ride options.
 8. Phone 1 (Sam): **Choose this** → **I booked this** → **Confirm pickup** → **I'm home safe** → **Yes, I'm home**.
 9. Every device shows **Resolved by Sam**.
+10. **Come to me (compass), optional:** Phone 2 (Maya) → Map → **Need help** → **Come to me**. Laptop 2 (Jordan) → Alerts → the incident → **I'm coming**: Jordan's screen shows the compass to Maya with the distance (on a phone, tap **Enable compass** when iOS asks; a laptop shows a north-up arrow on simulated positions). Maya sees "Jordan is coming · N m away". Jordan taps **I've arrived**; both show "✓ Jordan arrived". Precise location is shared both ways only for this trip and expires in 60 minutes.
 
 ## Reset between runs
 
-Any device → Profile → **Reset demo group** then **Set up demo group**. **Wipe all demo data** clears everything except venues and resources.
+Any device → Profile → **Reset demo group** → **Yes, reset the group** (second tap) then **Set up demo group**. If a screen looks stale after a redeploy, hard-reload the PWA once (the service worker caches the previous bundle). **Wipe all demo data** clears everything except venues and resources.
 
 ## Maintenance (Sohaib's laptop, logged in to Maincloud)
 
