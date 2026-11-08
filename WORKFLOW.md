@@ -173,8 +173,10 @@ _Owner: Person A (Claude Max). Edit only this section._
 - 2026-11-07 — **Live UI verification passed** on B's screens against the live module with the real model: demo group via the judge panel → concern → instant warning on Sam's tab → plan v1 to Maya → real 2-minute timer → plan v2 to Jordan → Jordan "I'm on it" → two-round transport plan with provider-link fallback → Sam books, confirms pickup, confirms home → Resolved on all four tabs.
 - 2026-11-07 — **Security review complete** (`docs/SECURITY_REVIEW.md`): 11 fixes incl. phone numbers moved to a private table, server-filled templates only, reporter masked from the subject, `hand_off` only when contacts are exhausted + `no_action` tool, active-member RLS, no coordinates in receipts, rate limits, demo guards, webhook hardening, `known_people` view. 96/96 module tests, module `0.8.0-sec` published, RLS and live demo re-verified.
 
+- 2026-11-07 — **Demo video delivered.** `docs/video/` holds the slides, the four-phone stage, the Playwright recorder, captions, `SafeNight-demo.srt`, and `VIDEO_SCRIPT.md` (timestamped narration). Output `~/Downloads/SafeNight-demo.mp4` (4:12, 1080p, burned-in captions, no audio; the user records the voiceover). The live-demo section was captured against the real module with real Nemotron plans; messaging labeled SIMULATED; transport shows the provider-link fallback.
+
 **In progress**
-- Demo video (docs/video/: slides, Playwright recording, captions, narration script; MP4 delivered outside the repo).
+- Nothing. A-track complete. Remaining items are the user's: repo public, hosting decision (laptop vs Maincloud), optional Twilio keys.
 
 **Previously in progress (done)**
 - C3-A.2 live tuning: multi-round tool loop inside `agent_step` (tool results fed back to the model, max 3 rounds), labeled deterministic policy receipts (`source: policy`) that guarantee the transport stage ends in a proposed ride plan, geocodable demo venue, pickup coordinates in ride deep links.

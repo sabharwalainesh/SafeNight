@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SafeNight live demo stage</title>
+<style>
+  :root { --bg:#0b0d12; --surface:#151925; --border:#2b3245; --text:#f2f4f8; --muted:#a3abbd; --sam:#f6c445; --alex:#5fb3ff; --maya:#7ee2a8; --jordan:#d59bff; }
+  html,body { margin:0; width:1920px; height:1080px; background:var(--bg); color:var(--text); font-family:-apple-system,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif; overflow:hidden; }
+  .top { position:absolute; left:0; top:0; width:1920px; height:70px; display:flex; align-items:center; padding:0 40px; box-sizing:border-box; gap:18px; }
+  .top .brand { font-size:30px; font-weight:800; letter-spacing:-.01em; }
+  .top .live { font-size:22px; color:#46d38a; border:2px solid #46d38a; border-radius:999px; padding:4px 14px; }
+  .top .note { font-size:22px; color:var(--muted); margin-left:auto; }
+  .phones { position:absolute; top:70px; left:0; width:1920px; height:890px; display:flex; justify-content:center; gap:34px; align-items:flex-start; padding-top:6px; box-sizing:border-box; }
+  .phone { width:390px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .label { font-size:26px; font-weight:700; display:flex; align-items:center; gap:10px; height:34px; }
+  .label .dot { width:16px; height:16px; border-radius:50%; }
+  .label .role { font-size:20px; color:var(--muted); font-weight:500; }
+  .frame { width:390px; height:780px; border-radius:36px; border:4px solid var(--border); overflow:hidden; background:#000; box-shadow:0 20px 60px rgba(0,0,0,.6); transition:border-color .3s, box-shadow .3s; position:relative; }
+  .phone.active .frame { box-shadow:0 0 0 6px var(--ring), 0 20px 60px rgba(0,0,0,.6); border-color:var(--ring); }
+  iframe { width:390px; height:780px; border:0; display:block; }
+  .band { position:absolute; left:0; bottom:0; width:1920px; height:120px; background:#07080c; border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+  <div class="top"><span class="brand">SafeNight</span><span class="live">LIVE · SpacetimeDB + Nemotron</span><span class="note">Four people, one Night Out. Each phone is its own identity.</span></div>
+  <div class="phones">
+    <div class="phone" id="p-alex" style="--ring:var(--alex)"><div class="label"><span class="dot" style="background:var(--alex)"></span>Alex <span class="role">organizer</span></div><div class="frame"><iframe id="f-alex" src="http://localhost:5173/?as=alex"></iframe></div></div>
+    <div class="phone" id="p-sam" style="--ring:var(--sam)"><div class="label"><span class="dot" style="background:var(--sam)"></span>Sam <span class="role">designated driver</span></div><div class="frame"><iframe id="f-sam" src="http://localhost:5173/?as=sam"></iframe></div></div>
+    <div class="phone" id="p-maya" style="--ring:var(--maya)"><div class="label"><span class="dot" style="background:var(--maya)"></span>Maya <span class="role">primary buddy</span></div><div class="frame"><iframe id="f-maya" src="http://localhost:5173/?as=maya"></iframe></div></div>
+    <div class="phone" id="p-jordan" style="--ring:var(--jordan)"><div class="label"><span class="dot" style="background:var(--jordan)"></span>Jordan <span class="role">backup buddy</span></div><div class="frame"><iframe id="f-jordan" src="http://localhost:5173/?as=jordan"></iframe></div></div>
+  </div>
+  <div class="band"></div>
+  <script>
+    window.focusPersona = (id) => { document.querySelectorAll('.phone').forEach(p => p.classList.toggle('active', p.id === 'p-' + id)); };
+  </script>
+</body>
+</html>

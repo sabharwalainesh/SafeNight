@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SafeNight deck</title>
+<style>
+  :root { --bg:#0b0d12; --surface:#151925; --surface2:#1d2231; --text:#f2f4f8; --muted:#a3abbd; --border:#2b3245;
+          --accent:#5fb3ff; --ok:#46d38a; --warn:#ffb547; --danger:#ff5c5c; --sam:#f6c445; --alex:#5fb3ff; --maya:#7ee2a8; --jordan:#d59bff; }
+  html,body { margin:0; width:1920px; height:1080px; background:var(--bg); color:var(--text);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; overflow:hidden; }
+  .slide { position:absolute; inset:0; padding:110px 150px 150px; box-sizing:border-box; opacity:0; transition:opacity .6s ease; display:flex; flex-direction:column; justify-content:center; }
+  .slide.on { opacity:1; }
+  .glow { position:absolute; width:1400px; height:1400px; border-radius:50%; filter:blur(180px); opacity:.18; pointer-events:none; }
+  .glow.a { background:var(--accent); top:-700px; right:-500px; }
+  .glow.b { background:var(--maya); bottom:-900px; left:-500px; }
+  .kicker { font-size:34px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:26px; }
+  h1 { font-size:150px; margin:0 0 18px; letter-spacing:-.02em; font-weight:800; }
+  h2 { font-size:84px; margin:0 0 42px; letter-spacing:-.015em; font-weight:800; line-height:1.05; }
+  .tag { font-size:56px; color:var(--muted); font-weight:500; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { font-size:46px; line-height:1.35; margin:0 0 22px; padding-left:62px; position:relative; color:var(--text); }
+  li::before { content:""; position:absolute; left:0; top:.52em; width:22px; height:22px; border-radius:50%; background:var(--accent); }
+  li.ok::before { background:var(--ok);} li.warn::before{ background:var(--warn);} li.danger::before{ background:var(--danger);} li.maya::before{background:var(--maya);} li.jordan::before{background:var(--jordan);} li.sam::before{background:var(--sam);}
+  .muted { color:var(--muted); }
+  .row { display:flex; gap:40px; align-items:stretch; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:28px; padding:40px 46px; flex:1; }
+  .card h3 { margin:0 0 14px; font-size:40px; color:var(--accent); }
+  .card p { margin:0; font-size:36px; line-height:1.35; color:var(--text); }
+  .loop { display:flex; align-items:center; gap:26px; margin-top:20px; }
+  .step { background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:34px 30px; font-size:40px; font-weight:700; text-align:center; flex:1; line-height:1.2; }
+  .arrow { font-size:60px; color:var(--muted); }
+  .big { font-size:120px; font-weight:800; color:var(--accent); line-height:1; }
+  .stat { text-align:center; }
+  .stat .lbl { font-size:34px; color:var(--muted); margin-top:10px; }
+  .pills { display:flex; flex-wrap:wrap; gap:18px; margin-top:12px; }
+  .pill { font-size:34px; padding:14px 26px; border-radius:999px; border:2px solid var(--border); background:var(--surface2); }
+  .pill.live { border-color:var(--ok); color:var(--ok);} .pill.sim { border-color:var(--warn); color:var(--warn);} 
+  .shot { max-height:760px; max-width:1620px; border-radius:26px; border:2px solid var(--border); box-shadow:0 30px 80px rgba(0,0,0,.6); }
+  .center { align-items:center; text-align:center; }
+  .foot { position:absolute; left:150px; bottom:160px; font-size:30px; color:var(--muted); }
+  code { font-family: "SF Mono", Menlo, monospace; font-size:.9em; background:var(--surface2); padding:4px 12px; border-radius:10px; }
+</style>
+</head>
+<body>
+<div class="glow a"></div><div class="glow b"></div>
+
+<section class="slide center" id="title">
+  <div class="kicker">HackUTD 2026 · NVIDIA Nemotron · SpacetimeDB</div>
+  <h1>SafeNight</h1>
+  <div class="tag">Go out together. Get home together.</div>
+</section>
+
+<section class="slide" id="problem">
+  <div class="kicker">The problem</div>
+  <h2>A night out has a gap nobody owns.</h2>
+  <ul>
+    <li class="danger">Friends split up across exits, bars, and rides.</li>
+    <li class="danger">The designated driver has a drink. Who says something?</li>
+    <li class="warn">Group chats go quiet. Nobody knows who is handling it.</li>
+    <li class="warn">A location pin tells you where someone is, not that anyone is coming.</li>
+  </ul>
+</section>
+
+<section class="slide" id="who">
+  <div class="kicker">Who it is for</div>
+  <h2>Groups of friends, and the people they trust.</h2>
+  <div class="row">
+    <div class="card"><h3>Students and young adults</h3><p>Parties, bars, concerts, festivals, campus events.</p></div>
+    <div class="card"><h3>Designated drivers</h3><p>A role you accept on purpose, and can hand back without judgment.</p></div>
+    <div class="card"><h3>Safety buddies</h3><p>Named people who agreed to be asked, in an order you chose.</p></div>
+  </div>
+</section>
+
+<section class="slide" id="loop">
+  <div class="kicker">The loop</div>
+  <h2>Plan the night. Confirm everyone is home.</h2>
+  <div class="loop">
+    <div class="step">Plan</div><div class="arrow">→</div>
+    <div class="step">Stay connected</div><div class="arrow">→</div>
+    <div class="step">Notice a concern</div><div class="arrow">→</div>
+    <div class="step">Coordinate help</div><div class="arrow">→</div>
+    <div class="step">Confirm home</div>
+  </div>
+  <p class="muted" style="font-size:38px;margin-top:48px">A temporary Night Out group that expires. Not a tracker. Not a dispatcher.</p>
+</section>
+
+<section class="slide" id="principles">
+  <div class="kicker">What makes it trustworthy</div>
+  <h2>Consent first. Humans decide.</h2>
+  <ul>
+    <li class="ok">Sharing is opt-in, scoped per person, time-limited, and revocable.</li>
+    <li class="ok">No intoxication detection. No one is ever declared sober or safe to drive.</li>
+    <li class="ok">Every outcome is confirmed by a person: booked, picked up, home.</li>
+    <li class="ok">The agent uses real tools, but never acts alone or outside permissions.</li>
+    <li class="ok">Anything simulated is labeled, in the data and on screen.</li>
+  </ul>
+</section>
+
+<section class="slide" id="different">
+  <div class="kicker">Why it is different</div>
+  <h2>Not a pin on a map. A plan with people in it.</h2>
+  <div class="row">
+    <div class="card"><h3>Explicit driver acceptance</h3><p>Someone volunteers, then confirms. Nobody is assigned silently.</p></div>
+    <div class="card"><h3>Immediate deterministic warning</h3><p>A concern about the driver shows "Do not drive" instantly, before any AI runs.</p></div>
+    <div class="card"><h3>An agent that adapts</h3><p>Asks the right buddy, waits, escalates to the backup, proposes a ride, and hands off when stuck.</p></div>
+  </div>
+</section>
+
+<section class="slide" id="arch">
+  <div class="kicker">Technical · architecture</div>
+  <h2>SpacetimeDB is the backend. There is no API server.</h2>
+  <div class="row" style="margin-bottom:34px">
+    <div class="card stat"><div class="big">40+</div><div class="lbl">tables</div></div>
+    <div class="card stat"><div class="big">50+</div><div class="lbl">reducers</div></div>
+    <div class="card stat"><div class="big">20</div><div class="lbl">views</div></div>
+    <div class="card stat"><div class="big">7</div><div class="lbl">schedule tables</div></div>
+    <div class="card stat"><div class="big">2</div><div class="lbl">scheduled procedures</div></div>
+  </div>
+  <ul>
+    <li>Sessions, consent, incidents, timers, agent state: all rows and reducers in one TypeScript module.</li>
+    <li>Event table with row-level security delivers the warning only to its recipient.</li>
+    <li>React client subscribes to views; HTTP handlers for health and Twilio webhooks.</li>
+  </ul>
+</section>
+
+<section class="slide" id="engine">
+  <div class="kicker">Technical · deterministic safety engine</div>
+  <h2>Rules first. Then the agent.</h2>
+  <ul>
+    <li class="danger">Concern about the driver → incident + "Do not drive" alert in one transaction.</li>
+    <li class="ok">Locations are visible only through consent-scoped views; approximate scope rounds coordinates.</li>
+    <li class="ok">"I'm okay" never closes an open incident. Only the person confirms home.</li>
+    <li class="warn">Missed check-ins, expiries, and retention run on schedule tables inside the database.</li>
+  </ul>
+</section>
+
+<section class="slide" id="agent">
+  <div class="kicker">Technical · Nemotron agent</div>
+  <h2>A scheduled procedure that plans with tools.</h2>
+  <ul>
+    <li>Wakes on an incident event, reads only authorized context, calls NVIDIA NIM: <code>nemotron-3.5-super</code>.</li>
+    <li>Allowlisted tools; results fed back for up to three rounds within one plan version.</li>
+    <li>Every call validated against participants, consent, templates, and plan version before it runs.</li>
+    <li>Receipts label the source: model, policy, or simulated. Reasoning text is never stored.</li>
+    <li>Follow-up timers and escalation live in SpacetimeDB; nonresponse wakes the agent again.</li>
+  </ul>
+</section>
+
+<section class="slide center" id="shot1">
+  <div class="kicker" style="align-self:flex-start">Live plan from Nemotron, with receipts</div>
+  <img class="shot" id="shot1img" alt="">
+</section>
+
+<section class="slide" id="evidence">
+  <div class="kicker">Technical · evidence</div>
+  <h2>Tested, not asserted.</h2>
+  <div class="row" style="margin-bottom:34px">
+    <div class="card stat"><div class="big">81</div><div class="lbl">module unit tests</div></div>
+    <div class="card stat"><div class="big">93</div><div class="lbl">web tests + axe-core</div></div>
+    <div class="card stat"><div class="big">4</div><div class="lbl">identities in the live e2e run</div></div>
+  </div>
+  <ul>
+    <li class="ok">Consent revocation, unauthorized access, duplicate events, fallback escalation, human-only resolution.</li>
+    <li class="ok">Prompt injection in notes cannot message non-participants or resolve an incident.</li>
+    <li class="ok">Row-level security proven live: an outsider identity receives zero rows.</li>
+  </ul>
+</section>
+
+<section class="slide" id="real">
+  <div class="kicker">Technical · what is real today</div>
+  <h2>Live where it counts. Labeled where it is not.</h2>
+  <div class="pills">
+    <span class="pill live">Nemotron planning: LIVE</span>
+    <span class="pill live">SpacetimeDB state, timers, consent: LIVE</span>
+    <span class="pill live">Geocoding (Nominatim): LIVE</span>
+    <span class="pill sim">Routing (OSRM): blocked on this host → provider links</span>
+    <span class="pill sim">SMS (Twilio): SIMULATED until keys</span>
+    <span class="pill sim">Locations: simulated coordinates</span>
+  </div>
+  <p class="muted" style="font-size:38px;margin-top:40px">Adding keys changes no reducer, table, or timer. Only who writes the plan and whether a request leaves the host.</p>
+</section>
+
+<section class="slide center" id="close">
+  <div class="kicker">Tracks · NVIDIA Nemotron agentic workflow · SpacetimeDB-majority backend</div>
+  <h1 style="font-size:130px">SafeNight</h1>
+  <div class="tag">Go out together. Get home together.</div>
+  <div class="foot" style="left:0;right:0;text-align:center">github.com/sabharwalainesh/SafeNight</div>
+</section>
+
+<script>
+  window.go = (id) => { document.querySelectorAll('.slide').forEach(s => s.classList.toggle('on', s.id === id)); };
+  window.setShot = (id, url) => { document.getElementById(id).src = url; };
+</script>
+</body>
+</html>

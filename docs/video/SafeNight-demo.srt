@@ -1,0 +1,191 @@
+1
+00:00:00,039 --> 00:00:05,540
+SafeNight. Go out together. Get home together.
+
+2
+00:00:05,540 --> 00:00:10,544
+A consent-based safety app for friends on a night out.
+
+3
+00:00:10,544 --> 00:00:14,551
+Nights out have a gap nobody owns.
+
+4
+00:00:14,551 --> 00:00:19,052
+Friends split up. The designated driver has a drink.
+
+5
+00:00:19,052 --> 00:00:24,556
+A location pin says where someone is, not that anyone is coming.
+
+6
+00:00:24,556 --> 00:00:29,558
+Built for groups of friends, designated drivers, and safety buddies.
+
+7
+00:00:29,558 --> 00:00:34,061
+Roles are accepted on purpose, never assigned silently.
+
+8
+00:00:34,061 --> 00:00:40,062
+Plan. Stay connected. Notice a concern. Coordinate help. Confirm home.
+
+9
+00:00:40,062 --> 00:00:45,567
+A temporary group that expires. Not a tracker, not a dispatcher.
+
+10
+00:00:45,567 --> 00:00:50,570
+Sharing is opt-in, scoped per person, time-limited, revocable.
+
+11
+00:00:50,570 --> 00:00:55,071
+No intoxication detection. Nobody is ever declared sober.
+
+12
+00:00:55,071 --> 00:01:00,077
+People confirm every outcome. The agent never acts alone.
+
+13
+00:01:00,077 --> 00:01:05,078
+Explicit driver acceptance. Instant deterministic warnings.
+
+14
+00:01:05,078 --> 00:01:10,080
+And an agent that adapts when a buddy does not answer.
+
+15
+00:01:10,414 --> 00:01:13,145
+Live demo. Four phones, four identities, one SpacetimeDB database.
+
+16
+00:01:13,145 --> 00:01:14,728
+Each phone registered its identity. Alex sets up the demo group.
+
+17
+00:01:14,728 --> 00:01:19,767
+The roster: Alex organizes, Sam explicitly accepted the driver role.
+
+18
+00:01:19,767 --> 00:01:24,838
+Each person grants each friend specific scopes, for a limited time.
+
+19
+00:01:24,838 --> 00:01:29,438
+The map shows only consented, approximate locations. Simulated tonight.
+
+20
+00:01:29,438 --> 00:01:32,551
+Alex reports a concern: Sam, the driver, may have been drinking.
+
+21
+00:01:32,551 --> 00:01:39,164
+Sam sees "Do not drive" instantly. A deterministic rule, no AI in the loop.
+
+22
+00:01:39,164 --> 00:01:45,215
+The incident opened the agent. Plan v1 comes from Nemotron on NVIDIA NIM.
+
+23
+00:01:45,215 --> 00:01:51,282
+Every tool call is validated, then recorded as a receipt. Messages are SIMULATED.
+
+24
+00:01:51,282 --> 00:01:56,841
+Maya, the primary buddy, gets the request. She does not respond.
+
+25
+00:01:56,841 --> 00:02:04,332
+The follow-up timer lives in SpacetimeDB. We advance it instead of waiting two minutes.
+
+26
+00:02:04,332 --> 00:02:10,426
+No reply. The agent escalates: Nemotron plan v2 messages Jordan, the backup.
+
+27
+00:02:10,426 --> 00:02:13,007
+Jordan acknowledges. Sent is not acknowledged: the states stay distinct.
+
+28
+00:02:13,007 --> 00:02:25,381
+Now the agent looks up transport and proposes a ride. Two tool rounds.
+
+29
+00:02:25,381 --> 00:02:31,015
+Routing was unreachable, so it says "Provider link only". Nothing is invented.
+
+30
+00:02:31,015 --> 00:02:33,788
+Sam picks a ride. The app opens a link; a person books. No autonomous purchases.
+
+31
+00:02:33,788 --> 00:02:38,336
+Booked by a person. The agent tells Jordan and waits for pickup.
+
+32
+00:02:38,336 --> 00:02:43,030
+Pickup confirmed. Only Sam can close this: the agent never resolves an incident.
+
+33
+00:02:43,030 --> 00:02:50,564
+Home, confirmed by the person. The incident resolves for everyone.
+
+34
+00:02:50,585 --> 00:02:56,087
+Under the hood: SpacetimeDB is the whole backend. No API server.
+
+35
+00:02:56,087 --> 00:03:01,588
+Sessions, consent, incidents, timers, agent state: all tables and reducers.
+
+36
+00:03:01,588 --> 00:03:06,592
+An event table with row-level security delivers the warning only to Sam.
+
+37
+00:03:06,592 --> 00:03:12,093
+Safety rules run first, in one transaction, before any model is called.
+
+38
+00:03:12,093 --> 00:03:18,098
+Consent-scoped views. "I'm okay" never closes an incident. Humans resolve.
+
+39
+00:03:18,098 --> 00:03:23,599
+The agent is a scheduled procedure calling Nemotron 3.5 Super with a tool allowlist.
+
+40
+00:03:23,599 --> 00:03:29,101
+Tool results are fed back for up to three rounds. Every call is validated first.
+
+41
+00:03:29,101 --> 00:03:34,604
+Receipts say who proposed each step: the model, a policy rule, or a simulation.
+
+42
+00:03:34,604 --> 00:03:41,612
+This is the real plan from tonight's run, with its validated tool receipts.
+
+43
+00:03:41,612 --> 00:03:47,112
+81 module tests and 93 web tests, plus a live four-identity end-to-end run.
+
+44
+00:03:47,112 --> 00:03:52,616
+Revocation, unauthorized access, duplicates, escalation, injection: all covered.
+
+45
+00:03:52,616 --> 00:03:58,117
+Nemotron and SpacetimeDB are live. SMS is simulated until Twilio keys exist.
+
+46
+00:03:58,117 --> 00:04:03,119
+Adding keys changes nothing in the data model, only who writes the plan.
+
+47
+00:04:03,119 --> 00:04:08,120
+SafeNight. NVIDIA Nemotron agentic workflow on a SpacetimeDB backend.
+
+48
+00:04:08,120 --> 00:04:12,621
+github.com/sabharwalainesh/SafeNight

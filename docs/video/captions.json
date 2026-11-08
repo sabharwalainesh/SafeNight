@@ -1,0 +1,245 @@
+{
+  "total": 252.621,
+  "caps": [
+    {
+      "start": 0.039,
+      "text": "SafeNight. Go out together. Get home together.",
+      "end": 5.54
+    },
+    {
+      "start": 5.54,
+      "text": "A consent-based safety app for friends on a night out.",
+      "end": 10.544
+    },
+    {
+      "start": 10.544,
+      "text": "Nights out have a gap nobody owns.",
+      "end": 14.551
+    },
+    {
+      "start": 14.551,
+      "text": "Friends split up. The designated driver has a drink.",
+      "end": 19.052
+    },
+    {
+      "start": 19.052,
+      "text": "A location pin says where someone is, not that anyone is coming.",
+      "end": 24.556
+    },
+    {
+      "start": 24.556,
+      "text": "Built for groups of friends, designated drivers, and safety buddies.",
+      "end": 29.558
+    },
+    {
+      "start": 29.558,
+      "text": "Roles are accepted on purpose, never assigned silently.",
+      "end": 34.061
+    },
+    {
+      "start": 34.061,
+      "text": "Plan. Stay connected. Notice a concern. Coordinate help. Confirm home.",
+      "end": 40.062
+    },
+    {
+      "start": 40.062,
+      "text": "A temporary group that expires. Not a tracker, not a dispatcher.",
+      "end": 45.567
+    },
+    {
+      "start": 45.567,
+      "text": "Sharing is opt-in, scoped per person, time-limited, revocable.",
+      "end": 50.57
+    },
+    {
+      "start": 50.57,
+      "text": "No intoxication detection. Nobody is ever declared sober.",
+      "end": 55.071
+    },
+    {
+      "start": 55.071,
+      "text": "People confirm every outcome. The agent never acts alone.",
+      "end": 60.077
+    },
+    {
+      "start": 60.077,
+      "text": "Explicit driver acceptance. Instant deterministic warnings.",
+      "end": 65.078
+    },
+    {
+      "start": 65.078,
+      "text": "And an agent that adapts when a buddy does not answer.",
+      "end": 70.08
+    },
+    {
+      "start": 70.414,
+      "text": "Live demo. Four phones, four identities, one SpacetimeDB database.",
+      "end": 73.145
+    },
+    {
+      "start": 73.145,
+      "text": "Each phone registered its identity. Alex sets up the demo group.",
+      "end": 74.728
+    },
+    {
+      "start": 74.728,
+      "text": "The roster: Alex organizes, Sam explicitly accepted the driver role.",
+      "end": 79.767
+    },
+    {
+      "start": 79.767,
+      "text": "Each person grants each friend specific scopes, for a limited time.",
+      "end": 84.838
+    },
+    {
+      "start": 84.838,
+      "text": "The map shows only consented, approximate locations. Simulated tonight.",
+      "end": 89.438
+    },
+    {
+      "start": 89.438,
+      "text": "Alex reports a concern: Sam, the driver, may have been drinking.",
+      "end": 92.551
+    },
+    {
+      "start": 92.551,
+      "text": "Sam sees \"Do not drive\" instantly. A deterministic rule, no AI in the loop.",
+      "end": 99.164
+    },
+    {
+      "start": 99.164,
+      "text": "The incident opened the agent. Plan v1 comes from Nemotron on NVIDIA NIM.",
+      "end": 105.215
+    },
+    {
+      "start": 105.215,
+      "text": "Every tool call is validated, then recorded as a receipt. Messages are SIMULATED.",
+      "end": 111.282
+    },
+    {
+      "start": 111.282,
+      "text": "Maya, the primary buddy, gets the request. She does not respond.",
+      "end": 116.841
+    },
+    {
+      "start": 116.841,
+      "text": "The follow-up timer lives in SpacetimeDB. We advance it instead of waiting two minutes.",
+      "end": 124.332
+    },
+    {
+      "start": 124.332,
+      "text": "No reply. The agent escalates: Nemotron plan v2 messages Jordan, the backup.",
+      "end": 130.426
+    },
+    {
+      "start": 130.426,
+      "text": "Jordan acknowledges. Sent is not acknowledged: the states stay distinct.",
+      "end": 133.007
+    },
+    {
+      "start": 133.007,
+      "text": "Now the agent looks up transport and proposes a ride. Two tool rounds.",
+      "end": 145.381
+    },
+    {
+      "start": 145.381,
+      "text": "Routing was unreachable, so it says \"Provider link only\". Nothing is invented.",
+      "end": 151.015
+    },
+    {
+      "start": 151.015,
+      "text": "Sam picks a ride. The app opens a link; a person books. No autonomous purchases.",
+      "end": 153.788
+    },
+    {
+      "start": 153.788,
+      "text": "Booked by a person. The agent tells Jordan and waits for pickup.",
+      "end": 158.336
+    },
+    {
+      "start": 158.336,
+      "text": "Pickup confirmed. Only Sam can close this: the agent never resolves an incident.",
+      "end": 163.03
+    },
+    {
+      "start": 163.03,
+      "text": "Home, confirmed by the person. The incident resolves for everyone.",
+      "end": 170.564
+    },
+    {
+      "start": 170.585,
+      "text": "Under the hood: SpacetimeDB is the whole backend. No API server.",
+      "end": 176.087
+    },
+    {
+      "start": 176.087,
+      "text": "Sessions, consent, incidents, timers, agent state: all tables and reducers.",
+      "end": 181.588
+    },
+    {
+      "start": 181.588,
+      "text": "An event table with row-level security delivers the warning only to Sam.",
+      "end": 186.592
+    },
+    {
+      "start": 186.592,
+      "text": "Safety rules run first, in one transaction, before any model is called.",
+      "end": 192.093
+    },
+    {
+      "start": 192.093,
+      "text": "Consent-scoped views. \"I'm okay\" never closes an incident. Humans resolve.",
+      "end": 198.098
+    },
+    {
+      "start": 198.098,
+      "text": "The agent is a scheduled procedure calling Nemotron 3.5 Super with a tool allowlist.",
+      "end": 203.599
+    },
+    {
+      "start": 203.599,
+      "text": "Tool results are fed back for up to three rounds. Every call is validated first.",
+      "end": 209.101
+    },
+    {
+      "start": 209.101,
+      "text": "Receipts say who proposed each step: the model, a policy rule, or a simulation.",
+      "end": 214.604
+    },
+    {
+      "start": 214.604,
+      "text": "This is the real plan from tonight's run, with the model name and receipts.",
+      "end": 221.612
+    },
+    {
+      "start": 221.612,
+      "text": "81 module tests and 93 web tests, plus a live four-identity end-to-end run.",
+      "end": 227.112
+    },
+    {
+      "start": 227.112,
+      "text": "Revocation, unauthorized access, duplicates, escalation, injection: all covered.",
+      "end": 232.616
+    },
+    {
+      "start": 232.616,
+      "text": "Nemotron and SpacetimeDB are live. SMS is simulated until Twilio keys exist.",
+      "end": 238.117
+    },
+    {
+      "start": 238.117,
+      "text": "Adding keys changes nothing in the data model, only who writes the plan.",
+      "end": 243.119
+    },
+    {
+      "start": 243.119,
+      "text": "SafeNight. NVIDIA Nemotron agentic workflow on a SpacetimeDB backend.",
+      "end": 248.12
+    },
+    {
+      "start": 248.12,
+      "text": "github.com/sabharwalainesh/SafeNight",
+      "end": 252.621
+    }
+  ]
+}
