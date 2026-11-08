@@ -4,7 +4,7 @@ import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../fea
 import { AgentPanel } from '../../features/agent-panel';
 import { HomeConfirm, RidePanel } from '../../features/rides';
 import { CoordinationPanel } from '../../features/coordination';
-import { LargeTitle, Pill, Row, Section } from '../../ui';
+import { Pill, Row, Section } from '../../ui';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
 
@@ -120,7 +120,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
     <div className="incident-screen">
       <button type="button" className="btn plain back-link" onClick={onBack}>‹ Back</button>
       <header className="inc-head">
-        <LargeTitle>{KIND_LABELS[incident.kind] ?? incident.kind}</LargeTitle>
+        <h2 className="large-title">{KIND_LABELS[incident.kind] ?? incident.kind}</h2>
         <p className="inc-sub">
           <span className="headline">{incident.subjectName}</span>
           <Pill tone={incident.severity === 'urgent' ? 'danger' : incident.severity === 'elevated' ? 'warn' : 'neutral'}>
