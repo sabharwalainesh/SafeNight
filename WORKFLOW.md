@@ -253,15 +253,14 @@ _Owner: Person B (Claude Pro). Edit only this section._
 
 **Done (2026-11-08, UI redesign from user feedback):** Apple-style design system (SF typography scale, iOS dark/light palettes meeting 4.5:1, grouped sections, translucent 4-tab bar: Tonight / Map / Alerts / You; shared primitives in `web/src/ui/`), server/online/ping cards moved off the home screen into You → About & diagnostics, Reports moved under You. Tonight: one-tap "Start a hangout" (New Year's Eve, Times Square, NYC), join by code, sectioned session screen (People → Invite / driving → collapsed Privacy → Leave). Map: Leaflet + OpenStreetMap map of Times Square with avatar pins for Alex (Broadway & W 45th), Sam (7th Ave & W 47th), Maya (W 44th & 7th), Jordan (W 42nd & 7th) and the ball-drop marker; demo group setup seeds those spots; compact "I'm okay" / "Need help" bar (help options + emergency hold in a sheet). Web suite 117 tests green.
 
-**Also done (2026-11-08):** Apple-style pass on every remaining screen (Alerts grouped Needs you / Active / Earlier; incident screen ordered home-confirm → what's happening → agent → ride → coordination → people → one primary action, long lists behind "Show all"; agent receipts as status pills; You with Edit-mode contact reordering; Reports with a Nearby/Resources segmented control and an "Add report" sheet; tidy judge demo panel). `liveactivity-demo/`: standalone hardcoded SwiftUI app with a SafeNight Live Activity (lock screen + Dynamic Island) playing the New Year's Eve incident from "concern reported" to "Sam is home ✓"; builds with Xcode 27 (`BUILD SUCCEEDED`, unsigned); run steps in its README. Not yet run on a device or simulator.
+**Also done (2026-11-08):** Apple-style pass on every remaining screen (Alerts grouped Needs you / Active / Earlier; incident screen ordered home-confirm → what's happening → agent → ride → coordination → people → one primary action, long lists behind "Show all"; agent receipts as status pills; You with Edit-mode contact reordering; Reports with a Nearby/Resources segmented control and an "Add report" sheet; tidy judge demo panel). A hardcoded Live Activity mock-up was built for a local preview only and is not kept in the repository.
 
 **Planned / remaining:**
 - Walk the four-device demo on live data (2 laptop tabs + 2 phones) once the module is on Maincloud; record results here.
 - Rehearse with `SIMULATE_ALL=1`; real calls only for final checks (ElevenLabs Starter ≈ 45 call-minutes; plan set to cancel Dec 8).
 - Fill `bridge/.env` demo phones (`PHONE_MAYA`, `PHONE_JORDAN`, `DEMO_DISPATCH_NUMBER`), optional dispatch agent; enable voicemail detection on the ElevenLabs agents.
-- Run `liveactivity-demo/` on an iPhone (select Xcode, set signing Team, Developer Mode) and record it for the demo.
 - Real-browser check of the redesigned UI and the Times Square map (dark tile filter, sheets) on desktop and phone.
-- Stretch (with A, `mobile/`): Expo development build in the iOS Simulator and a live (server-driven) Live Activity incident card.
+- In progress (agreed with the user, touches A's `mobile/` additively): Expo development build in the iOS Simulator with a real, data-driven Live Activity (lock screen + Dynamic Island, Check in / I'm good / Need help buttons calling real reducers); see `mobile/LIVE_ACTIVITY.md` once merged.
 - Stretch: SMS texting via the Photon 2.0 beta API once a 10DLC campaign is approved.
 
 **Done**
