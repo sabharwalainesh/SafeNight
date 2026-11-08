@@ -89,6 +89,16 @@ export function getSnapshot(): MockState {
   return snapshot;
 }
 
+/** Mock mode: put the demo personas at their Times Square spots (simulated). */
+export function seedTimesSquareLocations(sessionId: string, spots: Record<string, { lat: number; lng: number }>) {
+  mutate((s) => {
+    const now = Date.now();
+    s.locations = s.locations.filter((l) => l.sessionId !== sessionId);
+    for (const [userId, p] of Object.entries(spots))
+      s.locations.push({ sessionId, userId, lat: p.lat, lng: p.lng, accuracyM: 20, recordedAt: now, expiresAt: now + 15 * 60000, source: 'simulated' });
+  });
+}
+
 /** Apply a mutation on the freshest state; throws propagate without saving. */
 export function mutate<T>(fn: (s: MockState, nextId: () => string) => T): T {
   start();

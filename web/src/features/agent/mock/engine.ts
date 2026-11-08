@@ -5,6 +5,9 @@ import type { IncidentStatus } from '../../safety/api';
 import type { ActionStatus, AgentActions, DemoActions, RideOption } from '../api';
 import { EMPTY_VIEW, resetMockNightOut, setupMockGroup, type NightOutView } from './nightOutView';
 import { EMPTY_SAFETY_VIEW, resetMockSafety, type SafetyView } from './safetyView';
+import { getSnapshot as noSnap } from '../../night-out/mock/store';
+import { seedTimesSquareLocations } from '../../safety/mock/store';
+import { SPOTS } from '../../safety/mock/spots';
 import { empty, getSnapshot, mutate, type MockState, type StoredJob } from './store';
 
 export const MODEL = 'simulated-planner';
@@ -413,6 +416,8 @@ export function makeDemo(mockedNightOut: boolean, mockedSafety = true): DemoActi
       guard();
       if (!mockedNightOut) throw new Error('Group setup needs the demo reducer from the backend (live mode)');
       setupMockGroup();
+      const mine = noSnap().sessions.filter((x) => x.status === 'active' && x.organizer === 'alex');
+      if (mine.length > 0) seedTimesSquareLocations(mine[mine.length - 1].id, SPOTS);
     },
   };
 }

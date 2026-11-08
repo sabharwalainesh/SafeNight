@@ -11,7 +11,25 @@
   font-weight: 600; touch-action: manipulation; user-select: none; -webkit-user-select: none;
 }
 .status-btn:disabled { opacity: 0.6; cursor: default; }
-.status-home { border-color: var(--ok); }
+.status-okay { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 20%, var(--surface-2)); color: var(--text); }
+.status-needhelp { background: var(--surface-2); }
+.status-home { background: transparent; border: 0; color: var(--accent); min-height: var(--tap); padding: 0 0.75rem; font-weight: 600; flex: 1 1 100%; }
+.status-help-wrap { position: fixed; inset: 0; z-index: 1000; visibility: hidden; pointer-events: none; }
+.status-help-wrap.is-open { visibility: visible; pointer-events: auto; }
+.status-help-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); opacity: 0; transition: opacity 0.2s; }
+.is-open .status-help-backdrop { opacity: 1; }
+.status-help-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto;
+  display: grid; gap: 0.5rem; padding: 1rem; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 20px 20px 0 0;
+  transform: translateY(100%); transition: transform 0.25s;
+}
+.is-open .status-help-sheet { transform: none; }
+.status-help-title { margin: 0; font-size: 1.1rem; }
+.status-help-close { min-height: var(--tap); background: transparent; border: 0; color: var(--accent); font-weight: 600; }
+.status-help-opt { min-height: var(--tap); padding: 0.5rem 1rem; text-align: left; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; }
+.status-help-danger { margin-top: 0.4rem; padding-top: 0.8rem; border-top: 1px solid var(--danger); display: grid; gap: 0.4rem; }
+@media (prefers-reduced-motion: reduce) { .status-help-sheet, .status-help-backdrop { transition: none; } }
 .status-link { background: transparent; flex-basis: 100%; color: var(--accent); }
 .status-emergency { width: 100%; min-height: 52px; border-color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, var(--surface-2)); }
 .status-hold-label { position: relative; z-index: 1; }
@@ -41,9 +59,11 @@
 .status-radio input { width: 22px; height: 22px; }
 
 .status-nodrive {
-  margin: 0.5rem 0.75rem; padding: 0.8rem; border-radius: var(--radius);
-  border: 2px solid var(--danger); background: color-mix(in srgb, var(--danger) 22%, var(--bg));
+  margin: 0.5rem 0.75rem; padding: 1rem; border-radius: 18px;
+  border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
+.status-nodrive strong { color: var(--danger); font-size: 1.05rem; }
 .status-nodrive p { margin: 0.3rem 0 0.6rem; }
 .status-toasts { list-style: none; margin: 0.5rem 0.75rem; padding: 0; display: grid; gap: 0.4rem; }
 .status-toast {
