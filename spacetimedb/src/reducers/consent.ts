@@ -3,7 +3,7 @@ import { spacetimedb } from '../schema';
 import { ConsentScope, SharingScope } from '../tables/nightout';
 import { audit, deny, getSession, requireActiveMember, sessionIsOpen } from '../lib/auth';
 import { MAX_TTL_MINUTES } from '../lib/constants';
-import { minutesAfter } from '../lib/time';
+import { insertGrant } from '../lib/nightout';
 import { DEFAULT_CONSENT_TTL_MINUTES, privacyDefaults } from '../lib/community';
 
 export const grantConsent = spacetimedb.reducer(
@@ -19,22 +19,7 @@ export const grantConsent = spacetimedb.reducer(
     if (ttl < 1 || ttl > MAX_TTL_MINUTES) {
       throw new SenderError('ttlMinutes must be between 1 and 1440');
     }
-    // Replace an existing open grant for the same (recipient, session, scope).
-    for (const g of ctx.db.consentGrant.bySubjectRecipient.filter([ctx.sender, recipient])) {
-      if (g.sessionId === sessionId && g.scope.tag === scope.tag && g.revokedAt === undefined) {
-        ctx.db.consentGrant.id.update({ ...g, revokedAt: ctx.timestamp });
-      }
-    }
-    const grant = ctx.db.consentGrant.insert({
-      id: 0n,
-      subject: ctx.sender,
-      recipient,
-      sessionId,
-      scope,
-      startsAt: ctx.timestamp,
-      expiresAt: minutesAfter(ctx.timestamp, ttl),
-      revokedAt: undefined,
-    });
+    const grant = insertGrant(ctx, ctx.sender, recipient, sessionId, scope, ttl);
     audit(ctx, 'grant_consent', `consent_grant:${grant.id}:${scope.tag}`);
   }
 );

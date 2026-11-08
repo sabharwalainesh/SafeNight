@@ -112,7 +112,7 @@ describe('C0 system module', () => {
       nemotronMode: 'simulated',
       messagingMode: 'simulated',
       appEnv: 'development',
-      moduleVersion: '0.5.0-c4',
+      moduleVersion: '0.6.0-c5',
     });
   });
 });

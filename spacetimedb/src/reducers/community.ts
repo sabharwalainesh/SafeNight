@@ -289,6 +289,7 @@ export const resetDemo = spacetimedb.reducer(ctx => {
   clearSched(d.checkinTimer); clearSched(d.sessionExpiry);
   clear(d.consentGrant); clear(d.driverAssignment); clear(d.sessionMember); clear(d.invite); clear(d.nightSession);
   clear(d.trustedContact);
+  for (const r of d.demoSession.iter()) d.demoSession.sessionId.delete(r.sessionId); // personas stay registered
   clear(d.venueReportVote); clear(d.venueReportAuthor); clear(d.venueReport);
   for (const r of d.userPrivacySettings.iter()) d.userPrivacySettings.identity.delete(r.identity);
   for (const r of d.userProfile.iter()) d.userProfile.identity.delete(r.identity);

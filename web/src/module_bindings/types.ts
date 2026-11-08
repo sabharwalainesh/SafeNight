@@ -290,6 +290,24 @@ export const DeliveryStatus = __t.enum("DeliveryStatus", {
 });
 export type DeliveryStatus = __Infer<typeof DeliveryStatus>;
 
+export const DemoPersona = __t.object("DemoPersona", {
+  personaId: __t.string(),
+  identity: __t.identity(),
+  displayName: __t.string(),
+  avatarEmoji: __t.string(),
+  registeredAt: __t.timestamp(),
+});
+export type DemoPersona = __Infer<typeof DemoPersona>;
+
+export const DemoPersonas = __t.object("DemoPersonas", {});
+export type DemoPersonas = __Infer<typeof DemoPersonas>;
+
+export const DemoSession = __t.object("DemoSession", {
+  sessionId: __t.u64(),
+  createdAt: __t.timestamp(),
+});
+export type DemoSession = __Infer<typeof DemoSession>;
+
 export const DriverAssignment = __t.object("DriverAssignment", {
   id: __t.u64(),
   sessionId: __t.u64(),

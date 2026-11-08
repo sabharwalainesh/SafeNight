@@ -43,6 +43,7 @@ import {
   venueReportExpiry,
   venueReportVote,
 } from './tables/community';
+import { demoPersona, demoSession } from './tables/demo';
 
 // Private: single row recording who published the database (module owner).
 export const config = table(
@@ -131,6 +132,8 @@ export const spacetimedb = schema(
     retentionSweep,
     appRole,
     userPrivacySettings,
+    demoPersona,
+    demoSession,
   },
   {
     env: {

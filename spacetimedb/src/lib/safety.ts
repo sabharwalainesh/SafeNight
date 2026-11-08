@@ -185,3 +185,36 @@ export function ensureSweepScheduled(ctx: Ctx) {
   ctx.db.locationSweep.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.interval(SWEEP_INTERVAL_MICROS) });
   return true;
 }
+
+/** Store a location sample and upsert the member's latest_location row. Authorization is the caller's job. */
+export function recordLocation(
+  ctx: Ctx,
+  sessionId: bigint,
+  userId: Identity,
+  lat: number,
+  lng: number,
+  accuracyM: number,
+  source: { tag: 'device' | 'simulated' }
+) {
+  if (!(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) throw new SenderError('Invalid coordinates');
+  const expiresAt = minutesAfter(ctx.timestamp, LOCATION_TTL_MINUTES);
+  const row = ctx.db.locationUpdate.insert({
+    id: 0n,
+    sessionId,
+    userId,
+    lat,
+    lng,
+    accuracyM,
+    recordedAt: ctx.timestamp,
+    expiresAt,
+    source,
+  });
+  const latest = { locationId: row.id, sessionId, userId, lat, lng, accuracyM, recordedAt: ctx.timestamp, expiresAt, source };
+  let updated = false;
+  for (const existing of ctx.db.latestLocation.bySessionUser.filter([sessionId, userId])) {
+    ctx.db.latestLocation.id.update({ ...latest, id: existing.id });
+    updated = true;
+  }
+  if (!updated) ctx.db.latestLocation.insert({ ...latest, id: 0n });
+  return row;
+}

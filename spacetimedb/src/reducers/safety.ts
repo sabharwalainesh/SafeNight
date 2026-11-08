@@ -22,14 +22,14 @@ import {
   findParticipant,
   hasActiveGrant,
   isOpenStatus,
-  LOCATION_TTL_MINUTES,
   openDriverIncident,
   openIncident,
   participantsOf,
+  recordLocation,
   requireNote,
   sendAlert,
 } from '../lib/safety';
-import { isAtOrBefore, isBefore, minutesAfter } from '../lib/time';
+import { isAtOrBefore, isBefore } from '../lib/time';
 import { closeJobForIncident, completeRidePlans } from '../lib/agent/jobs';
 import { ensureCommunitySchedules } from '../lib/community';
 import { MODULE_VERSION } from '../lib/constants';
@@ -41,26 +41,7 @@ export const postLocation = spacetimedb.reducer(
     if (!sessionIsOpen(session)) throw new SenderError('Session is not active');
     const m = requireActiveMember(ctx, sessionId);
     if (m.sharingScope.tag === 'none') throw new SenderError('Turn on location sharing first');
-    if (!(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) throw new SenderError('Invalid coordinates');
-    const expiresAt = minutesAfter(ctx.timestamp, LOCATION_TTL_MINUTES);
-    const row = ctx.db.locationUpdate.insert({
-      id: 0n,
-      sessionId,
-      userId: ctx.sender,
-      lat,
-      lng,
-      accuracyM,
-      recordedAt: ctx.timestamp,
-      expiresAt,
-      source,
-    });
-    const latest = { locationId: row.id, sessionId, userId: ctx.sender, lat, lng, accuracyM, recordedAt: ctx.timestamp, expiresAt, source };
-    let updated = false;
-    for (const existing of ctx.db.latestLocation.bySessionUser.filter([sessionId, ctx.sender])) {
-      ctx.db.latestLocation.id.update({ ...latest, id: existing.id });
-      updated = true;
-    }
-    if (!updated) ctx.db.latestLocation.insert({ ...latest, id: 0n });
+    recordLocation(ctx, sessionId, ctx.sender, lat, lng, accuracyM, source);
   }
 );
 

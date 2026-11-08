@@ -437,6 +437,29 @@ Module owners bypass RLS (the CLI identity sees everything).
 - **Judge panel:** `reducers.resetDemo({})` wipes every demo row (sessions, incidents, agent state, reports, profiles) and keeps venues, resources and config; refuse-able only in production. `reducers.demoFireFollowup({ jobId })` and `reducers.demoWakeAgent({ jobId, event })` remain from C3.
 - Enum tags are PascalCase in bindings; ids are `bigint`.
 
+### C5 demo helpers (IMPLEMENTED)
+
+Identities are issued per browser tab, so no single tab knows the other personas' identities. These reducers let one tab build the judge-demo group for all four. All are guarded by `requireDemoAllowed`: open to everyone unless `APP_ENV = production`, always allowed for the database owner; the refusal text is `Demo controls are disabled in production` (same as the other demo controls).
+
+| Table | Visibility | Columns |
+|---|---|---|
+| `demo_persona` | private | `personaId: string pk` (`alex` / `sam` / `maya` / `jordan`), `identity: identity unique`, `displayName`, `avatarEmoji`, `registeredAt` |
+| `demo_session` | private | `sessionId: u64 pk`, `createdAt` (sessions created by `demo_setup_group`) |
+
+| Reducer | Args | Rule | Errors |
+|---|---|---|---|
+| `demo_register_persona` | `personaId, displayName, avatarEmoji` | Binds the caller's identity to the persona (case-insensitive id). Re-registering replaces the identity for that persona; an identity moving to another persona frees its old slot. Creates the caller's `user_profile` if missing. | `Unknown persona id; use alex, sam, maya or jordan`, `Display name must be 1 to 40 characters` |
+| `demo_setup_group` | `name` | Idempotent per name: reuses an open demo session with that name, else creates one (Alex organizer, 6 h, check-in 60 min, venue "Student Union, campus (demo)"), adds Sam, Maya, Jordan as active participants with `sharingScope = approximate`, inserts an **accepted** driver assignment for Sam, Sam's trusted contacts (Maya buddy priority 1, Jordan backup_buddy priority 2, messaging consent true), 3 h consent grants: every member → every other member `location_approximate` + `checkins` (24), plus `messaging` Sam ↔ Maya and Sam ↔ Jordan (4), simulated `latest_location` rows for all four near the seeded demo resources, and the check-in timers. Uses the same helpers as the real reducers (`insertGrant`, `recordLocation`, `armCheckinTimer`; one open driver per session is checked). | `Register all four personas first: missing <ids>` |
+| `demo_reset_group` | — | For every demo session still open: cancels its open incidents (status `cancelled`, `resolvedBy = subject`, a simulated `cancelled` event, agent job closed with `demo_reset`), ends the session through the shared `closeSession` path (members inactive, grants revoked, driver ended, timers cleared, expiry row removed), then forgets it. Personas stay registered. Second call is a no-op (`audit.resource = ended:0`). | — |
+
+`reset_demo` (C4) also clears `demo_session` and keeps `demo_persona`.
+
+| View | Context | Returns |
+|---|---|---|
+| `demo_personas` | anonymous, public | all `demo_persona` rows (`personaId`, `identity`, `displayName`, `avatarEmoji`, `registeredAt`) so the panel can show which personas are registered |
+
+**Client notes for the demo panel (Person B):** in demo mode each persona tab calls `reducers.demoRegisterPersona({ personaId, displayName, avatarEmoji })` once connected (idempotent); the panel subscribes to `tables.demoPersonas` and enables "Set up demo group" when all four ids are present; any tab calls `reducers.demoSetupGroup({ name })` and then reads the session from `tables.mySessions` (everyone is a member, so it appears in every tab); "Reset group" → `reducers.demoResetGroup({})`; "Reset everything" → `reducers.resetDemo({})`. `scripts/demo_driver_incident.mts` uses exactly this sequence for its setup phase.
+
 ## 10. Client responsibilities (Person B)
 
 - Subscribe per screen, not to everything: `tables.mySessions`, `tables.myRosters` (argument-free; filter by `sessionId` client-side), `tables.safetyAlert` (event table; `onInsert` only).

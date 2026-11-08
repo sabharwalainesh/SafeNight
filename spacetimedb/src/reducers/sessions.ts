@@ -17,28 +17,7 @@ import { INVITE_ALPHABET, INVITE_CODE_LENGTH, MAX_TTL_MINUTES } from '../lib/con
 import { isAtOrBefore, minutesAfter } from '../lib/time';
 import { ScheduleAt } from 'spacetimedb';
 import { armCheckinTimer, clearCheckinTimers } from '../lib/safety';
-
-type CloseStatus = 'ended' | 'expired';
-
-/** Idempotent: closes a session and everything that depends on it. */
-function closeSession(ctx: Ctx, sessionId: bigint, status: CloseStatus) {
-  const session = ctx.db.nightSession.id.find(sessionId);
-  if (!session) return;
-  if (session.status.tag === 'ended' || session.status.tag === 'expired') return;
-  ctx.db.nightSession.id.update({ ...session, status: { tag: status } });
-  for (const m of ctx.db.sessionMember.sessionId.filter(sessionId)) {
-    if (m.active) ctx.db.sessionMember.id.update({ ...m, active: false, leftAt: ctx.timestamp });
-    clearCheckinTimers(ctx, sessionId, m.userId);
-  }
-  for (const g of ctx.db.consentGrant.sessionId.filter(sessionId)) {
-    if (g.revokedAt === undefined) ctx.db.consentGrant.id.update({ ...g, revokedAt: ctx.timestamp });
-  }
-  for (const a of ctx.db.driverAssignment.sessionId.filter(sessionId)) {
-    if (a.endedAt === undefined) {
-      ctx.db.driverAssignment.id.update({ ...a, endedAt: ctx.timestamp, endReason: { tag: 'session_ended' } });
-    }
-  }
-}
+import { clearSessionExpiry, closeSession } from '../lib/nightout';
 
 export const createSession = spacetimedb.reducer(
   {
@@ -194,9 +173,7 @@ export const endSession = spacetimedb.reducer({ sessionId: t.u64() }, (ctx, { se
   requireOrganizer(ctx, session, 'end_session');
   if (!sessionIsOpen(session)) return;
   closeSession(ctx, sessionId, 'ended');
-  for (const row of ctx.db.sessionExpiry.iter()) {
-    if (row.sessionId === sessionId) ctx.db.sessionExpiry.scheduledId.delete(row.scheduledId);
-  }
+  clearSessionExpiry(ctx, sessionId);
   audit(ctx, 'end_session', `night_session:${sessionId}`);
 });
 

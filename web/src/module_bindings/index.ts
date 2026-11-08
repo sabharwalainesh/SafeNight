@@ -50,6 +50,9 @@ import CreateVenueReducer from "./create_venue_reducer";
 import DeclineAssistanceReducer from "./decline_assistance_reducer";
 import DeleteMyDataReducer from "./delete_my_data_reducer";
 import DemoFireFollowupReducer from "./demo_fire_followup_reducer";
+import DemoRegisterPersonaReducer from "./demo_register_persona_reducer";
+import DemoResetGroupReducer from "./demo_reset_group_reducer";
+import DemoSetupGroupReducer from "./demo_setup_group_reducer";
 import DemoWakeAgentReducer from "./demo_wake_agent_reducer";
 import EndDriverRoleReducer from "./end_driver_role_reducer";
 import EndSessionReducer from "./end_session_reducer";
@@ -81,6 +84,7 @@ import VoteVenueReportReducer from "./vote_venue_report_reducer";
 
 // Import all table schema definitions
 import ClientPresenceRow from "./client_presence_table";
+import DemoPersonasRow from "./demo_personas_table";
 import DriverAssignmentRow from "./driver_assignment_table";
 import MyAgentActionsRow from "./my_agent_actions_table";
 import MyAgentJobsRow from "./my_agent_jobs_table";
@@ -227,6 +231,13 @@ const tablesSchema = __schema({
       { name: 'venue_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, VenueRow),
+  demoPersonas: __table({
+    name: 'demo_personas',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, DemoPersonasRow),
   myAgentActions: __table({
     name: 'my_agent_actions',
     indexes: [
@@ -387,6 +398,9 @@ const reducersSchema = __reducers(
   __reducerSchema("decline_assistance", DeclineAssistanceReducer),
   __reducerSchema("delete_my_data", DeleteMyDataReducer),
   __reducerSchema("demo_fire_followup", DemoFireFollowupReducer),
+  __reducerSchema("demo_register_persona", DemoRegisterPersonaReducer),
+  __reducerSchema("demo_reset_group", DemoResetGroupReducer),
+  __reducerSchema("demo_setup_group", DemoSetupGroupReducer),
   __reducerSchema("demo_wake_agent", DemoWakeAgentReducer),
   __reducerSchema("end_driver_role", EndDriverRoleReducer),
   __reducerSchema("end_session", EndSessionReducer),

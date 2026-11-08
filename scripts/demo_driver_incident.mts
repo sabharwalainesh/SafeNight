@@ -2,7 +2,6 @@
 // primary non-response → backup escalation, acknowledgment → transport proposal.
 // Run: `npx tsx scripts/demo_driver_incident.mts` from the repo root against a local server
 // with the module published. Exits 0 only when the job reached transport_pending or later.
-import { Timestamp } from 'spacetimedb';
 import { DbConnection, tables } from '../web/src/module_bindings/index.ts';
 
 const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://127.0.0.1:3000';
@@ -60,39 +59,22 @@ const jordan = await connect('Jordan (backup #2)');
 const all = [alex, sam, maya, jordan];
 for (const c of all) console.log(`${c.name}: ${short(c.hex)}`);
 
-await alex.conn.reducers.setProfile({ displayName: 'Alex', avatarEmoji: '🦊' });
-await sam.conn.reducers.setProfile({ displayName: 'Sam', avatarEmoji: '🚗' });
-await maya.conn.reducers.setProfile({ displayName: 'Maya', avatarEmoji: '🛡️' });
-await jordan.conn.reducers.setProfile({ displayName: 'Jordan', avatarEmoji: '⭐' });
+// Judge-demo helpers: each tab binds its identity to a persona, then any tab builds the group.
+await alex.conn.reducers.demoRegisterPersona({ personaId: 'alex', displayName: 'Alex', avatarEmoji: '🦊' });
+await sam.conn.reducers.demoRegisterPersona({ personaId: 'sam', displayName: 'Sam', avatarEmoji: '🚗' });
+await maya.conn.reducers.demoRegisterPersona({ personaId: 'maya', displayName: 'Maya', avatarEmoji: '🛡️' });
+await jordan.conn.reducers.demoRegisterPersona({ personaId: 'jordan', displayName: 'Jordan', avatarEmoji: '⭐' });
 
 const sessionName = `Demo ${new Date().toISOString().slice(11, 19)}`;
-await alex.conn.reducers.createSession({
-  name: sessionName,
-  venueHint: 'Downtown',
-  startsAt: Timestamp.fromDate(new Date()),
-  expiresAt: Timestamp.fromDate(new Date(Date.now() + 4 * 3600_000)),
-  checkinIntervalMinutes: 60,
-});
+await alex.conn.reducers.demoSetupGroup({ name: sessionName });
 const session = await waitFor('session', () => [...alex.conn.db.mySessions.iter()].find(s => s.name === sessionName));
-await alex.conn.reducers.createInvite({ sessionId: session.id, ttlMinutes: 60, maxUses: 5 });
-const invite = await waitFor('invite', () => [...alex.conn.db.myInvites.iter()].find(i => i.sessionId === session.id));
-for (const c of [sam, maya, jordan]) await c.conn.reducers.joinSession({ code: invite.code });
 await waitFor('roster of 4', () => ([...alex.conn.db.myRosters.iter()].filter(r => r.sessionId === session.id).length === 4 ? true : undefined));
-
 const samId = [...alex.conn.db.myRosters.iter()].find(r => r.sessionId === session.id && r.displayName === 'Sam')!.userId;
-const mayaId = [...alex.conn.db.myRosters.iter()].find(r => r.sessionId === session.id && r.displayName === 'Maya')!.userId;
-const jordanId = [...alex.conn.db.myRosters.iter()].find(r => r.sessionId === session.id && r.displayName === 'Jordan')!.userId;
-
-await sam.conn.reducers.volunteerDriver({ sessionId: session.id });
-const assignment = await waitFor('assignment', () => [...sam.conn.db.driverAssignment.iter()].find(d => d.sessionId === session.id));
-await sam.conn.reducers.acceptDriverRole({ assignmentId: assignment.id });
-await sam.conn.reducers.addTrustedContact({ contact: mayaId, role: { tag: 'Buddy' }, messagingConsent: true, priority: 1 });
-await sam.conn.reducers.addTrustedContact({ contact: jordanId, role: { tag: 'BackupBuddy' }, messagingConsent: true, priority: 2 });
-await sam.conn.reducers.grantConsent({ recipient: mayaId, sessionId: session.id, scope: { tag: 'Messaging' }, ttlMinutes: 180 });
-await sam.conn.reducers.grantConsent({ recipient: jordanId, sessionId: session.id, scope: { tag: 'Messaging' }, ttlMinutes: 180 });
-await sam.conn.reducers.setSharingScope({ sessionId: session.id, scope: { tag: 'Approximate' } });
-await sam.conn.reducers.postLocation({ sessionId: session.id, lat: 40.7484, lng: -73.9857, accuracyM: 25, source: { tag: 'Simulated' } });
-console.log('Setup done: session, roster, accepted driver Sam, buddies Maya (1) and Jordan (2), consents, simulated location.');
+const driverRow = await waitFor('accepted driver', () =>
+  [...sam.conn.db.driverAssignment.iter()].find(d => d.sessionId === session.id && d.acceptedAt !== undefined)
+);
+if (!driverRow.driverId.isEqual(samId)) throw new Error('expected Sam to be the accepted driver');
+console.log('Setup done via demo_setup_group: session, roster of 4, accepted driver Sam, buddies Maya (1) and Jordan (2), consent matrix, simulated locations.');
 
 console.log('\n1. Alex reports a concern about the driver...');
 await alex.conn.reducers.reportConcern({ sessionId: session.id, subject: samId, category: { tag: 'PossibleConsumption' }, note: 'Sam had a few drinks' });
