@@ -36,6 +36,13 @@ Personas: **Alex** (organizer), **Sam** (designated driver), **Maya** (primary b
 - Consent revocation blocks messaging: optionally, before step 2, have Maya turn off her **Messaging** toggles for everyone (Night Out, Consent). The agent records a **Blocked** receipt for Maya and goes straight to Jordan.
 - Hold-to-confirm emergency prevents accidental triggers (Map).
 
+## Running the same script on live SpacetimeDB data
+
+1. Start the server and publish the module (README, "Backend and local development"), then `npm run dev:live -w web`.
+2. Open the four persona tabs. There is no one-click group setup on live data: as **Alex**, create the session in **Night Out** and create an invite; join with the code from the Sam, Maya and Jordan tabs. As **Sam**, volunteer and accept the driver role. Each person turns on sharing and the consent toggles they want.
+3. Continue from walkthrough step 1. "Advance timer" and "Reset demo" in the Profile demo panel call the module's demo reducers. Plans show SIMULATED unless the module has `NEMOTRON_API_KEY` set.
+4. Phone entry is hidden on live data until the module stores phone numbers privately.
+
 ## Backup if something breaks
 
 - Profile, **Reset demo**, then **Set up demo group** again and restart from step 2.
