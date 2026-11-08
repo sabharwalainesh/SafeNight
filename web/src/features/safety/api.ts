@@ -73,6 +73,8 @@ export type Incident = {
   resolvedAt: EpochMs | null;
   resolvedBy: UserId | null;
   participants: IncidentParticipant[];
+  /** Set by `request_company`: the subject wants a friend to physically come to them (meetup feature). */
+  meetupWanted?: boolean;
 };
 
 export type IncidentEvent = {

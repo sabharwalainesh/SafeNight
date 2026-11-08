@@ -124,6 +124,8 @@ export const incident = table(
     openedAt: t.timestamp(),
     resolvedAt: t.timestamp().optional(),
     resolvedBy: t.identity().optional(),
+    // F1: the subject asked for someone to come to them ("Come to me").
+    meetupWanted: t.bool().default(false),
   }
 );
 

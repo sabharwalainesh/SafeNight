@@ -114,6 +114,7 @@ export function openIncident(
     openedAt: ctx.timestamp,
     resolvedAt: undefined,
     resolvedBy: undefined,
+    meetupWanted: false,
   });
   for (const m of ctx.db.sessionMember.sessionId.filter(sessionId)) {
     if (!m.active) continue;

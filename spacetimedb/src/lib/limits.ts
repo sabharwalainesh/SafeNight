@@ -5,6 +5,7 @@ import type { Timestamp } from 'spacetimedb';
 export const LIMITS = {
   checkinsPerMinute: 10,
   locationsPerMinute: 30,
+  meetupLocationsPerMinute: 60,
   concernsPerHour: 5,
   venueReportsPerHour: 8,
   venuesPerHour: 5,

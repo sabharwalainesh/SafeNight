@@ -3,12 +3,14 @@ import { CHECKIN_LABELS, useSafety } from '../safety/api';
 import type { CheckinKind } from '../safety/api';
 import { ConcernSheet } from './ConcernSheet';
 import { HoldButton } from './HoldButton';
+import { useMeetups } from '../meetup/api'; // meetup feature: "Come to me" (null on mock data)
 import './status.css';
 
 const HELP: CheckinKind[] = ['need_friend', 'need_ride', 'unwell'];
 
 export function StatusBar() {
   const { sessionId, me, incidents, actions } = useSafety();
+  const comeToMe = useMeetups()?.actions.requestCompany ?? null; // meetup feature
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +33,18 @@ export function StatusBar() {
 
   const canHome = incidents.some((i) => i.subject === me && i.status === 'awaiting_home_confirmation');
 
-  async function send(kind: CheckinKind) {
+  async function send(kind: CheckinKind | 'come_to_me') {
     setHelp(false);
     setBusy(true);
     setError(null);
     setResult(null);
     try {
+      if (kind === 'come_to_me') {
+        // meetup feature: opens the need-help incident and flags it as wanting company
+        await comeToMe!('');
+        setResult('Sent: Come to me. Friends who accept will get a compass to you.');
+        return;
+      }
       await actions.checkIn(kind, '');
       setResult(`Sent: ${CHECKIN_LABELS[kind]}.`);
       setOpenNote(
@@ -85,6 +93,12 @@ export function StatusBar() {
               {CHECKIN_LABELS[k]}
             </button>
           ))}
+          {comeToMe && (
+            /* meetup feature */
+            <button type="button" className="status-help-opt" disabled={busy} onClick={() => send('come_to_me')}>
+              Come to me
+            </button>
+          )}
           <button
             type="button"
             className="status-help-opt"

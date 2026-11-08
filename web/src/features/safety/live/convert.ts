@@ -44,6 +44,7 @@ export type IncidentRowLike = {
   openedAt: Timestamp;
   resolvedAt?: Timestamp | null;
   resolvedBy?: Identity | null;
+  meetupWanted?: boolean; // meetup feature (F1); absent on older bindings
 };
 export type ParticipantRowLike = {
   incidentId: bigint;
@@ -112,6 +113,7 @@ export function toIncident(r: IncidentRowLike, participantRows: ParticipantRowLi
     resolvedAt: optTsMs(r.resolvedAt),
     resolvedBy: r.resolvedBy ? identityStr(r.resolvedBy) : null,
     participants,
+    meetupWanted: r.meetupWanted ?? false, // meetup feature
   };
 }
 

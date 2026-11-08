@@ -40,6 +40,7 @@ import AcknowledgeAssistanceReducer from "./acknowledge_assistance_reducer";
 import AcknowledgeIncidentReducer from "./acknowledge_incident_reducer";
 import AddTrustedContactReducer from "./add_trusted_contact_reducer";
 import CancelIncidentReducer from "./cancel_incident_reducer";
+import CancelMeetupReducer from "./cancel_meetup_reducer";
 import CheckInReducer from "./check_in_reducer";
 import ConfirmHomeReducer from "./confirm_home_reducer";
 import ConfirmPickupReducer from "./confirm_pickup_reducer";
@@ -60,13 +61,16 @@ import EnsureSchedulesReducer from "./ensure_schedules_reducer";
 import GrantConsentReducer from "./grant_consent_reducer";
 import JoinSessionReducer from "./join_session_reducer";
 import LeaveSessionReducer from "./leave_session_reducer";
+import MarkArrivedReducer from "./mark_arrived_reducer";
 import ModerateVenueReportReducer from "./moderate_venue_report_reducer";
+import OfferToComeReducer from "./offer_to_come_reducer";
 import PingReducer from "./ping_reducer";
 import PostLocationReducer from "./post_location_reducer";
 import RemoveTrustedContactReducer from "./remove_trusted_contact_reducer";
 import ReorderTrustedContactsReducer from "./reorder_trusted_contacts_reducer";
 import ReportConcernReducer from "./report_concern_reducer";
 import ReportConsumptionReducer from "./report_consumption_reducer";
+import RequestCompanyReducer from "./request_company_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveIncidentReducer from "./resolve_incident_reducer";
 import RevokeConsentReducer from "./revoke_consent_reducer";
@@ -98,6 +102,7 @@ import MyIncidentEventsRow from "./my_incident_events_table";
 import MyIncidentParticipantsRow from "./my_incident_participants_table";
 import MyIncidentsRow from "./my_incidents_table";
 import MyInvitesRow from "./my_invites_table";
+import MyMeetupsRow from "./my_meetups_table";
 import MyNotificationsRow from "./my_notifications_table";
 import MyPhoneRow from "./my_phone_table";
 import MyPrivacySettingsRow from "./my_privacy_settings_table";
@@ -318,6 +323,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyInvitesRow),
+  myMeetups: __table({
+    name: 'my_meetups',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyMeetupsRow),
   myNotifications: __table({
     name: 'my_notifications',
     indexes: [
@@ -405,6 +417,7 @@ const reducersSchema = __reducers(
   __reducerSchema("acknowledge_incident", AcknowledgeIncidentReducer),
   __reducerSchema("add_trusted_contact", AddTrustedContactReducer),
   __reducerSchema("cancel_incident", CancelIncidentReducer),
+  __reducerSchema("cancel_meetup", CancelMeetupReducer),
   __reducerSchema("check_in", CheckInReducer),
   __reducerSchema("confirm_home", ConfirmHomeReducer),
   __reducerSchema("confirm_pickup", ConfirmPickupReducer),
@@ -425,13 +438,16 @@ const reducersSchema = __reducers(
   __reducerSchema("grant_consent", GrantConsentReducer),
   __reducerSchema("join_session", JoinSessionReducer),
   __reducerSchema("leave_session", LeaveSessionReducer),
+  __reducerSchema("mark_arrived", MarkArrivedReducer),
   __reducerSchema("moderate_venue_report", ModerateVenueReportReducer),
+  __reducerSchema("offer_to_come", OfferToComeReducer),
   __reducerSchema("ping", PingReducer),
   __reducerSchema("post_location", PostLocationReducer),
   __reducerSchema("remove_trusted_contact", RemoveTrustedContactReducer),
   __reducerSchema("reorder_trusted_contacts", ReorderTrustedContactsReducer),
   __reducerSchema("report_concern", ReportConcernReducer),
   __reducerSchema("report_consumption", ReportConsumptionReducer),
+  __reducerSchema("request_company", RequestCompanyReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_incident", ResolveIncidentReducer),
   __reducerSchema("revoke_consent", RevokeConsentReducer),

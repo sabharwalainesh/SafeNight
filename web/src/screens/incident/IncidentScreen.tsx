@@ -4,6 +4,7 @@ import { INCIDENT_STATUS_LABELS, useSafety, type IncidentEvent } from '../../fea
 import { AgentPanel } from '../../features/agent-panel';
 import { HomeConfirm, RidePanel } from '../../features/rides';
 import { CoordinationPanel } from '../../features/coordination';
+import { MeetupPanel } from '../../features/meetup'; // meetup feature: "Come to me" compass
 import { Pill, Row, Section } from '../../ui';
 import { ago, KIND_LABELS } from './time';
 import './incident.css';
@@ -160,6 +161,7 @@ export default function IncidentScreen({ incidentId, onBack }: Props) {
       </Section>
 
       <AgentPanel incidentId={incident.id} />
+      <MeetupPanel incidentId={incident.id} />
       <RidePanel incidentId={incident.id} />
       <CoordinationPanel incidentId={incident.id} />
 

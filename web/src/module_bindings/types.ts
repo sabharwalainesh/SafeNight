@@ -367,6 +367,7 @@ export const Incident = __t.object("Incident", {
   openedAt: __t.timestamp(),
   resolvedAt: __t.option(__t.timestamp()),
   resolvedBy: __t.option(__t.identity()),
+  meetupWanted: __t.bool(),
 });
 export type Incident = __Infer<typeof Incident>;
 
@@ -518,6 +519,52 @@ export const LocationUpdate = __t.object("LocationUpdate", {
 });
 export type LocationUpdate = __Infer<typeof LocationUpdate>;
 
+export const Meetup = __t.object("Meetup", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  sessionId: __t.u64(),
+  requester: __t.identity(),
+  helper: __t.identity(),
+  get status() {
+    return MeetupStatus;
+  },
+  startedAt: __t.timestamp(),
+  arrivedAt: __t.option(__t.timestamp()),
+  expiresAt: __t.timestamp(),
+});
+export type Meetup = __Infer<typeof Meetup>;
+
+export const MeetupExpiry = __t.object("MeetupExpiry", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type MeetupExpiry = __Infer<typeof MeetupExpiry>;
+
+export const MeetupRow = __t.object("MeetupRow", {
+  id: __t.u64(),
+  incidentId: __t.u64(),
+  sessionId: __t.u64(),
+  requester: __t.identity(),
+  requesterName: __t.string(),
+  helper: __t.identity(),
+  helperName: __t.string(),
+  get status() {
+    return MeetupStatus;
+  },
+  startedAt: __t.timestamp(),
+  arrivedAt: __t.option(__t.timestamp()),
+  expiresAt: __t.timestamp(),
+});
+export type MeetupRow = __Infer<typeof MeetupRow>;
+
+// The tagged union or sum type for the algebraic type `MeetupStatus`.
+export const MeetupStatus = __t.enum("MeetupStatus", {
+  Coming: __t.unit(),
+  Arrived: __t.unit(),
+  Cancelled: __t.unit(),
+});
+export type MeetupStatus = __Infer<typeof MeetupStatus>;
+
 // The tagged union or sum type for the algebraic type `MemberRole`.
 export const MemberRole = __t.enum("MemberRole", {
   Organizer: __t.unit(),
@@ -569,6 +616,9 @@ export type MyIncidents = __Infer<typeof MyIncidents>;
 
 export const MyInvites = __t.object("MyInvites", {});
 export type MyInvites = __Infer<typeof MyInvites>;
+
+export const MyMeetups = __t.object("MyMeetups", {});
+export type MyMeetups = __Infer<typeof MyMeetups>;
 
 export const MyNotifications = __t.object("MyNotifications", {});
 export type MyNotifications = __Infer<typeof MyNotifications>;

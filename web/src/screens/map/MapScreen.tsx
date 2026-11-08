@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useSafety, type VisibleLocation } from '../../features/safety/api';
 import { BALL_DROP, jitter, SPOTS, TIMES_SQUARE } from '../../features/safety/mock/spots';
 import { PERSONAS } from '../../personas';
+import { useMeetupLine } from '../../features/meetup'; // meetup feature: dashed helper→requester line
+import type { LatLng } from '../../features/meetup/geo';
 import './map.css';
 
 const TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -43,7 +45,7 @@ function popupText(pin: Pin): string {
   return `<strong>${esc(pin.name)}</strong><br/>${esc(when)}`;
 }
 
-function FriendMap({ pins, focus }: { pins: Pin[]; focus: { id: string; n: number } | null }) {
+function FriendMap({ pins, focus, line }: { pins: Pin[]; focus: { id: string; n: number } | null; line: { from: LatLng; to: LatLng } | null }) {
   const host = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -99,6 +101,14 @@ function FriendMap({ pins, focus }: { pins: Pin[]; focus: { id: string; n: numbe
     }
   }, [pins]);
 
+  // meetup feature: dashed line from the helper to the requester while someone is coming
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !line) return;
+    const pl = L.polyline([[line.from.lat, line.from.lng], [line.to.lat, line.to.lng]], { color: 'var(--accent)', weight: 3, dashArray: '6 8', interactive: false }).addTo(m);
+    return () => { pl.remove(); };
+  }, [line]);
+
   useEffect(() => {
     if (!focus) return;
     const mk = markers.current.get(focus.id);
@@ -113,6 +123,7 @@ function FriendMap({ pins, focus }: { pins: Pin[]; focus: { id: string; n: numbe
 
 export function MapScreen() {
   const safety = useSafety();
+  const line = useMeetupLine(); // meetup feature
   const [error, setError] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null);
 
@@ -144,7 +155,7 @@ export function MapScreen() {
       </div>
 
       <div className="map-frame">
-        <FriendMap pins={pins} focus={focus} />
+        <FriendMap pins={pins} focus={focus} line={line} />
       </div>
 
       {!safety.sessionId ? (

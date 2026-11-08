@@ -33,6 +33,7 @@ import { isAtOrBefore, isBefore } from '../lib/time';
 import { countRecent, enforceLimit, HOUR_MICROS, LIMITS, MINUTE_MICROS } from '../lib/limits';
 import { closeJobForIncident, completeRidePlans } from '../lib/agent/jobs';
 import { ensureCommunitySchedules } from '../lib/community';
+import { ensureMeetupExpiryScheduled, hasActiveMeetup } from '../lib/meetup';
 import { MODULE_VERSION } from '../lib/constants';
 
 export const postLocation = spacetimedb.reducer(
@@ -42,9 +43,11 @@ export const postLocation = spacetimedb.reducer(
     if (!sessionIsOpen(session)) throw new SenderError('Session is not active');
     const m = requireActiveMember(ctx, sessionId);
     if (m.sharingScope.tag === 'none') throw new SenderError('Turn on location sharing first');
+    // Requester/helper of a live meetup may stream faster so the compass stays responsive.
+    const limit = hasActiveMeetup(ctx, sessionId, ctx.sender) ? LIMITS.meetupLocationsPerMinute : LIMITS.locationsPerMinute;
     enforceLimit(
       countRecent(ctx.db.locationUpdate.bySessionUser.filter([sessionId, ctx.sender]), r => r.recordedAt, ctx.timestamp, MINUTE_MICROS),
-      LIMITS.locationsPerMinute,
+      limit,
       'Too many location updates; slow down'
     );
     recordLocation(ctx, sessionId, ctx.sender, lat, lng, accuracyM, source);
@@ -321,7 +324,11 @@ export const sweepLocations = spacetimedb.reducer(
 export const ensureSchedules = spacetimedb.reducer(ctx => {
   const owner = ctx.db.config.id.find(0)?.owner;
   if (!owner || !owner.isEqual(ctx.sender)) throw new SenderError('Only the database owner can do that');
-  const created = [...(ensureSweepScheduled(ctx) ? ['location_sweep'] : []), ...ensureCommunitySchedules(ctx)];
+  const created = [
+    ...(ensureSweepScheduled(ctx) ? ['location_sweep'] : []),
+    ...ensureCommunitySchedules(ctx),
+    ...(ensureMeetupExpiryScheduled(ctx) ? ['meetup_expiry'] : []),
+  ];
   // Record the published version so `runtime_status` (whose read set includes this row) refreshes.
   const meta = ctx.db.moduleMeta.id.find(0);
   if (meta) ctx.db.moduleMeta.id.update({ ...meta, moduleVersion: MODULE_VERSION, publishedAt: ctx.timestamp });

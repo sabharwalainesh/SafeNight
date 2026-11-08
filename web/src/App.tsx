@@ -16,6 +16,7 @@ import { SafetyProvider } from './features/safety/SafetyProvider';
 import { NoDrivingBanner, StatusBar } from './features/status';
 import { InboxScreen } from './screens/inbox';
 import { MapScreen } from './screens/map';
+import { MeetupProvider, MeetupTracker } from './features/meetup'; // meetup feature: posts GPS while a meetup is in progress
 import { NightOutTab } from './screens/night-out';
 import { ProfileScreen } from './screens/profile';
 import { ReportsScreen } from './screens/reports';
@@ -104,11 +105,13 @@ export default function App({ persona, host, dbName }: Props) {
       <CurrentSessionProvider>
       <PersonaMapProvider>
       <SafetyProvider>
+      <MeetupProvider>{/* meetup feature */}
       <AgentProvider>
       <ReportsProvider me={persona.id}>
       <ProfileProvider me={persona.id} displayName={persona.name}>
       <main className="content">
         <DemoPersonaRegistrar />
+        <MeetupTracker />
         <NoDrivingBanner onViewIncident={openIncident} />
         {tab === 'night' ? (
           <NightOutTab />
@@ -143,6 +146,7 @@ export default function App({ persona, host, dbName }: Props) {
       </ProfileProvider>
       </ReportsProvider>
       </AgentProvider>
+      </MeetupProvider>
       </SafetyProvider>
       </PersonaMapProvider>
       </CurrentSessionProvider>

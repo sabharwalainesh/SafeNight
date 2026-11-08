@@ -224,6 +224,27 @@ Generated bindings (`web/src/module_bindings`): `tables.visibleLocations`, `tabl
 - Actions ← `reducers.*` with `bigint` ids; `postLocation.source` is `{ tag: 'Simulated' }` for demo personas; reducer promises reject with `SenderError` carrying the strings above.
 - Deterministic path to demo: Alex `reportConcern(sessionId, samIdentity, { tag: 'PossibleConsumption' }, note)` → Sam's tab gets a `NoDrivingWarning` alert in the same transaction and `myIncidents` shows the `PossibleImpairedDriving` incident to all four personas.
 
+## 7a. Meetups — "Come to me" (IMPLEMENTED, v0.9.0)
+
+A person who feels uneasy asks for **someone to physically come to them**. A buddy volunteers, and for the next hour both phones can point a compass at each other. Everything is consent-scoped, time-boxed, and human-resolved; the agent never creates or ends a meetup.
+
+**Tables** (`spacetimedb/src/tables/meetup.ts`): private `meetup` {id, incidentId, sessionId, requester, helper, status `MeetupStatus {coming, arrived, cancelled}`, startedAt, arrivedAt?, expiresAt} with btree indexes on incidentId, sessionId, requester, helper; private schedule table `meetup_expiry`. `incident` gained `meetupWanted: bool` (default false).
+
+**Reducers** (`spacetimedb/src/reducers/meetup.ts`):
+
+- `request_company(sessionId, note)` — active member only, rate-limited with check-ins (10/min). Records a `need_friend` check-in, opens or reuses the caller's open `help_requested` incident, sets `meetupWanted = true`, timeline `company_requested`, and alerts every other participant (`help_requested`: "<Name> wants someone to come to them.").
+- `offer_to_come(incidentId)` — an incident participant who is **not** the subject; the incident must be open and `meetupWanted`. Idempotent per helper (one `coming` meetup per helper per incident; several helpers may each have one). Inserts the meetup (`expiresAt = now + 60 min`), grants `location_precise` **both ways** for the session for 60 min through `insertGrant` (so the ordinary `visible_locations` view starts showing exact positions to both), marks the helper acknowledged (incident `open → acknowledged`), timeline `helper_coming`, alerts requester ("<Helper> is coming to you.") and helper ("Head to <Requester>; the compass is live."), audit row.
+- `mark_arrived(meetupId)` — helper or requester; `coming → arrived`, sets `arrivedAt`, timeline `helper_arrived`, alerts both. The incident is **not** resolved; a person still calls `resolve_incident` / "I'm home".
+- `cancel_meetup(meetupId, reason)` — helper or requester; `→ cancelled`, revokes **only** the two meetup grants (other grants untouched), timeline `meetup_cancelled`, alerts both.
+- `expire_meetups` — scheduled every 60 s (armed in `init` and `ensure_schedules`): stale `coming` meetups become `cancelled` (timeline detail `expired`), grants revoked, both parties alerted.
+- `post_location` — requester/helper of a live `coming` meetup may post **60/min** (others stay at 30/min) so the compass refreshes about once a second.
+
+**View** `my_meetups` (`MeetupRow` {id, incidentId, sessionId, requester, requesterName, helper, helperName, status, startedAt, arrivedAt?, expiresAt}): rows where the caller is requester or helper, plus every meetup on incidents the caller participates in, so buddies can see who is already on the way.
+
+**Bindings**: `tables.myMeetups`; `reducers.requestCompany`, `reducers.offerToCome`, `reducers.markArrived`, `reducers.cancelMeetup`; `MeetupStatus {Coming, Arrived, Cancelled}`; `IncidentRow` is unchanged (the `meetupWanted` flag is private; the client learns of a request from the `company_requested` event and the `help_requested` alert, and sees the `my_meetups` row once someone offers).
+
+**Client notes (compass)**: the helper's compass reads the requester's row in `visible_locations` (precise, thanks to the meetup grant) and its own device GPS, computes bearing with the great-circle formula, and subtracts the device heading from `DeviceOrientationEvent` (`webkitCompassHeading` on iOS, `alpha` elsewhere; iOS 13+ needs `DeviceOrientationEvent.requestPermission()` from a tap). Show distance (haversine) and a "stale" state when `recordedAt` is older than 15 s. The requester sees the mirror (helper's bearing). Offer **Arrived** and **Cancel** on both sides; stream `postLocation` with `{ tag: 'Device' }` at ~1 Hz while the meetup is `Coming`.
+
 ## 8. C3 — Nemotron agent workflow (IMPLEMENTED)
 
 Module version `0.7.0-c3b` (C3-A.2 tool loop and policy safety net included). Everything below exists in `spacetimedb/src` (tables in `tables/agent.ts`, logic in `lib/agent/*`, procedures in `procedures/agent.ts`, human reducers in `reducers/agent.ts`, views in `views/agent.ts`) and in the generated bindings.

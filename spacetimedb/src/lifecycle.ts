@@ -1,6 +1,7 @@
 import { spacetimedb } from './schema';
 import { ensureSweepScheduled } from './lib/safety';
 import { ensureCommunitySchedules, seedResources } from './lib/community';
+import { ensureMeetupExpiryScheduled } from './lib/meetup';
 import { MODULE_VERSION } from './lib/constants';
 
 export const init = spacetimedb.init(ctx => {
@@ -15,6 +16,7 @@ export const init = spacetimedb.init(ctx => {
   });
   ensureSweepScheduled(ctx);
   ensureCommunitySchedules(ctx);
+  ensureMeetupExpiryScheduled(ctx);
   seedResources(ctx);
   ctx.db.moduleMeta.insert({ id: 0, moduleVersion: MODULE_VERSION, publishedAt: ctx.timestamp });
 });
