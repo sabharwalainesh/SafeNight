@@ -1,0 +1,230 @@
+{
+  "duration": 180,
+  "fps": 30,
+  "shots": [
+    {
+      "id": "party",
+      "start": 0,
+      "end": 12.5,
+      "kind": "clip",
+      "clip": "scene-1.mp4",
+      "trim": 0,
+      "title": "A night with friends.",
+      "label": "THE NIGHT BEGINS"
+    },
+    {
+      "id": "outside",
+      "start": 12.5,
+      "end": 18.5,
+      "kind": "clip",
+      "clip": "scene-2.mp4",
+      "trim": 0,
+      "title": "",
+      "label": ""
+    },
+    {
+      "id": "street",
+      "start": 18.5,
+      "end": 21.3,
+      "kind": "clip",
+      "clip": "scene-3.mp4",
+      "trim": 0,
+      "title": "",
+      "label": ""
+    },
+    {
+      "id": "alone",
+      "start": 21.3,
+      "end": 27.3,
+      "kind": "clip",
+      "clip": "scene-4.mp4",
+      "trim": 0,
+      "title": "Then the group loses touch.",
+      "label": "LATER THAT NIGHT"
+    },
+    {
+      "id": "context",
+      "start": 27.3,
+      "end": 40,
+      "kind": "context",
+      "title": "Find your people."
+    },
+    {
+      "id": "group",
+      "start": 40,
+      "end": 47,
+      "kind": "product",
+      "clip": "product-group.mp4",
+      "title": "Everyone, in view.",
+      "focus": [
+        0.03,
+        0.29,
+        0.94,
+        0.3
+      ]
+    },
+    {
+      "id": "actions",
+      "start": 47,
+      "end": 52,
+      "kind": "product",
+      "clip": "product-actions.mp4",
+      "title": "A shortcut to your people.",
+      "focus": [
+        0.03,
+        0.36,
+        0.94,
+        0.46
+      ]
+    },
+    {
+      "id": "messages",
+      "start": 52,
+      "end": 57,
+      "kind": "product",
+      "clip": "product-messages.mp4",
+      "title": "Keep the group in the loop.",
+      "focus": [
+        0.02,
+        0.2,
+        0.96,
+        0.38
+      ]
+    },
+    {
+      "id": "plan",
+      "start": 57,
+      "end": 64,
+      "kind": "product",
+      "clip": "product-plan.mp4",
+      "title": "Context becomes a plan.",
+      "focus": [
+        0.03,
+        0.32,
+        0.94,
+        0.3
+      ]
+    },
+    {
+      "id": "accept",
+      "start": 64,
+      "end": 72,
+      "kind": "product",
+      "clip": "product-accept.mp4",
+      "title": "A person takes the next step.",
+      "focus": [
+        0.03,
+        0.43,
+        0.94,
+        0.28
+      ]
+    },
+    {
+      "id": "ring",
+      "start": 72,
+      "end": 76.5,
+      "kind": "clip",
+      "clip": "scene-5.mp4",
+      "trim": 0,
+      "label": "CHECK IN",
+      "title": "A call when it matters."
+    },
+    {
+      "id": "call",
+      "start": 76.5,
+      "end": 95.8,
+      "kind": "clip",
+      "clip": "scene-6.mp4",
+      "trim": 0,
+      "label": "ALEX \u00b7 CHECK-IN CALL",
+      "title": ""
+    },
+    {
+      "id": "friend",
+      "start": 95.8,
+      "end": 120.8,
+      "kind": "clip",
+      "clip": "scene-7.mp4",
+      "trim": 2.5,
+      "label": "JORDAN \u00b7 FRIEND ALERT",
+      "title": ""
+    },
+    {
+      "id": "route-search",
+      "start": 120.8,
+      "end": 127,
+      "kind": "route-search",
+      "title": "Find a way back."
+    },
+    {
+      "id": "route",
+      "start": 127,
+      "end": 138,
+      "kind": "product",
+      "clip": "product-route.mp4",
+      "title": "From a pin to a path.",
+      "focus": [
+        0.02,
+        0.18,
+        0.96,
+        0.52
+      ]
+    },
+    {
+      "id": "compass",
+      "start": 138,
+      "end": 145,
+      "kind": "product",
+      "clip": "product-compass.mp4",
+      "title": "Keep your friend in sight.",
+      "focus": [
+        0.05,
+        0.25,
+        0.9,
+        0.4
+      ]
+    },
+    {
+      "id": "chat",
+      "start": 145,
+      "end": 154,
+      "kind": "product",
+      "clip": "product-chat.mp4",
+      "title": "A shared plan. A direct reply.",
+      "focus": [
+        0.02,
+        0.25,
+        0.96,
+        0.38
+      ]
+    },
+    {
+      "id": "stack",
+      "start": 154,
+      "end": 167,
+      "kind": "stack",
+      "title": "Built to stay connected."
+    },
+    {
+      "id": "arrival",
+      "start": 167,
+      "end": 175,
+      "kind": "product",
+      "clip": "product-arrival.mp4",
+      "title": "Close the distance.",
+      "focus": [
+        0.03,
+        0.23,
+        0.94,
+        0.45
+      ]
+    },
+    {
+      "id": "close",
+      "start": 175,
+      "end": 180,
+      "kind": "close",
+      "title": "Go out together.\nGet home together."
+    }
+  ]
+}

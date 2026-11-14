@@ -1,0 +1,195 @@
+1
+00:00:00,000 --> 00:00:04,060
+much fun bro. Hey man you have fun I think I'm just gonna have a chill
+
+2
+00:00:04,060 --> 00:00:04,320
+night
+
+3
+00:00:04,320 --> 00:00:07,320
+and study today bro. You sure bro? We're gonna have so much planned
+
+4
+00:00:07,320 --> 00:00:12,200
+bro. Nah man I gotta lock in. Yeah but you have fun though. I appreciate
+
+5
+00:00:12,200 --> 00:00:12,500
+it bro.
+
+6
+00:00:23,010 --> 00:00:23,740
+Adam?
+
+7
+00:00:26,000 --> 00:00:26,850
+Where the hell are you?
+
+8
+00:00:27,300 --> 00:00:32,380
+Finding friends takes coordination. A survey of fifteen hundred adult
+
+9
+00:00:32,380 --> 00:00:36,444
+festival-goers found forty-four percent used group chats, forty-three
+
+10
+00:00:36,444 --> 00:00:40,000
+percent calls, and forty percent live location.
+
+11
+00:00:40,000 --> 00:00:44,278
+SafeNight brings that into one place. See your group, their shared
+
+12
+00:00:44,278 --> 00:00:47,000
+locations, and a timeline of everyone's check-ins.
+
+13
+00:00:47,000 --> 00:00:51,000
+Invite friends, ask someone to come to you, or open driver concerns
+
+14
+00:00:51,000 --> 00:00:52,000
+and venue reports.
+
+15
+00:00:52,000 --> 00:00:55,571
+Group messages keep everyone updated when someone misses a check-in
+
+16
+00:00:55,571 --> 00:00:57,000
+or asks for help.
+
+17
+00:00:57,000 --> 00:01:01,053
+Here, the demo agent brings the situation together: who needs help,
+
+18
+00:01:01,053 --> 00:01:04,000
+their last location, and which friend can respond.
+
+19
+00:01:04,000 --> 00:01:07,692
+The plan suggests walking over, calling a backup, or offering a ride.
+
+20
+00:01:07,692 --> 00:01:11,692
+A friend accepts the next step. Here’s what a check-in call can sound
+
+21
+00:01:11,692 --> 00:01:12,000
+like.
+
+22
+00:01:18,820 --> 00:01:22,740
+Hi Alex, this is SafeNight. Your friends lost track of you and you're
+
+23
+00:01:22,740 --> 00:01:25,030
+not answering texts. Are you okay right now?
+
+24
+00:01:25,380 --> 00:01:28,640
+Yeah, I'm just looking for someone because I lost them. Can you just
+
+25
+00:01:28,640 --> 00:01:30,310
+let them know that I'm looking for them?
+
+26
+00:01:31,880 --> 00:01:35,000
+Your friends were alerted and can see your last location in the Safe
+
+27
+00:01:35,000 --> 00:01:35,570
+Night app.
+
+28
+00:01:37,160 --> 00:01:41,110
+Hi Jordan, this is SafeNight calling for Alex. They may need help.
+
+29
+00:01:41,340 --> 00:01:42,510
+Can you check on them right now?
+
+30
+00:01:43,180 --> 00:01:49,920
+Yeah, sure. They were last reported on West 44th Street near 8th Avenue
+
+31
+00:01:49,920 --> 00:01:51,520
+a block west of it
+
+32
+00:01:51,520 --> 00:01:53,670
+Okay. Thank you so much
+
+33
+00:01:54,910 --> 00:01:58,420
+Open the SafeNight app to see their last location or call them directly
+
+34
+00:02:00,800 --> 00:02:05,042
+Finding someone takes more than a pin. Connect the paths, find a route,
+
+35
+00:02:05,042 --> 00:02:07,000
+and start moving toward your friend.
+
+36
+00:02:07,000 --> 00:02:12,500
+The map puts the group in context, then opens a walking route to Maya.
+
+37
+00:02:12,500 --> 00:02:17,607
+Expand it for a closer look, and follow the directions as your position
+
+38
+00:02:17,607 --> 00:02:18,000
+updates.
+
+39
+00:02:18,000 --> 00:02:22,053
+Switch to the compass view for direction and distance. Walking progress
+
+40
+00:02:22,053 --> 00:02:25,000
+stays visible, with a control to pause it.
+
+41
+00:02:25,000 --> 00:02:29,846
+Back in messages, the group knows who is on the way. In a private
+
+42
+00:02:29,846 --> 00:02:33,654
+conversation, Maya can share the details that help her friend find
+
+43
+00:02:33,654 --> 00:02:34,000
+her.
+
+44
+00:02:34,000 --> 00:02:38,194
+SpacetimeDB keeps shared state in sync. Nemotron powers the coordination
+
+45
+00:02:38,194 --> 00:02:41,968
+workflow. ElevenLabs and Photon support voice calls, while OpenStreetMap
+
+46
+00:02:41,968 --> 00:02:47,000
+supplies map and route data. This recording uses a labeled demo scenario.
+
+47
+00:02:47,000 --> 00:02:51,174
+As the route progresses, the gap gets smaller. The goal is simple:
+
+48
+00:02:51,174 --> 00:02:55,000
+less time searching, and a clearer plan for getting back together.
+
+49
+00:02:55,000 --> 00:03:00,000
+SafeNight. Go out together. Get home together.

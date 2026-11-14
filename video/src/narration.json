@@ -1,0 +1,80 @@
+[
+  {
+    "id": "context",
+    "start": 27.3,
+    "end": 40,
+    "text": "Finding friends takes coordination. A survey of fifteen hundred adult festival-goers found forty-four percent used group chats, forty-three percent calls, and forty percent live location."
+  },
+  {
+    "id": "group",
+    "start": 40,
+    "end": 47,
+    "text": "SafeNight brings that into one place. See your group, their shared locations, and a timeline of everyone's check-ins."
+  },
+  {
+    "id": "actions",
+    "start": 47,
+    "end": 52,
+    "text": "Invite friends, ask someone to come to you, or open driver concerns and venue reports."
+  },
+  {
+    "id": "messages",
+    "start": 52,
+    "end": 57,
+    "text": "Group messages keep everyone updated when someone misses a check-in or asks for help."
+  },
+  {
+    "id": "plan",
+    "start": 57,
+    "end": 64,
+    "text": "Here, the demo agent brings the situation together: who needs help, their last location, and which friend can respond."
+  },
+  {
+    "id": "accept",
+    "start": 64,
+    "end": 72,
+    "text": "The plan suggests walking over, calling a backup, or offering a ride. A friend accepts the next step. Here\u2019s what a check-in call can sound like."
+  },
+  {
+    "id": "route-search",
+    "start": 120.8,
+    "end": 127,
+    "text": "Finding someone takes more than a pin. Connect the paths, find a route, and start moving toward your friend."
+  },
+  {
+    "id": "route",
+    "start": 127,
+    "end": 138,
+    "text": "The map puts the group in context, then opens a walking route to Maya. Expand it for a closer look, and follow the directions as your position updates."
+  },
+  {
+    "id": "compass",
+    "start": 138,
+    "end": 145,
+    "text": "Switch to the compass view for direction and distance. Walking progress stays visible, with a control to pause it."
+  },
+  {
+    "id": "chat",
+    "start": 145,
+    "end": 154,
+    "text": "Back in messages, the group knows who is on the way. In a private conversation, Maya can share the details that help her friend find her."
+  },
+  {
+    "id": "stack",
+    "start": 154,
+    "end": 167,
+    "text": "SpacetimeDB keeps shared state in sync. Nemotron powers the coordination workflow. ElevenLabs and Photon support voice calls, while OpenStreetMap supplies map and route data. This recording uses a labeled demo scenario."
+  },
+  {
+    "id": "arrival",
+    "start": 167,
+    "end": 175,
+    "text": "As the route progresses, the gap gets smaller. The goal is simple: less time searching, and a clearer plan for getting back together."
+  },
+  {
+    "id": "close",
+    "start": 175,
+    "end": 180,
+    "text": "SafeNight. Go out together. Get home together."
+  }
+]

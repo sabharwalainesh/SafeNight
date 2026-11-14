@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "remotion studio src/index.tsx",
     "typecheck": "tsc --noEmit",
-    "preview": "node scripts/render.mjs preview",
-    "render": "node scripts/render.mjs final",
-    "check": "node scripts/render.mjs check",
+    "preview": "node scripts/showcase-render.mjs",
+    "render": "node scripts/showcase-render.mjs --final",
+    "check": "node scripts/showcase-render.mjs --check",
     "guide": "node scripts/guide.mjs",
     "subtitles:reset": "node scripts/guide.mjs --reset-timing",
-    "test": "node scripts/check-timeline.mjs",
-    "music": "python3 scripts/music.py"
+    "test": "node scripts/showcase-render.mjs --check",
+    "music": "python3 scripts/music.py",
+    "preview:legacy": "node scripts/render.mjs preview"
   },
   "dependencies": {
     "@remotion/cli": "4.0.541",

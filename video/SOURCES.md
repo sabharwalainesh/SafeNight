@@ -1,23 +1,19 @@
-# Statistics and interpretation
+# Current showcase sources
 
-Verified November 7, 2026. Source years are displayed in the video; neither statistic is presented as a 2026 incidence estimate.
+## Friendly statistics · 0:27.3–0:40
 
-## 0:18–0:30 — 13%
+Source: [Vodafone — Forget wellies: The group chat goes to the festival](https://www.vodafone.co.uk/newscentre/press-release/group-chat-goes-to-the-festival/), published August 4, 2026, consulted November 8, 2026.
 
-Source: [AAU Releases 2019 Survey on Sexual Assault and Misconduct](https://www.aau.edu/newsroom/aau-releases-2019-survey-sexual-assault-and-misconduct).
+The Connected Crowd report describes group chats (44%), phone calls (43%) and live location sharing (40%) as connectivity-dependent ways festival-goers find friends. The methodology reports a 3Gem poll of 1,500 festival-goers aged 18+, conducted July 25–28, 2026. The release frames the findings in the UK festival context. The footage shows that source, date, sample size and adult population.
 
-The 2019 AAU survey covered 33 universities. Across student respondents, 13% reported sexual contact involving physical force or inability to consent since enrolling. This is a cumulative measure among survey respondents, not an annual rate, a rate for every college, or a statistic specifically about walking outside at night.
+These percentages describe reported ways of connecting/finding people. They are not percentages of people who got lost, are not mutually exclusive, should not be added together, and do not establish SafeNight's effectiveness. This is a commercial survey rather than a representative estimate of all people at all events. The narration uses the modest claim that finding friends takes coordination.
 
-## 0:30–0:40 — 25%
+The previous sexual-assault and alcohol statistics have been removed from the active composition and narration.
 
-Source: [NIAAA: Alcohol and Young Adults Ages 18 to 25](https://www.niaaa.nih.gov/alcohols-effects-health/alcohol-topics-z/alcohol-facts-and-statistics/alcohol-and-young-adults-ages-18-25), citing the 2024 NSDUH.
+## Product and technology evidence
 
-25.0% of full-time U.S. college students ages 18–25 reported binge drinking in the past month. Preserve that population and timeframe. It is not an estimate of assault, intoxication at a particular event, or SafeNight effectiveness.
+Product footage: the user's `ScreenRecording_11-08-2026 07-38-03_1.mov`. Its demo label explicitly identifies simulated people; its agent summary identifies scripted output. Keep those labels. The app's route view credits OpenStreetMap and shows actual route steps within that recorded demo.
 
-## Editorial boundary
+The current repository contains SpacetimeDB state and coordination logic, NVIDIA Nemotron integration, and an ElevenLabs/Photon voice bridge. The video distinguishes this stack from the scripted recorded scenario. Institutional dispatch remains simulated, and no emergency-service handoff is depicted as completed.
 
-The two figures come from different studies, populations, and time windows. They do not establish a causal relationship between drinking and sexual victimization, and neither demonstrates that SafeNight prevents harm. The 0:40–0:48 narration explicitly makes that distinction. The actor is not portrayed as having consumed alcohol or as responsible for feeling unsafe.
-
-## Proposed call and institutional handoff
-
-The staged call and campus-safety message are product-story concepts. The currently inspected backend exposes scoped messaging and incident workflows, but this work did not verify a working outbound voice agent or an institutional dispatch integration. Keep “Proposed … · simulated” on these scenes even after replacing the footage cards. A demo receiver must not be a real emergency line. The request includes only confirmed necessary details and remains pending until an authorized human recipient acknowledges it.
+The Dijkstra animation is an original illustrative graph with Euclidean edge weights. It is not a map-provider implementation claim. Music is original synthesized audio, with no third-party song recording.
